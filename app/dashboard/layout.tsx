@@ -15,11 +15,29 @@ export default function DashboardLayout({
   const [isTablet, setIsTablet] = useState(false)
 
   useEffect(() => {
+    // 1. Initial Local Storage Loading (Fast UI render)
     const saved = localStorage.getItem("growwave-sidebar-collapsed")
     if (saved !== null) {
       setIsCollapsed(JSON.parse(saved))
     }
 
+    // 2. Database Preference Synchronization (Secure login restore)
+    const fetchDatabasePreferences = async () => {
+      try {
+        const res = await fetch("/api/user/sidebar-preferences")
+        if (res.ok) {
+          const data = await res.json()
+          if (data.preferences && data.preferences.isCollapsed !== undefined) {
+            setIsCollapsed(data.preferences.isCollapsed)
+            localStorage.setItem("growwave-sidebar-collapsed", JSON.stringify(data.preferences.isCollapsed))
+          }
+        }
+      } catch (err) {
+        console.error("Failed to restore sidebar collapse preferences from database:", err)
+      }
+    }
+
+    // 3. Responsive Breakpoints Listener
     const checkResponsiveSize = () => {
       const width = window.innerWidth
       if (width >= 1024 && width < 1200) {
@@ -29,6 +47,7 @@ export default function DashboardLayout({
       }
     }
 
+    fetchDatabasePreferences()
     checkResponsiveSize()
     window.addEventListener("resize", checkResponsiveSize)
     return () => window.removeEventListener("resize", checkResponsiveSize)
