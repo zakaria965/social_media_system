@@ -5,6 +5,7 @@ import { ActivityLog } from "@/lib/models/activity"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth.config"
 import { QueueJob } from "@/lib/models/queue"
+import { getActiveWorkspaceId, verifyMemberPermission, logWorkspaceActivity } from "@/lib/workspaces"
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,11 +15,19 @@ export async function GET(request: NextRequest) {
     }
 
     await connectDB()
+    const workspaceId = await getActiveWorkspaceId(session.user.email, request)
+
+    // Verify dashboard permission
+    const check = await verifyMemberPermission(session.user.email, workspaceId, "dashboard")
+    if (!check.allowed) {
+      return NextResponse.json({ error: check.error }, { status: 403 })
+    }
+
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
 
     if (id) {
-      const post = await Post.findOne({ _id: id, userId: session.user.email }).lean()
+      const post = await Post.findOne({ _id: id, workspaceId }).lean()
       if (!post) {
         return NextResponse.json({ error: "Post not found" }, { status: 404 })
       }
@@ -39,7 +48,7 @@ export async function GET(request: NextRequest) {
     }
 
     const status = searchParams.get("status")
-    const filter: Record<string, unknown> = { userId: session.user.email }
+    const filter: Record<string, unknown> = { workspaceId }
     if (status && ["draft", "scheduled", "publishing", "published", "failed", "cancelled"].includes(status)) {
       filter.status = status
     }
@@ -79,6 +88,14 @@ export async function POST(request: NextRequest) {
     }
 
     await connectDB()
+    const workspaceId = await getActiveWorkspaceId(session.user.email, request)
+
+    // Verify post creation permissions
+    const check = await verifyMemberPermission(session.user.email, workspaceId, "posts")
+    if (!check.allowed) {
+      return NextResponse.json({ error: check.error }, { status: 403 })
+    }
+
     const body = await request.json()
     const { content, platforms, media, hashtags, status, scheduledAt, title, type } = body
 
@@ -90,22 +107,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "At least one platform is required" }, { status: 400 })
     }
 
+    // Role Enforcement / Approval Workflow trigger:
+    // If the role is Editor or Custom and doesn't have owner/admin rights, they cannot schedule or publish directly.
+    // They must request review, and the post status is set as draft/pending review.
+    const isOwnerOrAdmin = ["owner", "admin"].includes(check.role || "")
+    let finalStatus = status || "draft"
+    let approvalStatus: "none" | "pending_review" | "approved" | "rejected" = "none"
+
+    if (!isOwnerOrAdmin && (finalStatus === "scheduled" || finalStatus === "published" || finalStatus === "publishing")) {
+      // Force draft status and flag as pending review
+      finalStatus = "draft"
+      approvalStatus = "pending_review"
+    }
+
     const post = await Post.create({
       userId: session.user.email,
+      workspaceId,
       title: title || "",
       content: content || "",
       platforms: platforms || [],
       media: media || [],
       hashtags: hashtags || [],
-      status: status || "draft",
+      status: finalStatus,
       type: type || "text",
       scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+      approvalStatus,
+      approvalRequestedBy: approvalStatus === "pending_review" ? session.user.email : null,
     })
 
-    // Log this action to the live ActivityLog
+    // Log this action to the ActivityLog
     let details = ""
     let action = "create_post"
-    if (post.status === "draft") {
+
+    if (approvalStatus === "pending_review") {
+      details = `Created draft post: "${post.title || post.content.slice(0, 30)}..." and submitted for Admin approval.`
+      action = "request_review"
+    } else if (post.status === "draft") {
       details = `Created draft: "${post.title || post.content.slice(0, 30)}..."`
     } else if (post.status === "scheduled") {
       details = `Scheduled post: "${post.title || post.content.slice(0, 30)}..." for ${post.platforms.join(", ")}`
@@ -116,13 +153,13 @@ export async function POST(request: NextRequest) {
       details = `Saved post: "${post.title || post.content.slice(0, 30)}..."`
     }
 
-    await ActivityLog.create({
-      userId: session.user.email,
+    await logWorkspaceActivity(
+      workspaceId,
+      session.user.email,
       action,
       details,
-      platform: post.platforms.length > 0 ? post.platforms[0] : null,
-      status: "success",
-    })
+      post.platforms.length > 0 ? post.platforms[0] : null
+    )
 
     return NextResponse.json({ post }, { status: 201 })
   } catch (err: unknown) {
@@ -140,6 +177,14 @@ export async function PATCH(request: NextRequest) {
     }
 
     await connectDB()
+    const workspaceId = await getActiveWorkspaceId(session.user.email, request)
+
+    // Verify post permission
+    const check = await verifyMemberPermission(session.user.email, workspaceId, "posts")
+    if (!check.allowed) {
+      return NextResponse.json({ error: check.error }, { status: 403 })
+    }
+
     const body = await request.json()
     const { id, ...updates } = body
 
@@ -147,14 +192,15 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Post ID is required" }, { status: 400 })
     }
 
+    // Secure workspace isolating check
     const post = await Post.findOneAndUpdate(
-      { _id: id, userId: session.user.email },
+      { _id: id, workspaceId },
       { $set: updates },
       { new: true }
     )
 
     if (!post) {
-      return NextResponse.json({ error: "Post not found" }, { status: 404 })
+      return NextResponse.json({ error: "Post not found in active workspace" }, { status: 404 })
     }
 
     return NextResponse.json({ post })
@@ -173,6 +219,14 @@ export async function DELETE(request: NextRequest) {
     }
 
     await connectDB()
+    const workspaceId = await getActiveWorkspaceId(session.user.email, request)
+
+    // Verify delete permissions
+    const check = await verifyMemberPermission(session.user.email, workspaceId, "posts")
+    if (!check.allowed) {
+      return NextResponse.json({ error: check.error }, { status: 403 })
+    }
+
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
 
@@ -180,10 +234,11 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Post ID is required" }, { status: 400 })
     }
 
-    const post = await Post.findOneAndDelete({ _id: id, userId: session.user.email })
+    // Secure workspace isolation deletion check
+    const post = await Post.findOneAndDelete({ _id: id, workspaceId })
 
     if (!post) {
-      return NextResponse.json({ error: "Post not found" }, { status: 404 })
+      return NextResponse.json({ error: "Post not found in active workspace" }, { status: 404 })
     }
 
     return NextResponse.json({ success: true })

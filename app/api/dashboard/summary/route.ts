@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth.config"
 import { connectDB } from "@/lib/db"
+import mongoose from "mongoose"
 import { SocialAccount } from "@/lib/models/account"
 import { Post } from "@/lib/models/post"
 import { ActivityLog } from "@/lib/models/activity"
 import { Media } from "@/lib/models/media"
+import { getActiveWorkspaceId } from "@/lib/workspaces"
 
 // Helper to fetch custom dynamic AI summary
 async function generateAISummary(
@@ -75,9 +77,10 @@ export async function GET(request: NextRequest) {
 
     await connectDB()
     const email = session.user.email
+    const workspaceId = await getActiveWorkspaceId(email, request)
 
-    let accounts = await SocialAccount.find({ userId: email })
-    let posts = await Post.find({ userId: email })
+    let accounts = await SocialAccount.find({ workspaceId })
+    let posts = await Post.find({ workspaceId })
 
     // 1. Automatic database seeding if the user workspace is brand new (zero accounts and zero posts)
     if (accounts.length === 0 && posts.length === 0) {
@@ -139,7 +142,7 @@ export async function GET(request: NextRequest) {
         }
       ]
       
-      await SocialAccount.insertMany(seededAccounts)
+      await SocialAccount.insertMany(seededAccounts.map(a => ({ ...a, workspaceId })))
       
       const seededPosts = [
         {
@@ -187,7 +190,7 @@ export async function GET(request: NextRequest) {
         }
       ]
 
-      await Post.insertMany(seededPosts)
+      await Post.insertMany(seededPosts.map(p => ({ ...p, workspaceId })))
 
       const seededActivities = [
         {
@@ -232,11 +235,11 @@ export async function GET(request: NextRequest) {
         }
       ]
 
-      await ActivityLog.insertMany(seededActivities)
+      await ActivityLog.insertMany(seededActivities.map(act => ({ ...act, workspaceId })))
 
       // Re-fetch now that database is seeded
-      accounts = await SocialAccount.find({ userId: email })
-      posts = await Post.find({ userId: email })
+      accounts = await SocialAccount.find({ workspaceId })
+      posts = await Post.find({ workspaceId })
     }
 
     // 2. Real Metrics Aggregation
@@ -263,14 +266,14 @@ export async function GET(request: NextRequest) {
 
     // Count AI actions in ActivityLog
     const aiActionsCount = await ActivityLog.countDocuments({
-      userId: email,
+      workspaceId,
       action: { $in: ["ai_generation", "generate_caption", "generate_hashtags", "content_ideas"] },
     })
 
     // 3. Workspace Health statistics
-    const mediaCount = await Media.countDocuments({ userId: email })
+    const mediaCount = await Media.countDocuments({ workspaceId })
     const mediaSizeGroup = await Media.aggregate([
-      { $match: { userId: email } },
+      { $match: { workspaceId: new mongoose.Types.ObjectId(workspaceId) } },
       { $group: { _id: null, total: { $sum: "$size" } } },
     ])
     const mediaSizeInBytes = mediaSizeGroup[0]?.total || 0
@@ -328,7 +331,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 5. Fetch recent activity feed
-    const activities = await ActivityLog.find({ userId: email }).sort({ createdAt: -1 }).limit(10).lean()
+    const activities = await ActivityLog.find({ workspaceId }).sort({ createdAt: -1 }).limit(10).lean()
 
     // 6. Generate dynamic AI Greetings/Insights
     const connectedPlatformsList = accounts.map((a) => a.platform)

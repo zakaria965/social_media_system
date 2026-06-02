@@ -44,6 +44,7 @@ import {
 import { PageTransition } from "@/components/dashboard/page-transition"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/toast-provider"
+import { useWorkspace } from "@/components/dashboard/workspace-provider"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 
@@ -69,6 +70,11 @@ interface PostData {
   executionLogs?: any[]
   jobsCount?: number
   jobsStatus?: any[]
+  approvalStatus?: string
+  approvalRequestedBy?: string | null
+  approvedOrRejectedBy?: string | null
+  approvalNotes?: string | null
+  assignedTo?: string | null
 }
 
 const platformColors: Record<string, string> = {
@@ -107,8 +113,22 @@ export default function ScheduledPostsPage() {
   const router = useRouter()
   const { data: session } = useSession()
   const { showToast } = useToast()
+
+  const { role: userRole } = useWorkspace()
+  const isOwnerOrAdmin = ["owner", "admin"].includes(userRole || "")
+
   const [tab, setTab] = useState("all")
   const [posts, setPosts] = useState<PostData[]>([])
+
+  // Comments state
+  const [commentingPost, setCommentingPost] = useState<PostData | null>(null)
+  const [comments, setComments] = useState<any[]>([])
+  const [newComment, setNewComment] = useState("")
+  const [commentsLoading, setCommentsLoading] = useState(false)
+
+  // Rejection state
+  const [rejectingPost, setRejectingPost] = useState<PostData | null>(null)
+  const [rejectionNotes, setRejectionNotes] = useState("")
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [search, setSearch] = useState("")
@@ -227,11 +247,17 @@ export default function ScheduledPostsPage() {
 
   const fetchPosts = useCallback(async (isInitial = false) => {
     try {
-      const params = tabRef.current !== "all" ? `?status=${tabRef.current}` : ""
+      const isReviewTab = tabRef.current === "review"
+      const statusParam = isReviewTab ? "draft" : tabRef.current
+      const params = statusParam !== "all" ? `?status=${statusParam}` : ""
       const res = await fetch(`/api/posts${params}`)
       const data = await res.json()
       if (res.ok) {
-        setPosts(data.posts || [])
+        let list = data.posts || []
+        if (isReviewTab) {
+          list = list.filter((p: any) => p.approvalStatus === "pending_review")
+        }
+        setPosts(list)
       }
     } catch {
       showToast("Failed to load posts", "error")
@@ -239,6 +265,81 @@ export default function ScheduledPostsPage() {
       if (isInitial) setLoading(false)
     }
   }, [showToast])
+
+  const fetchComments = async (postId: string) => {
+    setCommentsLoading(true)
+    try {
+      const res = await fetch(`/api/posts/${postId}/comments`)
+      if (res.ok) {
+        const data = await res.json()
+        setComments(data.comments || [])
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setCommentsLoading(false)
+    }
+  }
+
+  const handlePostComment = async () => {
+    if (!commentingPost || !newComment.trim()) return
+    try {
+      const res = await fetch(`/api/posts/${commentingPost._id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: newComment.trim() }),
+      })
+      if (res.ok) {
+        setNewComment("")
+        fetchComments(commentingPost._id)
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const handleApprovePost = async (postId: string) => {
+    setPerformingAction(postId)
+    try {
+      const res = await fetch(`/api/posts/${postId}/approve`, {
+        method: "POST",
+      })
+      if (res.ok) {
+        showToast("Post draft successfully approved and queued!", "success")
+        fetchPosts()
+      } else {
+        showToast("Failed to approve post", "error")
+      }
+    } catch {
+      showToast("Failed to approve post", "error")
+    } finally {
+      setPerformingAction(null)
+    }
+  }
+
+  const handleRejectPost = async () => {
+    if (!rejectingPost) return
+    setPerformingAction(rejectingPost._id)
+    try {
+      const res = await fetch(`/api/posts/${rejectingPost._id}/approve`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes: rejectionNotes }),
+      })
+      if (res.ok) {
+        showToast("Post draft rejected and returned to editor", "info")
+        setRejectingPost(null)
+        setRejectionNotes("")
+        fetchPosts()
+      } else {
+        showToast("Failed to reject post", "error")
+      }
+    } catch {
+      showToast("Failed to reject post", "error")
+    } finally {
+      setPerformingAction(null)
+    }
+  }
 
   useEffect(() => {
     tabRef.current = tab
@@ -328,6 +429,11 @@ export default function ScheduledPostsPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-border/40 pb-2">
           <TabsList className="bg-muted/65 p-0.5 rounded-xl border border-border/50 flex flex-wrap gap-1 md:flex-nowrap">
             <TabsTrigger value="all" className="rounded-lg px-3 py-1.5 text-[11px] font-medium">All</TabsTrigger>
+            {isOwnerOrAdmin && (
+              <TabsTrigger value="review" className="rounded-lg px-3 py-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-500 border border-amber-500/10 bg-amber-500/5 hover:bg-amber-500/10">
+                Needs Review
+              </TabsTrigger>
+            )}
             <TabsTrigger value="scheduled" className="rounded-lg px-3 py-1.5 text-[11px] font-medium">Scheduled</TabsTrigger>
             <TabsTrigger value="draft" className="rounded-lg px-3 py-1.5 text-[11px] font-medium">Drafts</TabsTrigger>
             <TabsTrigger value="publishing" className="rounded-lg px-3 py-1.5 text-[11px] font-medium">Publishing</TabsTrigger>
@@ -586,6 +692,52 @@ export default function ScheduledPostsPage() {
                           </Button>
                         </div>
                       )}
+
+                      {/* Collaboration Comments & Review controls */}
+                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/25">
+                        {/* Private Comment Bubble Button */}
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          className="rounded-lg text-[10px] gap-1.5 border-border/60 text-muted-foreground hover:text-foreground cursor-pointer animate-in fade-in duration-200"
+                          onClick={() => {
+                            setCommentingPost(post)
+                            fetchComments(post._id)
+                          }}
+                        >
+                          <Clock className="size-3 text-brand-green-dark dark:text-brand-green shrink-0" />
+                          Private Comments
+                        </Button>
+
+                        {/* If pending review and caller is Owner/Admin, show Approve/Reject controls */}
+                        {post.approvalStatus === "pending_review" && isOwnerOrAdmin && (
+                          <div className="flex items-center gap-1.5 ml-auto shrink-0">
+                            <Button
+                              variant="outline"
+                              size="xs"
+                              className="rounded-lg text-[10px] gap-1 hover:bg-rose-500/10 text-rose-600 border-rose-500/20 cursor-pointer"
+                              onClick={() => setRejectingPost(post)}
+                              disabled={performingAction === post._id}
+                            >
+                              <XCircle className="size-3 shrink-0" />
+                              Reject
+                            </Button>
+                            <Button
+                              size="xs"
+                              className="rounded-lg text-[10px] gap-1 bg-brand-green hover:bg-brand-green-hover text-[#0F172A] border-0 font-bold shadow-sm cursor-pointer"
+                              onClick={() => handleApprovePost(post._id)}
+                              disabled={performingAction === post._id}
+                            >
+                              {performingAction === post._id ? (
+                                <Loader2 className="size-3 animate-spin" />
+                              ) : (
+                                <Globe className="size-3 shrink-0" />
+                              )}
+                              Approve
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </Card>
                 )
@@ -633,6 +785,109 @@ export default function ScheduledPostsPage() {
               {performingAction === reschedulePostId ? <Loader2 className="size-4 animate-spin" /> : "Save Schedule"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rejection Notes Dialog */}
+      <Dialog open={!!rejectingPost} onOpenChange={(open) => !open && setRejectingPost(null)}>
+        <DialogContent className="max-w-sm rounded-2xl p-5 border-border/60 shadow-xl bg-card">
+          <DialogHeader className="border-b border-border/40 pb-3">
+            <DialogTitle className="flex items-center gap-1.5 text-sm font-bold text-rose-600"><XCircle className="size-4.5" /> Reject Draft Post</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+              Provide feedback notes to the editor explaining why this draft was rejected.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-muted-foreground">REJECTION FEEDBACK / NOTES</Label>
+              <textarea
+                value={rejectionNotes}
+                onChange={(e) => setRejectionNotes(e.target.value)}
+                placeholder="E.g. Please alter the caption to highlight our campaign deadline next Tuesday..."
+                className="w-full rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-xs text-foreground outline-none min-h-20 resize-y"
+              />
+            </div>
+          </div>
+          <DialogFooter className="border-t border-border/40 pt-4 flex gap-2">
+            <Button variant="outline" size="sm" className="rounded-lg text-xs" onClick={() => setRejectingPost(null)}>
+              Cancel
+            </Button>
+            <Button size="sm" className="bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-xs" onClick={handleRejectPost} disabled={performingAction === (rejectingPost?._id || "") || !rejectionNotes.trim()}>
+              {performingAction === (rejectingPost?._id || "") ? <Loader2 className="size-4 animate-spin" /> : "Reject Draft"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Private Internal Comments Dialog */}
+      <Dialog open={!!commentingPost} onOpenChange={(open) => !open && setCommentingPost(null)}>
+        <DialogContent className="max-w-md rounded-2xl p-5 border-border/60 shadow-xl bg-card flex flex-col max-h-[85vh]">
+          <DialogHeader className="border-b border-border/40 pb-3">
+            <DialogTitle className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+              <History className="size-4.5 text-brand-green" /> Private Collaboration Comments
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+              Internal notes regarding caption adjustments, visual revisions, or scheduling suggestions.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {/* Comments list */}
+          <div className="flex-1 overflow-y-auto my-4 space-y-3 pr-1 max-h-[40vh] min-h-[150px]">
+            {commentsLoading ? (
+              <div className="flex h-32 items-center justify-center">
+                <Loader2 className="size-5 text-brand-green animate-spin" />
+              </div>
+            ) : comments.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-32 text-center text-xs text-muted-foreground">
+                No private comments on this post yet. Start the team thread below!
+              </div>
+            ) : (
+              comments.map((c) => (
+                <div key={c._id} className="flex items-start gap-2.5 p-2 rounded-xl bg-muted/20 border border-border/40 transition-colors">
+                  <div className="flex size-7 items-center justify-center rounded-full bg-brand-green/15 text-brand-green-dark dark:text-brand-green font-bold text-[9px] uppercase shrink-0">
+                    {c.authorName ? c.authorName.slice(0, 2) : "US"}
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-foreground">{c.authorName || c.authorEmail.split("@")[0]}</span>
+                      <span className="text-[9px] text-muted-foreground">
+                        {new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <p className="text-xs text-text-primary leading-normal whitespace-pre-wrap">{c.content}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* New Comment Textarea */}
+          <div className="space-y-2 border-t border-border/40 pt-3">
+            <textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Type your private comment here (e.g. Replace this image, looks good to publish...)"
+              className="w-full rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 text-xs text-foreground outline-none min-h-16 resize-none focus:border-primary/50 transition-colors"
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-lg text-xs"
+                onClick={() => setCommentingPost(null)}
+              >
+                Close Thread
+              </Button>
+              <Button
+                size="sm"
+                className="bg-brand-green hover:bg-brand-green-hover text-[#0F172A] font-bold rounded-lg text-xs cursor-pointer border-0"
+                onClick={handlePostComment}
+                disabled={!newComment.trim()}
+              >
+                Send Comment
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </PageTransition>

@@ -46,6 +46,7 @@ import {
   TooltipContent,
   TooltipProvider,
 } from "@/components/ui/tooltip"
+import { useWorkspace } from "@/components/dashboard/workspace-provider"
 import {
   Dialog,
   DialogTrigger,
@@ -178,6 +179,20 @@ const iconOptions = [
 export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const { activeWorkspace, workspaces, switchWorkspace, createWorkspace } = useWorkspace()
+  const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false)
+  const [newWorkspaceName, setNewWorkspaceName] = useState("")
+
+  const handleCreateWorkspace = async () => {
+    if (!newWorkspaceName.trim()) return
+    try {
+      await createWorkspace(newWorkspaceName.trim())
+      setNewWorkspaceName("")
+      setIsCreateWorkspaceOpen(false)
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   // customizable workspace tree state
   const [structure, setStructure] = useState<NavGroup[]>([])
@@ -498,12 +513,88 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
                 G
               </div>
               {!isCollapsed && (
-                <span className="font-display text-sm font-extrabold text-text-primary dark:text-foreground tracking-tight flex items-center gap-1 cursor-pointer hover:opacity-80 leading-none">
-                  GrowWave Pro
-                  <span className="text-[9px] text-text-secondary">▼</span>
-                </span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <span className="font-display text-sm font-extrabold text-text-primary dark:text-foreground tracking-tight flex items-center gap-1 cursor-pointer hover:opacity-80 leading-none truncate max-w-[150px]">
+                      {activeWorkspace ? activeWorkspace.name : "GrowWave Pro"}
+                      <span className="text-[9px] text-text-secondary shrink-0">▼</span>
+                    </span>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56 rounded-xl border border-border-light shadow-lg bg-card p-1">
+                    <div className="px-2.5 py-1.5 text-[9px] uppercase tracking-wider text-text-secondary font-black">
+                      Switch Workspace
+                    </div>
+                    <DropdownMenuSeparator className="bg-border-light/60 my-1" />
+                    {workspaces.map((w) => (
+                      <DropdownMenuItem
+                        key={w._id}
+                        onClick={() => switchWorkspace(w._id)}
+                        className={cn(
+                          "flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg cursor-pointer hover:bg-muted text-foreground transition-all",
+                          activeWorkspace?._id === w._id ? "bg-muted font-bold text-brand-green-dark dark:text-brand-green" : ""
+                        )}
+                      >
+                        <span className="truncate">{w.name}</span>
+                        {activeWorkspace?._id === w._id && <span className="text-[10px]">✓</span>}
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuSeparator className="bg-border-light/60 my-1" />
+                    <DropdownMenuItem
+                      onClick={() => setIsCreateWorkspaceOpen(true)}
+                      className="flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-lg cursor-pointer text-brand-green-dark dark:text-brand-green font-bold hover:bg-brand-green/10"
+                    >
+                      <Plus className="size-3.5 shrink-0" />
+                      Create Workspace
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
+
+            {/* Create Workspace Dialog (Triggered from dropdown) */}
+            <Dialog open={isCreateWorkspaceOpen} onOpenChange={setIsCreateWorkspaceOpen}>
+              <DialogContent className="max-w-sm rounded-2xl bg-card border border-border-light shadow-xl backdrop-blur-xl">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-foreground">
+                    <Icons.Building className="size-4 text-brand-green-dark dark:text-brand-green" />
+                    Create Workspace
+                  </DialogTitle>
+                  <DialogDescription className="text-muted-foreground text-xs">
+                    Create a new shared team workspace for campaigns, channels, and members.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 my-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="wsName" className="text-xs font-bold text-text-primary">
+                      Workspace Name
+                    </Label>
+                    <Input
+                      id="wsName"
+                      placeholder="e.g. Acme Marketing, Personal Scheduler"
+                      value={newWorkspaceName}
+                      onChange={(e) => setNewWorkspaceName(e.target.value)}
+                      className="h-9 text-xs rounded-lg border-border"
+                    />
+                  </div>
+                </div>
+                <DialogFooter className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsCreateWorkspaceOpen(false)}
+                    className="rounded-lg text-xs"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleCreateWorkspace}
+                    disabled={!newWorkspaceName.trim()}
+                    className="bg-brand-green hover:bg-brand-green-hover text-[#0F172A] font-bold border-0 rounded-lg text-xs cursor-pointer"
+                  >
+                    Create
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             {/* Collapse Trigger Button */}
             {!isCollapsed ? (
@@ -527,9 +618,7 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
                 <PanelLeft className="size-4" />
               </Button>
             )}
-          </div>
-
-          {/* Customize Action Button (Global Plus) */}
+          </div>          {/* Customize Action Button (Global Plus) */}
           <div className="px-4 py-2 flex gap-1.5 border-b border-border-light/40 dark:border-zinc-800/20">
             <Dialog open={isCustomizeOpen} onOpenChange={setIsCustomizeOpen}>
               <DialogTrigger asChild>

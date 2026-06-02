@@ -26,6 +26,7 @@ import { Label } from "@/components/ui/label"
 import { PageTransition } from "@/components/dashboard/page-transition"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/toast-provider"
+import { useWorkspace } from "@/components/dashboard/workspace-provider"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
   Dialog,
@@ -64,6 +65,7 @@ function CreatePostContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const editId = searchParams.get("edit")
+  const { role: userRole, permissions: userPermissions } = useWorkspace()
 
   const { showToast } = useToast()
   const [caption, setCaption] = useState("")
@@ -419,8 +421,26 @@ function CreatePostContent() {
       return
     }
     if (!validateChannels()) return
+
+    const isOwnerOrAdmin = ["owner", "admin"].includes(userRole || "")
+
     setSaving(true)
     try {
+      if (!isOwnerOrAdmin) {
+        // Save as draft and request review
+        const post = await savePost("draft")
+        if (post) {
+          await fetch(`/api/posts/${post._id}/approve`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ notes: "Requesting publishing approval." }),
+          })
+          showToast("Publishing review request successfully submitted to Admins!", "success")
+          router.push("/dashboard/scheduled")
+        }
+        return
+      }
+
       const post = await savePost("publishing")
       if (!post) return
 
@@ -497,10 +517,35 @@ function CreatePostContent() {
       return
     }
     const scheduledAt = `${scheduleDate}T${scheduleTime}:00`
-    const post = await savePost("scheduled", scheduledAt)
-    if (post) {
-      showToast(editId ? "Post rescheduled!" : "Post scheduled successfully!", "success")
-      router.push("/dashboard/scheduled")
+    const isOwnerOrAdmin = ["owner", "admin"].includes(userRole || "")
+
+    setSaving(true)
+    try {
+      if (!isOwnerOrAdmin) {
+        // Save as draft and request review
+        const post = await savePost("draft", scheduledAt)
+        if (post) {
+          await fetch(`/api/posts/${post._id}/approve`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ notes: `Requesting scheduling review for ${scheduleDate} at ${scheduleTime}.` }),
+          })
+          showToast("Scheduling review request successfully submitted to Admins!", "success")
+          router.push("/dashboard/scheduled")
+        }
+        return
+      }
+
+      const post = await savePost("scheduled", scheduledAt)
+      if (post) {
+        showToast(editId ? "Post rescheduled!" : "Post scheduled successfully!", "success")
+        router.push("/dashboard/scheduled")
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Schedule failed"
+      showToast(message, "error")
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -948,8 +993,10 @@ function CreatePostContent() {
               >
                 {saving ? (
                   <Loader2 className="size-4 animate-spin" />
-                ) : (
+                ) : ["owner", "admin"].includes(userRole || "") ? (
                   <><Calendar className="size-4" /> Schedule Post</>
+                ) : (
+                  <><Calendar className="size-4" /> Request Scheduling Approval</>
                 )}
               </Button>
               <Button
@@ -960,8 +1007,10 @@ function CreatePostContent() {
               >
                 {saving ? (
                   <Loader2 className="size-4 animate-spin" />
-                ) : (
+                ) : ["owner", "admin"].includes(userRole || "") ? (
                   <><Globe className="size-4" /> Publish Now</>
+                ) : (
+                  <><Globe className="size-4" /> Request Publishing Approval</>
                 )}
               </Button>
               <Button

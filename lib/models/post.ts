@@ -12,6 +12,7 @@ export type PostType = "image" | "video" | "carousel" | "text"
 
 export interface IPost extends Document {
   userId: string
+  workspaceId: mongoose.Types.ObjectId | null
   title: string
   content: string
   platforms: SocialPlatform[]
@@ -32,6 +33,11 @@ export interface IPost extends Document {
   facebookUrl: string | null
   facebookPageName: string | null
   facebookPublishedTime: Date | null
+  approvalStatus: "none" | "pending_review" | "approved" | "rejected"
+  approvalRequestedBy: string | null
+  approvedOrRejectedBy: string | null
+  approvalNotes: string | null
+  assignedTo: string | null
   createdAt: Date
   updatedAt: Date
 }
@@ -39,6 +45,7 @@ export interface IPost extends Document {
 const PostSchema = new Schema<IPost>(
   {
     userId: { type: String, required: true, index: true },
+    workspaceId: { type: Schema.Types.ObjectId, ref: "Workspace", default: null, index: true },
     title: { type: String, default: "" },
     content: { type: String, default: "" },
     platforms: [{ type: String, enum: ["facebook", "instagram", "linkedin", "twitter", "tiktok"] }],
@@ -67,6 +74,16 @@ const PostSchema = new Schema<IPost>(
     facebookUrl: { type: String, default: null },
     facebookPageName: { type: String, default: null },
     facebookPublishedTime: { type: Date, default: null },
+    approvalStatus: {
+      type: String,
+      enum: ["none", "pending_review", "approved", "rejected"],
+      default: "none",
+      index: true,
+    },
+    approvalRequestedBy: { type: String, default: null },
+    approvedOrRejectedBy: { type: String, default: null },
+    approvalNotes: { type: String, default: null },
+    assignedTo: { type: String, default: null },
   },
   { timestamps: true }
 )

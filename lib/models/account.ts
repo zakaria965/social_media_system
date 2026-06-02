@@ -9,6 +9,7 @@ export type SocialPlatform =
 
 export interface ISocialAccount extends Document {
   userId: string
+  workspaceId: mongoose.Types.ObjectId | null
   platform: SocialPlatform
   username: string
   avatar: string
@@ -32,6 +33,7 @@ export interface ISocialAccount extends Document {
 const SocialAccountSchema = new Schema<ISocialAccount>(
   {
     userId: { type: String, required: true, index: true },
+    workspaceId: { type: Schema.Types.ObjectId, ref: "Workspace", default: null, index: true },
     platform: {
       type: String,
       enum: ["facebook", "instagram", "linkedin", "twitter", "tiktok"],
