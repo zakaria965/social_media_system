@@ -1,0 +1,102 @@
+import mongoose, { Schema, Document, Model } from "mongoose"
+
+export interface ISessionHistory {
+  id: string
+  device: string
+  browser: string
+  ip: string
+  location: string
+  lastActive: Date
+  current: boolean
+}
+
+export interface ILoginHistory {
+  id: string
+  device: string
+  browser: string
+  ip: string
+  location: string
+  timestamp: Date
+  status: "success" | "failed"
+}
+
+export interface IUser extends Document {
+  email: string
+  name: string
+  username: string
+  bio: string
+  avatar: string
+  passwordHash: string | null
+  timezone: string
+  country: string
+  language: string
+  dateFormat: string
+  timeFormat: string
+  googleConnected: boolean
+  twoFactorEnabled: boolean
+  twoFactorSecret: string | null
+  recoveryCodes: string[]
+  theme: "light" | "dark" | "system"
+  accentColor: string
+  sidebarDensity: "comfortable" | "compact"
+  animationsEnabled: boolean
+  activeSessions: ISessionHistory[]
+  loginHistory: ILoginHistory[]
+  createdAt: Date
+  updatedAt: Date
+}
+
+const SessionHistorySchema = new Schema<ISessionHistory>({
+  id: { type: String, required: true },
+  device: { type: String, default: "Unknown Device" },
+  browser: { type: String, default: "Unknown Browser" },
+  ip: { type: String, default: "127.0.0.1" },
+  location: { type: String, default: "Local Host" },
+  lastActive: { type: Date, default: Date.now },
+  current: { type: Boolean, default: false },
+})
+
+const LoginHistorySchema = new Schema<ILoginHistory>({
+  id: { type: String, required: true },
+  device: { type: String, default: "Unknown Device" },
+  browser: { type: String, default: "Unknown Browser" },
+  ip: { type: String, default: "127.0.0.1" },
+  location: { type: String, default: "Local Host" },
+  timestamp: { type: Date, default: Date.now },
+  status: { type: String, enum: ["success", "failed"], default: "success" },
+})
+
+const UserSchema = new Schema<IUser>(
+  {
+    email: { type: String, required: true, unique: true, index: true },
+    name: { type: String, default: "" },
+    username: { type: String, default: "" },
+    bio: { type: String, default: "" },
+    avatar: { type: String, default: "" },
+    passwordHash: { type: String, default: null },
+    timezone: { type: String, default: "UTC" },
+    country: { type: String, default: "United States" },
+    language: { type: String, default: "English (US)" },
+    dateFormat: { type: String, default: "MM/DD/YYYY" },
+    timeFormat: { type: String, default: "12h" },
+    googleConnected: { type: Boolean, default: false },
+    twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorSecret: { type: String, default: null },
+    recoveryCodes: [{ type: String }],
+    theme: { type: String, enum: ["light", "dark", "system"], default: "system" },
+    accentColor: { type: String, default: "#0f766e" }, // GrowWave emerald accent
+    sidebarDensity: { type: String, enum: ["comfortable", "compact"], default: "comfortable" },
+    animationsEnabled: { type: Boolean, default: true },
+    activeSessions: [SessionHistorySchema],
+    loginHistory: [LoginHistorySchema],
+  },
+  { timestamps: true }
+)
+
+// Prevent hot-reload re-compilation errors in development environment
+if (mongoose.models && mongoose.models.User) {
+  delete (mongoose.models as any).User
+}
+
+export const User: Model<IUser> =
+  mongoose.models.User ?? mongoose.model<IUser>("User", UserSchema)
