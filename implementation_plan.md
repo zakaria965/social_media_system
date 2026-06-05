@@ -1,91 +1,57 @@
-# Implementation Plan — GrowWave Lite UI Refinement
+# Implementation Plan — Phase 12: Fix Create Idea Modal & AI Assistant
 
-We will redesign the GrowWave Lite Create page and refine the layout and styling, including the sidebar and the color palette, to provide a clean, premium, and focused Buffer-inspired experience.
+We will fix the critical bugs in the Create Idea modal and AI Assistant. We will connect all data creation, updates, and uploads to MongoDB, implement proper validations, loading states, close confirmations, and show success toasts.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> - **Sidebar Updates**: The Channel Connection list, promotional cards ("Need team access?"), and other promotional widgets will be completely removed from the sidebar. Channels will only live in Settings, the Publish page, or inside the Connect Account modal.
-> - **Unified Create Page**: The previous tabbed structure ("Content Board" vs "Post Composer") will be redesigned. The Create page will focus entirely on a premium Kanban board (Ideas, Drafts, Ready To Publish, Published) with a Quick Create Modal for adding new ideas and a Generate Ideas button powered by OpenAI.
-
-## Open Questions
-
-- None at this moment. The requirements are detailed and clear.
+> - **MongoDB Integration**: All content board ideas will be loaded and saved directly to the database rather than `localStorage`.
+> - **Settings Removal**: The tags and settings panel will be completely deleted from the modal. The status column is determined by clicking "Save Idea" (Ideas column) or "Create Post" (Drafts column).
+> - **AI Assistant result actions**: Once the prompt is generated, a result panel inside the sidebar will offer `Insert Into Idea`, `Copy`, and `Regenerate` actions.
 
 ## Proposed Changes
 
-### Theme & Colors
+### Database & Backend
 
-#### [MODIFY] [globals.css](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/globals.css)
-- Add new color variables under `@theme inline` matching the requested SaaS green palette:
-  - Brand green: `#30FC47`
-  - Light Accent: `#EFFFF1`
-  - Hover: `#DDFBE3`
-  - Border: `#D9F8DF`
-  - Success: `#30FC47`
-  - Background: `#FFFFFF`
-  - Page Background: `#FAFBFC`
-  - Text: `#111827`
-  - Secondary Text: `#6B7280`
+#### [NEW] [idea.ts](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/lib/models/idea.ts) *(Already created)*
+- Declares the Mongoose Schema for `ideas` tracking fields: `userId`, `workspaceId`, `title`, `content`, `platform`, `media`, and `status`.
 
----
+#### [NEW] [route.ts](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/api/ideas/route.ts) *(Already created)*
+- Connects REST API handlers for GET (list), POST (create), PUT (update), and DELETE (remove) for MongoDB records.
 
-### Sidebar Cleanup
-
-#### [MODIFY] [sidebar.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/components/free-user/sidebar.tsx)
-- Remove the channels list from the sidebar completely.
-- Clean up navigation items. The sidebar menu items should strictly be:
-  - Create
-  - Publish
-  - Scheduled
-  - Calendar
-  - AI Assistant
-  - Settings
-  - Upgrade
-- Remove promotional cards (like "Need team access?").
-- Add a minimal, elegant **User Profile** section at the bottom of the sidebar displaying the user's avatar, name, email, and a logout button.
-
----
-
-### Create Page Redesign
+### Frontend Pages
 
 #### [MODIFY] [page.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/free-user/create/page.tsx)
-- **Header**:
-  - Title: "Create"
-  - Subtitle: "Capture ideas and turn them into social content."
-- **Top Action Bar**:
-  - Left: "Generate Ideas" button.
-  - Right: "New Idea" button, and controls for Filters (by platform), Tags, and Sort (by date created/title).
-- **Kanban Board**:
-  - Exactly 4 columns: `Ideas`, `Drafts`, `Ready To Publish`, `Published`.
-  - White column cards with subtle borders, 12px radius, and soft shadows.
-  - Column Header: Title, Count Badge, Add Button (+), Menu Button (...) as in Buffer.
-- **Empty States**:
-  - When the column or board is empty, show a premium empty state: "No items yet", "Create your first content idea" and a "+ New Idea" button instead of fake cards.
-- **Idea Cards**:
-  - Display Title, Short Description, Tags, Created Date, Platform Badge, Status Badge, and Menu (...).
-- **Drag and Drop**:
-  - Implement a clean, interactive drag and drop flow (Ideas &rarr; Drafts &rarr; Ready To Publish &rarr; Published) using native HTML5 drag-and-drop event handlers for a seamless real-time UI update.
-- **Quick Create Modal**:
-  - Fields: Title, Description, Content Notes, Media Upload (simulated), Tags, Platform (dropdown: Facebook, Instagram, LinkedIn, etc.), AI Generate Toggle (automatically generates descriptions/caption suggestions), Save, Cancel.
-- **AI Integration**:
-  - "Generate Ideas" opens a modal prompting for Topic, Audience, Goal, and Platform.
-  - Generates exactly 10 content ideas by calling `/api/generate` with custom instructions to return a JSON array, and automatically inserts them into the `Ideas` column.
-- **Onboarding Card (First-time user experience)**:
-  - Onboard message: "Welcome to GrowWave Lite. Create your first content idea to start building your social media workflow."
-  - Action buttons: "Create First Idea", "Generate With AI", "Connect Account", "Dismiss".
-  - Hidden immediately after any of these actions are performed.
-
----
+- **Database Load/Sync**: Fetch all user ideas from `/api/ideas` on mount. Save, drag-and-drop, and post conversions will update database records using API calls.
+- **AI Assistant Drawer (Bug 1 & 6 & 9)**:
+  - Add primary `[ Generate Content ]` button in AI sidebar panel, disabled when input prompt is empty.
+  - Show spinner and text "Generating content..." during API call.
+  - Implement the **AI Result Panel** inside the drawer featuring `Insert Into Idea` (filling Title & Description fields), `Copy` (clipboard), and `Regenerate`.
+- **Remove Settings (Bug 2)**: Completely delete tags input, content notes, status select, and setting accordion menus from the modal.
+- **Image Upload (Bug 3)**:
+  - Support hidden file picker.
+  - Handle `dragover`, `drop`, and `click` to trigger real upload to `/api/upload` (supports PNG, JPG, JPEG, WEBP, GIF, and MP4 up to 50MB).
+  - Preview thumbnail, size, name, and show Remove / Replace button actions.
+- **Save Idea & Create Post (Bug 4 & 5)**:
+  - Save Idea: validates title/content, saves to MongoDB with status `"idea"`.
+  - Create Post: validates title/content, saves to MongoDB with status `"draft"`, automatically moving it to the Drafts column.
+- **Modal Discard Check (Bug 7)**:
+  - Show warning modal *"Discard Changes? Cancel / Discard"* if user has typed text in the fields before closing.
+- **Form Validation (Bug 8)**: Prevents saving empty fields, uploading wrong types, or exceeding 50MB.
+- **Success Toasts (Bug 10)**: Create a floating checkmark banner that displays:
+  - `✓ Idea Saved`
+  - `✓ Media Uploaded`
+  - `✓ Content Generated`
+  - `✓ Post Created`
 
 ## Verification Plan
 
-### Automated Tests
-- Run Next.js build: `npm run build` to ensure there are no TypeScript or compilation errors.
+### TypeScript & Compile Checks
+- Run `npm run build` to confirm Next.js compiles all routes and Mongoose schemas successfully.
 
-### Manual Verification
-- Verify layout changes in the browser (spacing, padding, new SaaS green color schemes).
-- Interact with the Kanban board: create new cards, drag and drop cards across columns, verify the card order and count updates in real-time.
-- Verify the "Generate Ideas" button triggers the OpenAI API, parses the response, and populates 10 new ideas in the `Ideas` column.
-- Verify the onboarding checklist and checklist card behaviors (dismissing and hiding).
-- Verify the sidebar looks clean and contains no channels or promotional banners.
+### Manual Functional Checks
+1. Try saving empty fields to verify validation alerts.
+2. Drag and drop a card on the Kanban board, refresh the page, and check if it maintains its new status column (verifying MongoDB persistence).
+3. Open a file picker, select a file > 50MB or an unsupported type to test validation. Upload a valid image to verify the thumbnail preview card and DB record.
+4. Prompt the AI Assistant sidebar, verify "Generating..." state, check results, click "Insert Into Idea" and check if form fields auto-populate.
+5. Close the composer modal with typed text to verify discard warning.

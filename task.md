@@ -1,13 +1,15 @@
-# Task List — GrowWave Lite UI Refinement
+# Task List — Phase 12: Fix Create Idea Modal & AI Assistant
 
-- [x] Theme & Colors: Update `app/globals.css` with new SaaS green tokens.
-- [x] Sidebar Cleanup: Modify `components/free-user/sidebar.tsx` to remove channel lists, remove promos, update nav links, and add User Profile.
-- [x] Create Page Redesign: Redesign `app/free-user/create/page.tsx`.
-    - [x] Update header, styling, and whitespace layout.
-    - [x] Build Top Action Bar (Generate Ideas, New Idea, Filters, Tags, Sort).
-    - [x] Build Kanban board columns (Ideas, Drafts, Ready To Publish, Published) with columns empty states.
-    - [x] Implement drag-and-drop mechanics with realtime state updates.
-    - [x] Add the Quick Create Modal.
-    - [x] Integrate the "Generate Ideas" AI modal (using OpenAI, inserting 10 ideas).
-    - [x] Set up the first-time user onboarding card and checklist interaction.
-- [x] Build & Verify: Run validation and build to confirm everything compiles and runs correctly.
+- [x] AI Assistant Sidebar: Add visible primary Generate button, spinner loading state, and result panel with Insert/Copy/Regenerate actions.
+- [x] Modal Cleanups: Remove all tag configurations, settings accordions, notes, and extra dropdowns. Only keep title, description, file upload, platform dropdown, emoji, AI button, Create Post, and Save Idea.
+- [x] File Upload: Connect to real `/api/upload` endpoint with PNG/JPG/MP4 validations up to 50MB. Render upload preview card with Remove/Replace.
+- [x] MongoDB CRUD Integration:
+    - [x] Load ideas from `/api/ideas` GET endpoint on mount.
+    - [x] Save Idea: call `/api/ideas` POST/PUT to save to MongoDB as `"idea"` status.
+    - [x] Create Post: call `/api/ideas` POST/PUT to save to MongoDB as `"draft"` status.
+    - [x] Drag & Drop: call `/api/ideas` PUT to update database status on column change.
+    - [x] Delete Idea: call `/api/ideas` DELETE to remove from MongoDB.
+- [x] Form Validation: Prevent empty title/content, unsupported file, or file > 50MB.
+- [x] Discard warning: Show warning modal "Discard Changes?" if form has typed content.
+- [x] Success Toasts: Render floating notifications for saved, uploaded, generated, and created events.
+- [x] Build & Verify: Compiles and builds Next.js production build cleanly.

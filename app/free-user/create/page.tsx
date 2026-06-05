@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, useRef, Suspense } from "react"
 import Link from "next/link"
 import { useSession } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -147,7 +147,7 @@ function CreateContent() {
   const [ideaFormOpen, setIdeaFormOpen] = useState(false)
   const [editingIdea, setEditingIdea] = useState<IdeaItem | null>(null)
   
-  // AI Ideas Generator Modal State
+  // AI Ideas Generator Modal State (for generating 10 ideas)
   const [aiGeneratorOpen, setAiGeneratorOpen] = useState(false)
   const [aiGenerating, setAiGenerating] = useState(false)
   const [aiTopic, setAiTopic] = useState("")
@@ -160,27 +160,27 @@ function CreateContent() {
 
   // Filters & Sorting
   const [filterPlatform, setFilterPlatform] = useState("all")
-  const [filterTag, setFilterTag] = useState("")
   const [sortBy, setSortBy] = useState<"dateNewest" | "dateOldest" | "titleAsc" | "titleDesc">("dateNewest")
 
-  // Quick Create Form states
+  // Quick Create Form states (Removed unnecessary tags & notes configuration)
   const [newIdeaTitle, setNewIdeaTitle] = useState("")
   const [newIdeaContent, setNewIdeaContent] = useState("")
-  const [newIdeaNotes, setNewIdeaNotes] = useState("")
-  const [newIdeaTags, setNewIdeaTags] = useState("")
   const [newIdeaPlatform, setNewIdeaPlatform] = useState("facebook")
   const [newIdeaStatus, setNewIdeaStatus] = useState<IdeaItem["column"]>("Ideas")
   const [newIdeaMedia, setNewIdeaMedia] = useState<{ name: string; size: number; url: string } | null>(null)
-  const [aiGenerateToggle, setAiGenerateToggle] = useState(false)
   const [modalAiLoading, setModalAiLoading] = useState(false)
 
-  // Redesigned Professional Composer states
+  // AI Assistant panel states
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(false)
   const [aiPromptInput, setAiPromptInput] = useState("")
   const [aiSidebarGenerating, setAiSidebarGenerating] = useState(false)
+  const [generatedContent, setGeneratedContent] = useState<string>("")
   const [emojiDropdownOpen, setEmojiDropdownOpen] = useState(false)
   const [platformDropdownOpen, setPlatformDropdownOpen] = useState(false)
-  const [extraSettingsOpen, setExtraSettingsOpen] = useState(false)
+  const [showDiscardWarning, setShowDiscardWarning] = useState(false)
+
+  // Premium Toast state
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null)
 
   // Drag and Drop Visual Feedback
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null)
@@ -198,7 +198,95 @@ function CreateContent() {
   const [connectedCount, setConnectedCount] = useState(3) // mock connected count
   const [scheduledCount, setScheduledCount] = useState(0)
 
-  // Load state
+  // File Input Ref
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
+    setToast({ message, type })
+    setTimeout(() => {
+      setToast(null)
+    }, 3000)
+  }
+
+  const isImageUrl = (url: string) => {
+    if (!url) return false
+    const cleanUrl = url.split("?")[0].toLowerCase()
+    return cleanUrl.endsWith(".png") || cleanUrl.endsWith(".jpg") || cleanUrl.endsWith(".jpeg") || cleanUrl.endsWith(".webp") || cleanUrl.endsWith(".gif") || url.startsWith("data:image/")
+  }
+
+  // Parse AI assistant response structured as TITLE: ... CONTENT: ...
+  const parseAiResponse = (text: string) => {
+    let title = ""
+    let content = ""
+    
+    const titleMatch = text.match(/TITLE:\s*(.*)/i)
+    const contentMatch = text.match(/CONTENT:\s*([\s\S]*)/i)
+    
+    if (titleMatch) {
+      title = titleMatch[1].trim()
+    }
+    if (contentMatch) {
+      content = contentMatch[1].trim()
+    }
+    
+    if (!title || !content) {
+      const lines = text.split("\n").map(l => l.trim()).filter(Boolean)
+      if (lines.length > 0) {
+        title = lines[0].replace(/^Title:\s*/i, "").replace(/[#*]/g, "").trim()
+        content = lines.slice(1).join("\n\n").trim() || lines[0]
+      } else {
+        title = "AI Content Idea"
+        content = text
+      }
+    }
+    
+    return { title, content }
+  }
+
+  // Load and Database sync helpers
+  const mapDbStatusToUiColumn = (status: string): IdeaItem["column"] => {
+    if (status === "draft") return "Drafts"
+    if (status === "ready") return "Ready To Publish"
+    if (status === "published") return "Published"
+    return "Ideas"
+  }
+
+  const mapUiColumnToDbStatus = (column: IdeaItem["column"]) => {
+    if (column === "Drafts") return "draft"
+    if (column === "Ready To Publish") return "ready"
+    if (column === "Published") return "published"
+    return "idea"
+  }
+
+  const getFileNameFromUrl = (url: string): string => {
+    if (!url) return ""
+    if (url.startsWith("data:")) return "uploaded_media"
+    const parts = url.split("/")
+    return parts[parts.length - 1] || "media_file"
+  }
+
+  const fetchIdeas = async () => {
+    try {
+      const res = await fetch("/api/ideas")
+      if (res.ok) {
+        const data = await res.json()
+        const mapped: IdeaItem[] = data.ideas.map((item: any) => ({
+          id: item._id,
+          title: item.title,
+          content: item.content,
+          platform: item.platform || "facebook",
+          column: mapDbStatusToUiColumn(item.status),
+          mediaFile: item.media ? { name: getFileNameFromUrl(item.media), url: item.media, size: 0 } : null,
+          createdAt: item.createdAt
+        }))
+        setIdeas(mapped)
+        syncIdeasToScheduledPosts(mapped)
+      }
+    } catch (err) {
+      console.error("Failed to fetch ideas from database:", err)
+    }
+  }
+
   useEffect(() => {
     // Check onboarding dismissed state
     const onboardingDismissed = localStorage.getItem("growwave-lite-create-onboard")
@@ -206,19 +294,7 @@ function CreateContent() {
       setOnboardVisible(false)
     }
 
-    // Load ideas
-    const savedIdeas = localStorage.getItem("growwave-lite-ideas")
-    if (savedIdeas) {
-      setIdeas(JSON.parse(savedIdeas))
-    } else {
-      setIdeas([])
-    }
-
-    // Load scheduled posts count to update checklist
-    const savedScheduled = localStorage.getItem("growwave-lite-scheduled")
-    if (savedScheduled) {
-      setScheduledCount(JSON.parse(savedScheduled).length)
-    }
+    fetchIdeas()
   }, [])
 
   // Sync back to growwave-lite-scheduled for Calendar and Scheduled list pages
@@ -236,7 +312,6 @@ function CreateContent() {
       else if (idea.column === "Published") postStatus = "published"
 
       if (idea.column === "Ideas") {
-        // Remove if moved back to raw Ideas
         if (existingIndex > -1) {
           scheduledList.splice(existingIndex, 1)
         }
@@ -266,7 +341,6 @@ function CreateContent() {
       }
     })
 
-    // Remove posts belonging to deleted ideas
     scheduledList = scheduledList.filter((post) => {
       if (post.id.startsWith("post_")) {
         const ideaId = post.id.replace("post_", "")
@@ -299,17 +373,35 @@ function CreateContent() {
     }
   }
 
-  // Handle Drop card in column
-  const handleDrop = (e: React.DragEvent, columnName: IdeaItem["column"]) => {
+  // Handle Drop card in column (updates status in MongoDB)
+  const handleDrop = async (e: React.DragEvent, columnName: IdeaItem["column"]) => {
     e.preventDefault()
     const cardId = e.dataTransfer.getData("text/plain") || draggedCardId
     if (cardId) {
+      // Optimistic update
       const updated = ideas.map((i) => (i.id === cardId ? { ...i, column: columnName } : i))
       setIdeas(updated)
-      localStorage.setItem("growwave-lite-ideas", JSON.stringify(updated))
       syncIdeasToScheduledPosts(updated)
 
-      // Action completed, dismiss onboarding card
+      const dbStatus = mapUiColumnToDbStatus(columnName)
+      try {
+        const res = await fetch("/api/ideas", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: cardId,
+            status: dbStatus
+          })
+        })
+        if (res.ok) {
+          showToast("Idea Saved")
+          fetchIdeas()
+        }
+      } catch (err) {
+        console.error("Failed to update drag drop status in MongoDB:", err)
+      }
+
+      // Dismiss onboarding card
       setOnboardVisible(false)
       localStorage.setItem("growwave-lite-create-onboard", "dismissed")
     }
@@ -317,72 +409,60 @@ function CreateContent() {
     setDraggedOverColumn(null)
   }
 
-  // Suggest description with AI in the quick create modal
-  const handleModalAISuggest = async () => {
-    if (!newIdeaTitle.trim()) {
-      alert("Please enter a title first so AI can suggest content.")
-      return
-    }
-    setModalAiLoading(true)
+  // AI Assistant Sidebar generation
+  const handleSidebarAIGenerate = async () => {
+    if (!aiPromptInput.trim()) return
+    setAiSidebarGenerating(true)
+    setGeneratedContent("")
     try {
+      const structuredPrompt = `Write engaging social media content.
+Prompt request: "${aiPromptInput}"
+
+Please structure your response exactly like this:
+TITLE: [a short catchy title for the idea, max 50 chars]
+CONTENT: [the engaging post description/copy itself]
+
+Do not write any other headers or intro/outro text. Just return the TITLE and CONTENT fields.`
+
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "generate-caption",
-          prompt: newIdeaTitle,
+          prompt: structuredPrompt,
           tone: "friendly"
         })
       })
       if (res.ok) {
         const data = await res.json()
         if (data.result) {
-          setNewIdeaContent(data.result)
+          setGeneratedContent(data.result)
+          showToast("✓ Content Generated")
         }
       } else {
         throw new Error("API failed")
       }
     } catch (err) {
-      console.warn("AI suggestion failed, using mock suggestion:", err)
-      setNewIdeaContent(`🚀 Let's focus on ${newIdeaTitle} today! Here is our quick take on how this can streamline your workflows. Let us know if you agree! 👇`)
-    } finally {
-      setModalAiLoading(false)
-    }
-  }
-
-  // AI Assistant Sidebar generation
-  const handleSidebarAIGenerate = async () => {
-    if (!aiPromptInput.trim()) {
-      alert("Please enter a prompt first.")
-      return
-    }
-    setAiSidebarGenerating(true)
-    try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "generate-caption",
-          prompt: aiPromptInput,
-          tone: "friendly"
-        })
-      })
-      if (res.ok) {
-        const data = await res.json()
-        if (data.result) {
-          setNewIdeaContent(data.result)
-          setIsAiSidebarOpen(false)
-        }
-      } else {
-        throw new Error("Failed to generate caption")
-      }
-    } catch (err) {
       console.warn("AI generation failed, using mock suggestion:", err)
-      setNewIdeaContent(`📸 Let's share some updates about ${aiPromptInput}! Check out our full guide to learn more. Let us know your thoughts! 👇`)
-      setIsAiSidebarOpen(false)
+      setGeneratedContent(`TITLE: GrowWave Marketing Campaign\n\nCONTENT: Streamline your social media scheduling and content creation pipelines with GrowWave's AI intelligence tool! 🚀`)
+      showToast("✓ Content Generated")
     } finally {
       setAiSidebarGenerating(false)
     }
+  }
+
+  const handleCopyGeneratedContent = () => {
+    if (!generatedContent) return
+    navigator.clipboard.writeText(generatedContent)
+    showToast("✓ Content Copied")
+  }
+
+  const handleInsertIntoIdea = () => {
+    if (!generatedContent) return
+    const { title, content } = parseAiResponse(generatedContent)
+    setNewIdeaTitle(title)
+    setNewIdeaContent(content)
+    showToast("✓ Content Inserted")
   }
 
   // Render platform icons in toolbar circled button
@@ -395,7 +475,7 @@ function CreateContent() {
     if (p === "tiktok") return <IconTikTok className="size-4 text-fuchsia-600" />
     
     return (
-      <div className="size-4 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-[9px] uppercase dark:bg-slate-800 dark:text-slate-350 select-none">
+      <div className="size-4 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-[9px] uppercase dark:bg-slate-800 dark:text-slate-355 select-none">
         c
       </div>
     )
@@ -408,69 +488,139 @@ function CreateContent() {
 
   const emojis = ["😀", "🚀", "🔥", "✨", "💡", "🎉", "👍", "👏", "❤️", "👀", "📈", "🙌", "💥", "📅", "😊"]
 
-  // Save or edit an idea
-  const handleSaveIdea = () => {
-    if (!newIdeaTitle.trim()) return
-
-    let updated: IdeaItem[] = []
-    if (editingIdea) {
-      updated = ideas.map((i) =>
-        i.id === editingIdea.id
-          ? {
-              ...i,
-              title: newIdeaTitle,
-              content: newIdeaContent,
-              contentNotes: newIdeaNotes,
-              tags: newIdeaTags,
-              platform: newIdeaPlatform,
-              column: newIdeaStatus,
-              mediaFile: newIdeaMedia
-            }
-          : i
-      )
-      setEditingIdea(null)
-    } else {
-      const newIdea: IdeaItem = {
-        id: "idea_" + Date.now(),
-        title: newIdeaTitle,
-        content: newIdeaContent,
-        contentNotes: newIdeaNotes,
-        tags: newIdeaTags,
-        platform: newIdeaPlatform,
-        column: newIdeaStatus,
-        createdAt: new Date().toISOString(),
-        mediaFile: newIdeaMedia
-      }
-      updated = [newIdea, ...ideas]
+  // File upload logic (PNG/JPG/JPEG/WEBP/GIF/MP4 up to 50MB) (Bug 3 & 8)
+  const uploadFile = async (file: File) => {
+    const allowedTypes = [
+      "image/png",
+      "image/jpg",
+      "image/jpeg",
+      "image/webp",
+      "image/gif",
+      "video/mp4"
+    ]
+    if (!allowedTypes.includes(file.type)) {
+      showToast("⚠️ Unsupported file! Use PNG, JPG, JPEG, WEBP, GIF, or MP4.", "error")
+      return
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      showToast("⚠️ File exceeds 50MB limit!", "error")
+      return
     }
 
-    setIdeas(updated)
-    localStorage.setItem("growwave-lite-ideas", JSON.stringify(updated))
-    syncIdeasToScheduledPosts(updated)
+    setModalAiLoading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
 
-    // Reset Form fields
-    setNewIdeaTitle("")
-    setNewIdeaContent("")
-    setNewIdeaNotes("")
-    setNewIdeaTags("")
-    setNewIdeaPlatform("facebook")
-    setNewIdeaStatus("Ideas")
-    setNewIdeaMedia(null)
-    setAiGenerateToggle(false)
-    setIdeaFormOpen(false)
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData
+      })
 
-    // Dismiss onboarding card
-    setOnboardVisible(false)
-    localStorage.setItem("growwave-lite-create-onboard", "dismissed")
+      if (res.ok) {
+        const data = await res.json()
+        setNewIdeaMedia({
+          name: data.name,
+          size: Math.round((data.size / (1024 * 1024)) * 10) / 10,
+          url: data.url
+        })
+        showToast("✓ Media Uploaded")
+      } else {
+        const errData = await res.json()
+        showToast(`⚠️ ${errData.error || "Upload failed"}`, "error")
+      }
+    } catch (err) {
+      console.error("Upload error", err)
+      showToast("⚠️ File upload connection failed", "error")
+    } finally {
+      setModalAiLoading(false)
+    }
   }
 
-  // Delete an idea
-  const handleDeleteIdea = (id: string) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files && files.length > 0) {
+      uploadFile(files[0])
+    }
+  }
+
+  const handleDragOverFile = (e: React.DragEvent) => {
+    e.preventDefault()
+  }
+
+  const handleDropFile = (e: React.DragEvent) => {
+    e.preventDefault()
+    const files = e.dataTransfer.files
+    if (files && files.length > 0) {
+      uploadFile(files[0])
+    }
+  }
+
+  const handleSimulateMediaUpload = () => {
+    fileInputRef.current?.click()
+  }
+
+  // Save Idea to MongoDB (status: "idea" or "draft")
+  const handleSaveIdea = async (customStatus?: IdeaItem["column"]) => {
+    // Form Validations (Bug 8)
+    if (!newIdeaTitle.trim()) {
+      showToast("⚠️ Title is required!", "error")
+      return
+    }
+    if (!newIdeaContent.trim()) {
+      showToast("⚠️ Content description is required!", "error")
+      return
+    }
+
+    const targetColumn = customStatus || newIdeaStatus
+    const dbStatus = mapUiColumnToDbStatus(targetColumn)
+
+    const payload = {
+      id: editingIdea ? editingIdea.id : undefined,
+      title: newIdeaTitle,
+      content: newIdeaContent,
+      platform: newIdeaPlatform,
+      media: newIdeaMedia ? newIdeaMedia.url : null,
+      status: dbStatus
+    }
+
+    try {
+      const method = editingIdea ? "PUT" : "POST"
+      const res = await fetch("/api/ideas", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+
+      if (res.ok) {
+        showToast(customStatus === "Drafts" ? "✓ Post Created" : "✓ Idea saved successfully")
+        forceCloseModal()
+        await fetchIdeas()
+      } else {
+        const err = await res.json()
+        showToast(`⚠️ ${err.error || "Failed to save idea"}`, "error")
+      }
+    } catch (err) {
+      console.error("MongoDB Save error", err)
+      showToast("⚠️ Network save error", "error")
+    }
+  }
+
+  // Delete an idea in MongoDB
+  const handleDeleteIdea = async (id: string) => {
     if (confirm("Are you sure you want to delete this content idea?")) {
-      const updated = ideas.filter((i) => i.id !== id)
-      setIdeas(updated)
-      localStorage.setItem("growwave-lite-ideas", JSON.stringify(updated))
-      syncIdeasToScheduledPosts(updated)
+      try {
+        const res = await fetch(`/api/ideas?id=${id}`, {
+          method: "DELETE"
+        })
+        if (res.ok) {
+          showToast("✓ Idea Deleted")
+          await fetchIdeas()
+        }
+      } catch (err) {
+        console.error("Delete error", err)
+        showToast("⚠️ Failed to delete idea", "error")
+      }
     }
   }
 
@@ -479,42 +629,62 @@ function CreateContent() {
     setEditingIdea(idea)
     setNewIdeaTitle(idea.title)
     setNewIdeaContent(idea.content)
-    setNewIdeaNotes(idea.contentNotes || "")
-    setNewIdeaTags(idea.tags || "")
     setNewIdeaPlatform(idea.platform)
     setNewIdeaStatus(idea.column)
     setNewIdeaMedia(idea.mediaFile || null)
-    setAiGenerateToggle(false)
     setIdeaFormOpen(true)
   }
 
-  // Directly Move Column
-  const handleMoveIdea = (id: string, col: IdeaItem["column"]) => {
-    const updated = ideas.map((i) => (i.id === id ? { ...i, column: col } : i))
-    setIdeas(updated)
-    localStorage.setItem("growwave-lite-ideas", JSON.stringify(updated))
-    syncIdeasToScheduledPosts(updated)
+  // Directly Move Column in DB
+  const handleMoveIdea = async (id: string, col: IdeaItem["column"]) => {
+    const dbStatus = mapUiColumnToDbStatus(col)
+    try {
+      const res = await fetch("/api/ideas", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          status: dbStatus
+        })
+      })
+      if (res.ok) {
+        showToast(col === "Drafts" ? "✓ Post Created" : "✓ Idea Saved")
+        await fetchIdeas()
+      }
+    } catch (err) {
+      console.error("Move error", err)
+    }
   }
 
-  // Simulate Media Upload
-  const handleSimulateMediaUpload = () => {
-    const files = [
-      { name: "inspiration_mockup.png", size: 3.4 },
-      { name: "campaign_banner.jpg", size: 1.8 },
-      { name: "reel_clip.mp4", size: 14.2 }
-    ]
-    const chosen = files[Math.floor(Math.random() * files.length)]
-    setNewIdeaMedia({
-      name: chosen.name,
-      size: chosen.size,
-      url: "/placeholder-media.png"
-    })
+  // Close checking for changes (Bug 7 Discard warn)
+  const handleCloseModalCheck = () => {
+    if (newIdeaTitle.trim() || newIdeaContent.trim() || newIdeaMedia) {
+      setShowDiscardWarning(true)
+    } else {
+      forceCloseModal()
+    }
+  }
+
+  const forceCloseModal = () => {
+    setIdeaFormOpen(false)
+    setEditingIdea(null)
+    setNewIdeaTitle("")
+    setNewIdeaContent("")
+    setNewIdeaPlatform("facebook")
+    setNewIdeaStatus("Ideas")
+    setNewIdeaMedia(null)
+    setGeneratedContent("")
+    setAiPromptInput("")
+    setIsAiSidebarOpen(false)
+    setShowDiscardWarning(false)
+    setPlatformDropdownOpen(false)
+    setEmojiDropdownOpen(false)
   }
 
   // AI Generate 10 Content Ideas
   const handleGenerateIdeasAI = async () => {
     if (!aiTopic.trim()) {
-      alert("Please enter a topic.")
+      showToast("⚠️ Topic is required!", "error")
       return
     }
     setAiGenerating(true)
@@ -529,8 +699,6 @@ You MUST return the output as a valid JSON array of objects. Do not write any ex
 Each object must contain these keys:
 - "title": a short, catchy title (max 40 characters)
 - "content": the actual social media post copy (1-3 sentences)
-- "contentNotes": visual ideas or styling notes (1 sentence)
-- "tags": 3 relevant comma-separated tags (no '#' symbol)
 - "platform": the platform name (lowercase, e.g. "facebook", "instagram", "linkedin", "twitter")`
 
       const res = await fetch("/api/generate", {
@@ -555,49 +723,60 @@ Each object must contain these keys:
 
       const parsed = JSON.parse(cleaned)
       if (Array.isArray(parsed)) {
-        const newIdeas: IdeaItem[] = parsed.map((item: any, idx: number) => ({
-          id: `idea_ai_${Date.now()}_${idx}`,
-          title: item.title || `Idea ${idx + 1}`,
-          content: item.content || "",
-          contentNotes: item.contentNotes || "",
-          tags: item.tags || "",
-          platform: item.platform || (aiPlatform === "all" ? "instagram" : aiPlatform.toLowerCase()),
-          column: "Ideas",
-          createdAt: new Date().toISOString()
-        }))
+        for (let idx = 0; idx < parsed.length; idx++) {
+          const item = parsed[idx]
+          await fetch("/api/ideas", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: item.title || `Idea ${idx + 1}`,
+              content: item.content || "",
+              platform: item.platform || (aiPlatform === "all" ? "instagram" : aiPlatform.toLowerCase()),
+              media: null,
+              status: "idea"
+            })
+          })
+        }
 
-        const updated = [...newIdeas, ...ideas]
-        setIdeas(updated)
-        localStorage.setItem("growwave-lite-ideas", JSON.stringify(updated))
-        syncIdeasToScheduledPosts(updated)
-
-        // Dismiss Onboarding
+        showToast("✓ Content Generated")
         setOnboardVisible(false)
         localStorage.setItem("growwave-lite-create-onboard", "dismissed")
-
         setAiGeneratorOpen(false)
         setAiTopic("")
         setAiAudience("")
         setAiGoal("")
+
+        await fetchIdeas()
       } else {
         throw new Error("Result is not an array")
       }
     } catch (err) {
       console.warn("AI generation error, using fallback content engine:", err)
       const fallbackIdeas = generateMockIdeas(aiTopic, aiAudience, aiGoal, aiPlatform)
-      const updated = [...fallbackIdeas, ...ideas]
-      setIdeas(updated)
-      localStorage.setItem("growwave-lite-ideas", JSON.stringify(updated))
-      syncIdeasToScheduledPosts(updated)
+      
+      for (const idea of fallbackIdeas) {
+        await fetch("/api/ideas", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: idea.title,
+            content: idea.content,
+            platform: idea.platform,
+            media: null,
+            status: "idea"
+          })
+        })
+      }
 
+      showToast("✓ Content Generated")
       setOnboardVisible(false)
       localStorage.setItem("growwave-lite-create-onboard", "dismissed")
-
       setAiGeneratorOpen(false)
       setAiTopic("")
       setAiAudience("")
       setAiGoal("")
-      alert("AI content engine generated 10 ideas successfully!")
+
+      await fetchIdeas()
     } finally {
       setAiGenerating(false)
     }
@@ -628,12 +807,7 @@ Each object must contain these keys:
 
   // Filter and Sort ideas
   const filteredIdeas = ideas.filter((idea) => {
-    // Search Query (Title or description match)
-    // Filter by Tag
-    const tagMatch = !filterTag.trim() || (idea.tags && idea.tags.toLowerCase().includes(filterTag.toLowerCase()))
-    // Filter by Platform
-    const platformMatch = filterPlatform === "all" || (idea.platform && idea.platform.toLowerCase() === filterPlatform.toLowerCase())
-    return tagMatch && platformMatch
+    return filterPlatform === "all" || (idea.platform && idea.platform.toLowerCase() === filterPlatform.toLowerCase())
   })
 
   const sortedIdeas = [...filteredIdeas].sort((a, b) => {
@@ -662,7 +836,33 @@ Each object must contain these keys:
   const completedStepsCount = checklistSteps.filter(s => s.checked).length
 
   return (
-    <div className="space-y-6 bg-brand-page-bg dark:bg-slate-950 min-h-screen pb-12">
+    <div className="space-y-6 bg-brand-page-bg dark:bg-slate-950 min-h-screen pb-12 select-none relative">
+      {/* Hidden file input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+        accept="image/png, image/jpeg, image/jpg, image/webp, image/gif, video/mp4"
+      />
+
+      {/* Toast Notification (Bug 10) */}
+      {toast && (
+        <div className={cn(
+          "fixed top-5 left-1/2 -translate-x-1/2 z-50 text-[11px] font-black uppercase tracking-wider px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-top-3 duration-200 select-none border",
+          toast.type === "error" 
+            ? "bg-rose-600 border-rose-500 text-white dark:bg-rose-950 dark:border-rose-900 dark:text-rose-200" 
+            : "bg-slate-900 border-slate-950 text-white dark:bg-white dark:border-slate-200 dark:text-slate-950"
+        )}>
+          {toast.type === "error" ? (
+            <AlertCircle className="size-3.5 text-white dark:text-rose-450 shrink-0" />
+          ) : (
+            <Check className="size-3.5 text-[#30FC47] shrink-0" />
+          )}
+          <span>{toast.message}</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="border-b border-[#D9F8DF] dark:border-slate-800 pb-5">
         <h1 className="text-3xl font-black tracking-tight text-[#111827] dark:text-white">
@@ -678,7 +878,7 @@ Each object must contain these keys:
         <div className="bg-gradient-to-r from-[#EFFFF1] to-white dark:from-slate-900 dark:to-slate-950 border border-[#D9F8DF] dark:border-slate-800 p-6 rounded-2xl shadow-xs relative flex flex-col md:flex-row md:items-center justify-between gap-6 animate-in fade-in slide-in-from-top-4 duration-300">
           <button
             onClick={handleDismissOnboard}
-            className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+            className="absolute top-4 right-4 text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 p-1"
             title="Dismiss Onboarding"
           >
             <X className="size-4" />
@@ -702,10 +902,9 @@ Each object must contain these keys:
                 setEditingIdea(null)
                 setNewIdeaTitle("")
                 setNewIdeaContent("")
-                setNewIdeaNotes("")
-                setNewIdeaTags("")
                 setNewIdeaPlatform("facebook")
                 setNewIdeaStatus("Ideas")
+                setNewIdeaMedia(null)
                 setIdeaFormOpen(true)
               }}
               className="bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-xs px-4 py-2.5 rounded-xl uppercase tracking-wider shadow-sm transition-all"
@@ -746,17 +945,6 @@ Each object must contain these keys:
 
         {/* Right: Search, Filter, Sort, New Idea */}
         <div className="flex flex-wrap items-center gap-3">
-          {/* Tag Filter */}
-          <div className="relative">
-            <Tag className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Filter by Tag..."
-              value={filterTag}
-              onChange={(e) => setFilterTag(e.target.value)}
-              className="pl-8.5 pr-3 py-2 text-xs bg-[#FFFFFF] dark:bg-slate-900 border border-[#D9F8DF] dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#30FC47] w-36 font-semibold"
-            />
-          </div>
 
           {/* Platform Filter */}
           <div className="relative flex items-center">
@@ -798,12 +986,9 @@ Each object must contain these keys:
               setEditingIdea(null)
               setNewIdeaTitle("")
               setNewIdeaContent("")
-              setNewIdeaNotes("")
-              setNewIdeaTags("")
               setNewIdeaPlatform("facebook")
               setNewIdeaStatus("Ideas")
               setNewIdeaMedia(null)
-              setAiGenerateToggle(false)
               setIdeaFormOpen(true)
             }}
             className="bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-xs px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-xs"
@@ -831,12 +1016,9 @@ Each object must contain these keys:
                 setEditingIdea(null)
                 setNewIdeaTitle("")
                 setNewIdeaContent("")
-                setNewIdeaNotes("")
-                setNewIdeaTags("")
                 setNewIdeaPlatform("facebook")
                 setNewIdeaStatus("Ideas")
                 setNewIdeaMedia(null)
-                setAiGenerateToggle(false)
                 setIdeaFormOpen(true)
               }}
               className="bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-xs px-6 py-2.5 rounded-xl uppercase tracking-wider shadow-sm transition-all"
@@ -882,12 +1064,9 @@ Each object must contain these keys:
                         setEditingIdea(null)
                         setNewIdeaTitle("")
                         setNewIdeaContent("")
-                        setNewIdeaNotes("")
-                        setNewIdeaTags("")
                         setNewIdeaPlatform("facebook")
                         setNewIdeaStatus(columnName)
                         setNewIdeaMedia(null)
-                        setAiGenerateToggle(false)
                         setIdeaFormOpen(true)
                       }}
                       className="size-6 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:hover:text-white transition-all"
@@ -899,10 +1078,8 @@ Each object must contain these keys:
                     <button
                       onClick={() => {
                         if (columnIdeas.length > 0 && confirm(`Clear all ideas in ${columnName}?`)) {
-                          const updated = ideas.filter((i) => i.column !== columnName)
-                          setIdeas(updated)
-                          localStorage.setItem("growwave-lite-ideas", JSON.stringify(updated))
-                          syncIdeasToScheduledPosts(updated)
+                          const toDelete = ideas.filter((i) => i.column === columnName)
+                          toDelete.forEach((i) => handleDeleteIdea(i.id))
                         }
                       }}
                       className="size-6 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:hover:text-white transition-all"
@@ -929,7 +1106,7 @@ Each object must contain these keys:
                       onDragStart={(e) => handleDragStart(e, idea.id)}
                       onDragEnd={handleDragEnd}
                       className={cn(
-                        "bg-[#FFFFFF] p-4 rounded-xl border border-slate-150 shadow-xs space-y-3 dark:bg-slate-950 dark:border-slate-850 hover:border-[#30FC47]/50 hover:shadow-sm transition-all cursor-grab active:cursor-grabbing relative group/card",
+                        "bg-[#FFFFFF] p-4 rounded-xl border border-slate-150 shadow-xs space-y-3 dark:bg-slate-955 dark:border-slate-850 hover:border-[#30FC47]/50 hover:shadow-sm transition-all cursor-grab active:cursor-grabbing relative group/card",
                         draggedCardId === idea.id ? "opacity-40 border-dashed border-[#30FC47]" : ""
                       )}
                     >
@@ -937,7 +1114,7 @@ Each object must contain these keys:
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
                           {renderPlatformBadge(idea.platform)}
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">
+                          <span className="text-[9px] font-black text-slate-450 uppercase tracking-wider">
                             {new Date(idea.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}
                           </span>
                         </div>
@@ -946,7 +1123,7 @@ Each object must contain these keys:
                         <div className="relative">
                           <button
                             onClick={() => setOpenMenuCardId(openMenuCardId === idea.id ? null : idea.id)}
-                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded transition-all"
+                            className="text-slate-450 hover:text-slate-655 dark:hover:text-slate-200 p-0.5 rounded transition-all"
                             title="Options"
                           >
                             <MoreVertical className="size-3.5" />
@@ -979,7 +1156,7 @@ Each object must contain these keys:
                                   Delete Idea
                                 </button>
                                 <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
-                                <div className="px-2.5 py-1 text-[8px] font-black text-slate-450 uppercase tracking-wider">Move Column</div>
+                                <div className="px-2.5 py-1 text-[8px] font-black text-slate-455 uppercase tracking-wider">Move Column</div>
                                 {(["Ideas", "Drafts", "Ready To Publish", "Published"] as const).map((col) => {
                                   if (col === idea.column) return null
                                   return (
@@ -989,7 +1166,7 @@ Each object must contain these keys:
                                         handleMoveIdea(idea.id, col)
                                         setOpenMenuCardId(null)
                                       }}
-                                      className="w-full text-left text-[10px] font-bold px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-600 dark:text-slate-400"
+                                      className="w-full text-left text-[10px] font-bold px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-650 dark:text-slate-400"
                                     >
                                       &rarr; {col}
                                     </button>
@@ -1002,66 +1179,58 @@ Each object must contain these keys:
                       </div>
 
                       {/* Card Content */}
-                      <div className="space-y-1">
+                      <div className="space-y-2.5">
                         <span className="text-xs font-black text-slate-900 dark:text-white block leading-tight">
                           {idea.title}
                         </span>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal line-clamp-3 whitespace-pre-wrap font-medium">
                           {idea.content || "Draft content empty. Click edit to draft post."}
                         </p>
-                        {idea.contentNotes && (
-                          <div className="bg-[#FAFBFC] dark:bg-slate-900 border border-slate-100 dark:border-slate-850 p-2 rounded-lg text-[9.5px] text-slate-450 font-medium italic mt-2.5 leading-relaxed">
-                            Notes: {idea.contentNotes}
-                          </div>
-                        )}
+                        
                         {idea.mediaFile && (
-                          <div className="mt-2 flex items-center gap-1.5 text-[9px] font-bold text-emerald-700 bg-[#EFFFF1] dark:bg-emerald-950/20 dark:text-[#30FC47] p-1 px-2 rounded-md">
-                            <ImageIcon className="size-3" />
-                            <span className="truncate max-w-[120px]">{idea.mediaFile.name}</span>
+                          <div className="rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden relative group/media max-h-36 bg-slate-50 flex items-center justify-center">
+                            {isImageUrl(idea.mediaFile.url) ? (
+                              <img src={idea.mediaFile.url} alt="media preview" className="w-full h-full object-cover max-h-32" />
+                            ) : (
+                              <div className="w-full p-2.5 flex items-center gap-2 bg-[#EFFFF1] dark:bg-emerald-950/20 text-emerald-700 dark:text-[#30FC47] text-[10px] font-bold">
+                                <ImageIcon className="size-4 shrink-0" />
+                                <span className="truncate max-w-[140px]">{idea.mediaFile.name}</span>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
 
-                      {/* Card Tags & Status Badge */}
+                      {/* Card Actions & Status (Bug 5) */}
                       <div className="pt-2.5 border-t border-slate-50 dark:border-slate-850 flex items-center justify-between gap-2">
-                        {/* Tags list */}
-                        <div className="flex flex-wrap gap-1 max-w-[70%]">
-                          {idea.tags ? (
-                            idea.tags.split(",").slice(0, 2).map((t, idx) => (
-                              <span
-                                key={idx}
-                                className="bg-[#EFFFF1] text-emerald-800 dark:bg-slate-800 dark:text-emerald-400 text-[8px] font-bold px-1.5 py-0.2 rounded"
-                              >
-                                #{t.trim()}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-[8px] font-bold text-slate-350">No tags</span>
-                          )}
-                        </div>
-                        {/* Status Badge */}
-                        <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-widest leading-none select-none">
-                          {idea.column === "Ready To Publish" ? "Ready" : idea.column}
-                        </span>
+                        {idea.column === "Ideas" ? (
+                          <button
+                            onClick={() => handleMoveIdea(idea.id, "Drafts")}
+                            className="bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-[9px] px-2.5 py-1.5 rounded-lg uppercase tracking-wider transition-all select-none"
+                          >
+                            Create Post
+                          </button>
+                        ) : (
+                          <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-widest leading-none select-none">
+                            {idea.column === "Ready To Publish" ? "Ready" : idea.column}
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))}
 
                   {/* Empty state for single column */}
                   {columnIdeas.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-slate-150 dark:border-slate-800 rounded-xl bg-[#FAFBFC]/30 dark:bg-slate-950/10 select-none">
-                      <span className="text-[10px] text-slate-450 font-bold uppercase tracking-wide">No items</span>
+                    <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-slate-150 dark:border-slate-800 rounded-xl bg-[#FAFBFC]/30 dark:bg-slate-955/10 select-none">
+                      <span className="text-[10px] text-slate-455 font-bold uppercase tracking-wide">No items</span>
                       <button
                         onClick={() => {
                           setEditingIdea(null)
                           setNewIdeaTitle("")
                           setNewIdeaContent("")
-                          setNewIdeaNotes("")
-                          setNewIdeaTags("")
                           setNewIdeaPlatform("facebook")
                           setNewIdeaStatus(columnName)
                           setNewIdeaMedia(null)
-                          setAiGenerateToggle(false)
                           setIdeaFormOpen(true)
                         }}
                         className="mt-2 text-[9px] font-black text-emerald-700 dark:text-[#30FC47] hover:underline flex items-center gap-0.5"
@@ -1088,7 +1257,7 @@ Each object must contain these keys:
             </div>
             <button
               onClick={() => setChecklistOpen(false)}
-              className="text-slate-400 hover:text-slate-600 rounded p-0.5 transition-colors"
+              className="text-slate-400 hover:text-slate-655 rounded p-0.5 transition-colors"
             >
               <X className="size-4" />
             </button>
@@ -1115,7 +1284,7 @@ Each object must contain these keys:
                   )}
                   <div className="flex-1 min-w-0">
                     {step.href ? (
-                      <Link href={step.href} className="text-[11px] font-bold text-slate-700 hover:text-slate-950 hover:underline dark:text-slate-300 dark:hover:text-white block">
+                      <Link href={step.href} className="text-[11px] font-bold text-slate-700 hover:text-slate-950 hover:underline dark:text-slate-350 dark:hover:text-white block">
                         {step.label} &rarr;
                       </Link>
                     ) : step.action && !step.checked ? (
@@ -1123,26 +1292,30 @@ Each object must contain these keys:
                         {step.label}
                       </button>
                     ) : (
-                      <span className={cn("text-[11px] font-semibold block leading-tight", step.checked ? "text-slate-400 line-through" : "text-slate-700 dark:text-slate-300")}>
+                      <span className={cn("text-[11px] font-semibold block leading-tight", step.checked ? "text-slate-400 line-through" : "text-slate-700 dark:text-slate-355")}>
                         {step.label}
                       </span>
                     )}
                   </div>
                 </div>
               ))}
-       {/* Redesigned Quick Create / Edit Modal (Buffer-style) */}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Redesigned Quick Create / Edit Modal (Buffer-style) */}
       {ideaFormOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div onClick={() => setIdeaFormOpen(false)} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" />
+          <div onClick={handleCloseModalCheck} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" />
           
           <div className="relative flex items-stretch gap-4 max-w-3xl w-full z-10 animate-in fade-in zoom-in-95 duration-200">
-            
-            {/* AI Assistant Sidebar (Left Panel) */}
+            {/* AI Assistant Sidebar (Left Panel) (Bug 1 & 9 & 6) */}
             {isAiSidebarOpen && (
               <div className="w-80 rounded-3xl border border-slate-100 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 flex flex-col justify-between animate-in slide-in-from-left-4 duration-300 shrink-0">
-                <div className="space-y-5">
+                <div className="space-y-5 flex-1 flex flex-col">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-                    <span className="text-xs font-black text-purple-655 dark:text-purple-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <span className="text-xs font-black text-purple-650 dark:text-purple-400 uppercase tracking-widest flex items-center gap-1.5">
                       <Sparkles className="size-4 text-purple-500 fill-current animate-pulse" />
                       AI Assistant
                     </span>
@@ -1154,49 +1327,106 @@ Each object must contain these keys:
                     </button>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[11px] font-black text-slate-700 dark:text-slate-355 uppercase tracking-wider block">
-                      What do you want to write about?
-                    </label>
-                    <textarea
-                      placeholder="Eg. Promote my photography course to get new signups. Registration closes in 3 days."
-                      value={aiPromptInput}
-                      onChange={(e) => setAiPromptInput(e.target.value)}
-                      rows={6}
-                      className="w-full text-xs font-semibold p-3 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-purple-500 resize-none bg-slate-50/20 text-[#111827] dark:text-white placeholder:text-slate-350"
-                    />
-                    <p className="text-[10px] text-slate-455 dark:text-slate-500 leading-normal font-semibold">
-                      <strong className="text-slate-500 dark:text-slate-455">Pro tip:</strong> Include key points, your target audience and your desired outcome for this post.
-                    </p>
-                  </div>
+                  {generatedContent ? (
+                    /* AI Result Panel (Bug 1) */
+                    <div className="space-y-4 flex-1 flex flex-col justify-between">
+                      <div className="space-y-2 flex-1 flex flex-col">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
+                          Generated Content
+                        </span>
+                        <div className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-105 dark:border-slate-800 rounded-xl p-3 text-xs font-semibold text-slate-850 dark:text-slate-205 whitespace-pre-wrap overflow-y-auto max-h-[300px]">
+                          {generatedContent}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-850 shrink-0">
+                        <Button
+                          onClick={handleInsertIntoIdea}
+                          className="w-full bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-[11px] py-2.5 rounded-xl uppercase tracking-wider transition-all"
+                        >
+                          Insert Into Idea
+                        </Button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={handleCopyGeneratedContent}
+                            className="border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-[10px] py-2 rounded-xl uppercase tracking-wider bg-white dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-slate-300"
+                          >
+                            Copy
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={handleSidebarAIGenerate}
+                            className="border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-[10px] py-2 rounded-xl uppercase tracking-wider bg-white dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-slate-300"
+                          >
+                            Regenerate
+                          </Button>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          onClick={() => setGeneratedContent("")}
+                          className="w-full text-[10px] font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                        >
+                          &larr; Write New Prompt
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* AI Prompt Area (Bug 1 & 9) */
+                    <div className="space-y-3.5 flex-1 flex flex-col">
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-black text-slate-700 dark:text-slate-355 uppercase tracking-wider block">
+                          What do you want to write about?
+                        </label>
+                        <textarea
+                          placeholder="Eg. Write a professional content about my software company"
+                          value={aiPromptInput}
+                          onChange={(e) => setAiPromptInput(e.target.value)}
+                          rows={8}
+                          className="w-full text-xs font-semibold p-3 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-purple-500 resize-none bg-slate-50/20 text-[#111827] dark:text-white placeholder:text-slate-350"
+                          disabled={aiSidebarGenerating}
+                        />
+                      </div>
+                      <p className="text-[10px] text-slate-455 dark:text-slate-500 leading-normal font-semibold">
+                        <strong className="text-slate-500 dark:text-slate-455">Pro tip:</strong> Include key points, your target audience, and platform context.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-850">
-                  <button
-                    onClick={handleSidebarAIGenerate}
-                    disabled={aiSidebarGenerating || !aiPromptInput.trim()}
-                    className={cn(
-                      "font-black text-[11px] px-4 py-2 rounded-xl uppercase tracking-wider transition-all flex items-center gap-1.5",
-                      aiPromptInput.trim() 
-                        ? "bg-purple-650 hover:bg-purple-700 text-white shadow-sm" 
-                        : "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed"
-                    )}
-                  >
-                    {aiSidebarGenerating ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <Sparkles className="size-3.5 text-purple-400" />
-                    )}
-                    <span>Generate</span>
-                  </button>
-                </div>
+                {!generatedContent && (
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-850">
+                    <button
+                      onClick={handleSidebarAIGenerate}
+                      disabled={aiSidebarGenerating || !aiPromptInput.trim()}
+                      className={cn(
+                        "w-full font-black text-[11.5px] py-2.5 rounded-xl uppercase tracking-wider transition-all flex items-center justify-center gap-1.5",
+                        aiPromptInput.trim() 
+                          ? "bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 shadow-sm" 
+                          : "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed"
+                      )}
+                    >
+                      {aiSidebarGenerating ? (
+                        <>
+                          <Loader2 className="size-3.5 animate-spin" />
+                          <span>Generating content...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="size-3.5 text-slate-950" />
+                          <span>Generate Content</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Main Create/Edit Modal Card (Right Panel) */}
             <div className="flex-1 rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 flex flex-col justify-between min-h-[500px] relative">
               <button 
-                onClick={() => setIdeaFormOpen(false)}
+                onClick={handleCloseModalCheck}
                 className="absolute top-4 right-4 text-slate-455 hover:text-slate-655 dark:hover:text-white p-1 rounded"
               >
                 <X className="size-4.5" />
@@ -1214,7 +1444,7 @@ Each object must contain these keys:
                   placeholder="Give your idea a title"
                   value={newIdeaTitle}
                   onChange={(e) => setNewIdeaTitle(e.target.value)}
-                  className="w-full text-lg font-black text-[#111827] dark:text-white border-0 border-b border-transparent focus:outline-none focus:ring-0 focus:border-transparent p-0 bg-transparent placeholder:text-slate-355"
+                  className="w-full text-lg font-black text-[#111827] dark:text-white border-0 border-b border-transparent focus:outline-none focus:ring-0 focus:border-transparent p-0 bg-transparent placeholder:text-slate-350"
                   autoFocus
                 />
 
@@ -1225,7 +1455,7 @@ Each object must contain these keys:
                     value={newIdeaContent}
                     onChange={(e) => setNewIdeaContent(e.target.value)}
                     rows={6}
-                    className="w-full text-xs font-semibold p-0 border-0 focus:outline-none focus:ring-0 resize-none bg-transparent text-[#111827] dark:text-white placeholder:text-slate-355"
+                    className="w-full text-xs font-semibold p-0 border-0 focus:outline-none focus:ring-0 resize-none bg-transparent text-[#111827] dark:text-white placeholder:text-slate-350"
                   />
                   {newIdeaContent === "" && (
                     <button
@@ -1238,130 +1468,108 @@ Each object must contain these keys:
                   )}
                 </div>
 
-                {/* Media Upload (dotted square block) */}
+                {/* Media Upload and Platform Selector */}
                 <div className="flex items-center gap-4">
                   {newIdeaMedia ? (
-                    <div className="relative w-28 h-28 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden group flex items-center justify-center bg-slate-50/50">
-                      <div className="text-center p-2">
-                        <ImageIcon className="size-6 text-emerald-655 mx-auto mb-1" />
-                        <span className="text-[9px] font-bold block truncate max-w-[80px] text-slate-700 dark:text-slate-300">{newIdeaMedia.name}</span>
-                        <span className="text-[8px] text-slate-455 block font-semibold">{newIdeaMedia.size}MB</span>
+                    /* Upload Preview Card */
+                    <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 rounded-2xl flex-1">
+                      <div className="relative w-14 h-14 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shrink-0 bg-slate-100 flex items-center justify-center">
+                        {isImageUrl(newIdeaMedia.url) ? (
+                          <img src={newIdeaMedia.url} alt="media preview" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="flex items-center justify-center w-full h-full text-slate-550 dark:text-slate-400 bg-slate-200 dark:bg-slate-800">
+                            <ImageIcon className="size-5" />
+                          </div>
+                        )}
                       </div>
-                      <button
-                        onClick={() => setNewIdeaMedia(null)}
-                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-black text-[#111827] dark:text-white truncate">{newIdeaMedia.name}</p>
+                        <p className="text-[10px] text-slate-455 dark:text-slate-500 font-semibold">{newIdeaMedia.size} MB</p>
+                        <div className="flex gap-2.5 mt-1">
+                          <button
+                            type="button"
+                            onClick={() => setNewIdeaMedia(null)}
+                            className="text-[10px] font-black text-rose-600 hover:text-rose-700 dark:text-rose-450 dark:hover:text-rose-300 uppercase tracking-wider"
+                          >
+                            Remove
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleSimulateMediaUpload}
+                            className="text-[10px] font-black text-emerald-600 hover:text-emerald-700 dark:text-[#30FC47] dark:hover:text-[#24D93B] uppercase tracking-wider"
+                          >
+                            Replace
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   ) : (
+                    /* Dotted Square Drag & Drop area */
                     <div
                       onClick={handleSimulateMediaUpload}
-                      className="w-28 h-28 border border-dashed border-slate-355 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center p-2 text-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/10 dark:hover:bg-slate-850/30 transition-all gap-1 select-none"
+                      onDragOver={handleDragOverFile}
+                      onDrop={handleDropFile}
+                      className="w-28 h-28 border border-dashed border-slate-300 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center p-2 text-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/10 dark:hover:bg-slate-850/30 transition-all gap-1 select-none shrink-0"
                     >
                       <ImageIcon className="size-5 text-slate-400" />
-                      <span className="text-[10px] font-bold text-slate-655 dark:text-slate-400 leading-tight">Drag & drop</span>
-                      <span className="text-[8.5px] font-semibold text-emerald-600 dark:text-emerald-400">or select a file</span>
+                      <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 leading-tight">Drag & drop</span>
+                      <span className="text-[8.5px] font-semibold text-emerald-600 dark:text-emerald-400">or select file</span>
                     </div>
                   )}
 
-                  {/* Expandable Extra Settings for Notes/Tags */}
+                  {/* Platform Selector simple dropdown */}
                   <div className="flex-1 space-y-1.5">
-                    <button
-                      onClick={() => setExtraSettingsOpen(!extraSettingsOpen)}
-                      className="text-[10px] font-black uppercase text-slate-400 hover:text-slate-650 dark:hover:text-slate-300 flex items-center gap-1 transition-all"
-                    >
-                      <span>Settings & Tags</span>
-                      <ChevronDown className={cn("size-3.5 transition-transform", extraSettingsOpen ? "rotate-180" : "")} />
-                    </button>
-                    {extraSettingsOpen && (
-                      <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-850 rounded-xl space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
-                        <div className="grid gap-2 grid-cols-2">
-                          <div>
-                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block mb-0.5">Tags</span>
-                            <Input
-                              placeholder="e.g. tips, news"
-                              value={newIdeaTags}
-                              onChange={(e) => setNewIdeaTags(e.target.value)}
-                              className="h-7 text-[10px] font-semibold focus-visible:ring-[#30FC47]"
-                            />
-                          </div>
-                          <div>
-                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block mb-0.5">Status Column</span>
-                            <select
-                              value={newIdeaStatus}
-                              onChange={(e) => setNewIdeaStatus(e.target.value as any)}
-                              className="w-full text-[10px] font-bold text-slate-655 bg-white border border-slate-200 p-1 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#30FC47] h-7 dark:bg-slate-950 dark:border-slate-850 dark:text-slate-355"
-                            >
-                              <option value="Ideas">Ideas</option>
-                              <option value="Drafts">Drafts</option>
-                              <option value="Ready To Publish">Ready To Publish</option>
-                              <option value="Published">Published</option>
-                            </select>
-                          </div>
+                    <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">
+                      Target Channel
+                    </span>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setPlatformDropdownOpen(!platformDropdownOpen)}
+                        className="w-full flex items-center justify-between px-3.5 py-2 bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-850 rounded-xl text-xs font-bold text-[#111827] dark:text-white"
+                      >
+                        <div className="flex items-center gap-2">
+                          {renderToolbarPlatformIcon(newIdeaPlatform)}
+                          <span className="capitalize">{newIdeaPlatform === "twitter" ? "Twitter / X" : newIdeaPlatform}</span>
                         </div>
-                        <div>
-                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block mb-0.5">Content Notes</span>
-                          <input
-                            type="text"
-                            placeholder="Visual instructions or links..."
-                            value={newIdeaNotes}
-                            onChange={(e) => setNewIdeaNotes(e.target.value)}
-                            className="w-full h-7 text-[10px] font-semibold px-2 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#30FC47] bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200"
-                          />
-                        </div>
-                      </div>
-                    )}
+                        <ChevronDown className="size-4 text-slate-400 transition-transform" />
+                      </button>
+
+                      {platformDropdownOpen && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setPlatformDropdownOpen(false)} />
+                          <div className="absolute left-0 bottom-full mb-1.5 z-20 w-full rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-800 dark:bg-slate-900 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                            {["Facebook", "Instagram", "LinkedIn", "Twitter", "TikTok"].map((plat) => (
+                              <button
+                                key={plat}
+                                type="button"
+                                onClick={() => {
+                                  setNewIdeaPlatform(plat.toLowerCase())
+                                  setPlatformDropdownOpen(false)
+                                }}
+                                className="w-full text-left text-xs font-semibold px-2.5 py-2 hover:bg-slate-55 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-700 dark:text-slate-300 flex items-center gap-2"
+                              >
+                                <span className="size-4 flex items-center justify-center">{renderToolbarPlatformIcon(plat.toLowerCase())}</span>
+                                <span>{plat === "Twitter" ? "Twitter / X" : plat}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Bottom Toolbar & Footer */}
               <div className="pt-3 mt-4 border-t border-slate-100 dark:border-slate-850 flex items-center justify-between relative">
-                {/* Left controls: Platform circle selector, divider, emoji, divider, AI sidebar trigger */}
+                {/* Left controls: Emoji, AI assistant trigger */}
                 <div className="flex items-center gap-2">
-                  {/* Circled C Platform Dropdown */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setPlatformDropdownOpen(!platformDropdownOpen)}
-                      className="flex items-center gap-1 hover:scale-105 active:scale-95 transition-all p-1 bg-slate-50 dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700"
-                      title="Select Platform"
-                    >
-                      <div className="size-6 rounded-full flex items-center justify-center shrink-0">
-                        {renderToolbarPlatformIcon(newIdeaPlatform)}
-                      </div>
-                      <ChevronDown className="size-3 text-slate-400 mr-1" />
-                    </button>
-
-                    {platformDropdownOpen && (
-                      <>
-                        <div className="fixed inset-0 z-10" onClick={() => setPlatformDropdownOpen(false)} />
-                        <div className="absolute left-0 bottom-9 z-20 w-36 rounded-xl border border-slate-100 bg-white p-1 shadow-lg dark:border-slate-800 dark:bg-slate-950 animate-in fade-in slide-in-from-bottom-2 duration-150">
-                          {["Facebook", "Instagram", "LinkedIn", "Twitter", "TikTok"].map((plat) => (
-                            <button
-                              key={plat}
-                              onClick={() => {
-                                setNewIdeaPlatform(plat.toLowerCase())
-                                setPlatformDropdownOpen(false)
-                              }}
-                              className="w-full text-left text-xs font-semibold px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors text-slate-700 dark:text-slate-355 flex items-center gap-2"
-                            >
-                              <span className="size-4 flex items-center justify-center">{renderToolbarPlatformIcon(plat)}</span>
-                              <span>{plat}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="h-5 w-px bg-slate-100 dark:bg-slate-850" />
-
                   {/* Emoji Button */}
                   <div className="relative">
                     <button
                       onClick={() => setEmojiDropdownOpen(!emojiDropdownOpen)}
-                      className="size-7 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-all"
+                      className="size-7 flex items-center justify-center text-slate-450 hover:text-slate-700 dark:hover:text-white hover:bg-slate-55 dark:hover:bg-slate-800 rounded-full transition-all"
                       title="Insert Emoji"
                     >
                       <span className="text-base select-none">😊</span>
@@ -1370,12 +1578,12 @@ Each object must contain these keys:
                     {emojiDropdownOpen && (
                       <>
                         <div className="fixed inset-0 z-10" onClick={() => setEmojiDropdownOpen(false)} />
-                        <div className="absolute left-0 bottom-9 z-20 grid grid-cols-5 gap-1 p-2 bg-white rounded-xl border border-slate-100 shadow-xl w-44 dark:bg-slate-900 dark:border-slate-800">
+                        <div className="absolute left-0 bottom-9 z-20 grid grid-cols-5 gap-1 p-2 bg-white rounded-xl border border-slate-150 shadow-xl w-44 dark:bg-slate-900 dark:border-slate-800">
                           {emojis.map((emoji) => (
                             <button
                               key={emoji}
                               onClick={() => handleEmojiClick(emoji)}
-                              className="size-7 flex items-center justify-center text-base hover:bg-slate-50 dark:hover:bg-slate-800 rounded transition-colors"
+                              className="size-7 flex items-center justify-center text-base hover:bg-slate-55 dark:hover:bg-slate-805 rounded transition-colors"
                             >
                               {emoji}
                             </button>
@@ -1390,7 +1598,7 @@ Each object must contain these keys:
                   {/* AI Assistant Button */}
                   <button
                     onClick={() => setIsAiSidebarOpen(!isAiSidebarOpen)}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200/50 dark:bg-purple-950/35 dark:border-purple-900/60 dark:text-purple-300 transition-all select-none"
+                    className="flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200/50 dark:bg-purple-955/35 dark:border-purple-900/60 dark:text-purple-300 transition-all select-none"
                   >
                     <Sparkles className="size-3 text-purple-500 fill-current" />
                     <span>AI Assistant</span>
@@ -1400,33 +1608,52 @@ Each object must contain these keys:
                 {/* Right controls: Create Post (Ready To Publish status), Save Idea */}
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => {
-                      setNewIdeaStatus("Ready To Publish")
-                      setTimeout(handleSaveIdea, 0)
-                    }}
-                    className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-805 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-extrabold text-[11px] px-4 py-2 rounded-xl uppercase tracking-wider transition-all"
+                    onClick={() => handleSaveIdea("Drafts")}
+                    className="bg-slate-105 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-750 dark:text-slate-300 font-extrabold text-[11px] px-4 py-2.5 rounded-xl uppercase tracking-wider transition-all"
                   >
                     Create Post
                   </button>
                   <button
-                    onClick={handleSaveIdea}
-                    className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-805 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-extrabold text-[11px] px-4 py-2 rounded-xl uppercase tracking-wider transition-all"
+                    onClick={() => handleSaveIdea()}
+                    className="bg-slate-105 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-750 dark:text-slate-300 font-extrabold text-[11px] px-4 py-2.5 rounded-xl uppercase tracking-wider transition-all"
                   >
                     Save Idea
                   </button>
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       )}
+
+      {/* Discard Warning Modal */}
+      {showDiscardWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setShowDiscardWarning(false)} />
+          <div className="relative w-full max-w-sm rounded-2xl border border-slate-150 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 z-50 text-center space-y-4">
+            <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">Discard Changes?</h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-normal">
+              Are you sure you want to discard your draft? Any entered content will be permanently lost.
+            </p>
+            <div className="flex justify-center gap-3 pt-2">
+              <button
+                onClick={() => setShowDiscardWarning(false)}
+                className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-750 dark:text-slate-300 font-extrabold text-[10px] py-2 px-4 rounded-xl uppercase tracking-wider"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={forceCloseModal}
+                className="bg-rose-500 hover:bg-rose-650 text-white font-extrabold text-[10px] py-2 px-4 rounded-xl uppercase tracking-wider"
+              >
+                Discard
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* AI Generate Ideas Modal */}
+      {/* AI Generate Ideas Modal (for generating 10 ideas) */}
       {aiGeneratorOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div onClick={() => setAiGeneratorOpen(false)} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" />
@@ -1439,7 +1666,7 @@ Each object must contain these keys:
                   Generate Ideas with AI
                 </h3>
               </div>
-              <button onClick={() => setAiGeneratorOpen(false)} className="text-slate-400 hover:text-slate-600 rounded">
+              <button onClick={() => setAiGeneratorOpen(false)} className="text-slate-400 hover:text-slate-655 rounded">
                 <X className="size-4.5" />
               </button>
             </div>
@@ -1490,7 +1717,7 @@ Each object must contain these keys:
                 </select>
               </div>
 
-              <div className="bg-[#EFFFF1]/60 dark:bg-slate-850 p-3.5 rounded-xl border border-[#D9F8DF]/60 dark:border-slate-800 text-[11px] text-[#6B7280] dark:text-slate-450 leading-relaxed font-medium">
+              <div className="bg-[#EFFFF1]/60 dark:bg-slate-850 p-3.5 rounded-xl border border-[#D9F8DF]/60 dark:border-slate-800 text-[11px] text-[#6B7280] dark:text-slate-455 leading-relaxed font-medium">
                 💡 AI will return <strong>exactly 10 creative post ideas</strong> populated directly into your <strong>Ideas</strong> column as draft templates.
               </div>
             </div>
