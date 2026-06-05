@@ -174,6 +174,14 @@ function CreateContent() {
   const [aiGenerateToggle, setAiGenerateToggle] = useState(false)
   const [modalAiLoading, setModalAiLoading] = useState(false)
 
+  // Redesigned Professional Composer states
+  const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(false)
+  const [aiPromptInput, setAiPromptInput] = useState("")
+  const [aiSidebarGenerating, setAiSidebarGenerating] = useState(false)
+  const [emojiDropdownOpen, setEmojiDropdownOpen] = useState(false)
+  const [platformDropdownOpen, setPlatformDropdownOpen] = useState(false)
+  const [extraSettingsOpen, setExtraSettingsOpen] = useState(false)
+
   // Drag and Drop Visual Feedback
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null)
   const [draggedOverColumn, setDraggedOverColumn] = useState<string | null>(null)
@@ -341,6 +349,64 @@ function CreateContent() {
       setModalAiLoading(false)
     }
   }
+
+  // AI Assistant Sidebar generation
+  const handleSidebarAIGenerate = async () => {
+    if (!aiPromptInput.trim()) {
+      alert("Please enter a prompt first.")
+      return
+    }
+    setAiSidebarGenerating(true)
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "generate-caption",
+          prompt: aiPromptInput,
+          tone: "friendly"
+        })
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.result) {
+          setNewIdeaContent(data.result)
+          setIsAiSidebarOpen(false)
+        }
+      } else {
+        throw new Error("Failed to generate caption")
+      }
+    } catch (err) {
+      console.warn("AI generation failed, using mock suggestion:", err)
+      setNewIdeaContent(`📸 Let's share some updates about ${aiPromptInput}! Check out our full guide to learn more. Let us know your thoughts! 👇`)
+      setIsAiSidebarOpen(false)
+    } finally {
+      setAiSidebarGenerating(false)
+    }
+  }
+
+  // Render platform icons in toolbar circled button
+  const renderToolbarPlatformIcon = (plat: string) => {
+    const p = (plat || "").toLowerCase()
+    if (p === "facebook") return <IconFacebook className="size-4 text-blue-600" />
+    if (p === "instagram") return <IconInstagram className="size-4 text-pink-600" />
+    if (p === "linkedin") return <IconLinkedin className="size-4 text-sky-700" />
+    if (p === "twitter" || p === "x") return <IconX className="size-4 text-black dark:text-white" />
+    if (p === "tiktok") return <IconTikTok className="size-4 text-fuchsia-600" />
+    
+    return (
+      <div className="size-4 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-[9px] uppercase dark:bg-slate-800 dark:text-slate-350 select-none">
+        c
+      </div>
+    )
+  }
+
+  const handleEmojiClick = (emoji: string) => {
+    setNewIdeaContent((prev) => prev + emoji)
+    setEmojiDropdownOpen(false)
+  }
+
+  const emojis = ["😀", "🚀", "🔥", "✨", "💡", "🎉", "👍", "👏", "❤️", "👀", "📈", "🙌", "💥", "📅", "😊"]
 
   // Save or edit an idea
   const handleSaveIdea = () => {
@@ -1064,167 +1130,297 @@ Each object must contain these keys:
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Quick Create / Edit Modal */}
+       {/* Redesigned Quick Create / Edit Modal (Buffer-style) */}
       {ideaFormOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div onClick={() => setIdeaFormOpen(false)} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" />
           
-          <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl p-6 dark:border-slate-800 dark:bg-slate-900 z-10 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider dark:text-white">
-                {editingIdea ? "Edit Content Idea" : "New Idea"}
-              </h3>
-              <button onClick={() => setIdeaFormOpen(false)} className="text-slate-400 hover:text-slate-650 rounded">
+          <div className="relative flex items-stretch gap-4 max-w-3xl w-full z-10 animate-in fade-in zoom-in-95 duration-200">
+            
+            {/* AI Assistant Sidebar (Left Panel) */}
+            {isAiSidebarOpen && (
+              <div className="w-80 rounded-3xl border border-slate-100 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 flex flex-col justify-between animate-in slide-in-from-left-4 duration-300 shrink-0">
+                <div className="space-y-5">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                    <span className="text-xs font-black text-purple-655 dark:text-purple-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <Sparkles className="size-4 text-purple-500 fill-current animate-pulse" />
+                      AI Assistant
+                    </span>
+                    <button 
+                      onClick={() => setIsAiSidebarOpen(false)}
+                      className="text-slate-400 hover:text-slate-655 dark:hover:text-white p-1"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-black text-slate-700 dark:text-slate-355 uppercase tracking-wider block">
+                      What do you want to write about?
+                    </label>
+                    <textarea
+                      placeholder="Eg. Promote my photography course to get new signups. Registration closes in 3 days."
+                      value={aiPromptInput}
+                      onChange={(e) => setAiPromptInput(e.target.value)}
+                      rows={6}
+                      className="w-full text-xs font-semibold p-3 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-purple-500 resize-none bg-slate-50/20 text-[#111827] dark:text-white placeholder:text-slate-350"
+                    />
+                    <p className="text-[10px] text-slate-455 dark:text-slate-500 leading-normal font-semibold">
+                      <strong className="text-slate-500 dark:text-slate-455">Pro tip:</strong> Include key points, your target audience and your desired outcome for this post.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-850">
+                  <button
+                    onClick={handleSidebarAIGenerate}
+                    disabled={aiSidebarGenerating || !aiPromptInput.trim()}
+                    className={cn(
+                      "font-black text-[11px] px-4 py-2 rounded-xl uppercase tracking-wider transition-all flex items-center gap-1.5",
+                      aiPromptInput.trim() 
+                        ? "bg-purple-650 hover:bg-purple-700 text-white shadow-sm" 
+                        : "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed"
+                    )}
+                  >
+                    {aiSidebarGenerating ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="size-3.5 text-purple-400" />
+                    )}
+                    <span>Generate</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Main Create/Edit Modal Card (Right Panel) */}
+            <div className="flex-1 rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 flex flex-col justify-between min-h-[500px] relative">
+              <button 
+                onClick={() => setIdeaFormOpen(false)}
+                className="absolute top-4 right-4 text-slate-455 hover:text-slate-655 dark:hover:text-white p-1 rounded"
+              >
                 <X className="size-4.5" />
               </button>
-            </div>
 
-            {/* Form Fields */}
-            <div className="space-y-3.5 max-h-[70vh] overflow-y-auto pr-1">
-              <div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Title</span>
-                <Input
-                  placeholder="Idea Title (e.g. 5 summer design tips)"
+              <div className="flex-1 flex flex-col space-y-4">
+                {/* Modal Title label */}
+                <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider select-none">
+                  {editingIdea ? "Edit Idea" : "Create Idea"}
+                </div>
+
+                {/* Title Input field - Borderless & large */}
+                <input
+                  type="text"
+                  placeholder="Give your idea a title"
                   value={newIdeaTitle}
                   onChange={(e) => setNewIdeaTitle(e.target.value)}
-                  className="h-9 text-xs font-semibold focus-visible:ring-[#30FC47] bg-slate-50/20"
+                  className="w-full text-lg font-black text-[#111827] dark:text-white border-0 border-b border-transparent focus:outline-none focus:ring-0 focus:border-transparent p-0 bg-transparent placeholder:text-slate-355"
+                  autoFocus
                 />
-              </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Description / Social Post Copy</span>
-                  <div className="flex items-center gap-1.5">
-                    <label className="text-[10px] text-slate-500 font-bold flex items-center gap-1 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={aiGenerateToggle}
-                        onChange={(e) => setAiGenerateToggle(e.target.checked)}
-                        className="rounded accent-[#30FC47]"
-                      />
-                      <span>AI Suggest</span>
-                    </label>
-                    {aiGenerateToggle && (
+                {/* Content/Description text area */}
+                <div className="relative flex-1 flex flex-col min-h-[160px]">
+                  <textarea
+                    placeholder="Wait... It's about to come to me... or "
+                    value={newIdeaContent}
+                    onChange={(e) => setNewIdeaContent(e.target.value)}
+                    rows={6}
+                    className="w-full text-xs font-semibold p-0 border-0 focus:outline-none focus:ring-0 resize-none bg-transparent text-[#111827] dark:text-white placeholder:text-slate-355"
+                  />
+                  {newIdeaContent === "" && (
+                    <button
+                      onClick={() => setIsAiSidebarOpen(true)}
+                      className="absolute left-[200px] top-[1px] inline-flex items-center gap-1 bg-purple-50 hover:bg-purple-100 border border-purple-200/60 text-purple-700 dark:bg-purple-950/40 dark:border-purple-900 dark:text-purple-300 px-2 py-0.5 rounded-full text-[10px] font-bold transition-all shadow-xs"
+                    >
+                      <Sparkles className="size-3 text-purple-500 fill-current" />
+                      Use the AI Assistant
+                    </button>
+                  )}
+                </div>
+
+                {/* Media Upload (dotted square block) */}
+                <div className="flex items-center gap-4">
+                  {newIdeaMedia ? (
+                    <div className="relative w-28 h-28 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden group flex items-center justify-center bg-slate-50/50">
+                      <div className="text-center p-2">
+                        <ImageIcon className="size-6 text-emerald-655 mx-auto mb-1" />
+                        <span className="text-[9px] font-bold block truncate max-w-[80px] text-slate-700 dark:text-slate-300">{newIdeaMedia.name}</span>
+                        <span className="text-[8px] text-slate-455 block font-semibold">{newIdeaMedia.size}MB</span>
+                      </div>
                       <button
-                        onClick={handleModalAISuggest}
-                        disabled={modalAiLoading}
-                        className="text-[9px] font-black bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 px-1.5 py-0.5 rounded uppercase flex items-center gap-0.5 disabled:opacity-60"
+                        onClick={() => setNewIdeaMedia(null)}
+                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
                       >
-                        {modalAiLoading ? <Loader2 className="size-2.5 animate-spin" /> : "Suggest"}
+                        <Trash2 className="size-4" />
                       </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={handleSimulateMediaUpload}
+                      className="w-28 h-28 border border-dashed border-slate-355 dark:border-slate-800 rounded-2xl flex flex-col items-center justify-center p-2 text-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/10 dark:hover:bg-slate-850/30 transition-all gap-1 select-none"
+                    >
+                      <ImageIcon className="size-5 text-slate-400" />
+                      <span className="text-[10px] font-bold text-slate-655 dark:text-slate-400 leading-tight">Drag & drop</span>
+                      <span className="text-[8.5px] font-semibold text-emerald-600 dark:text-emerald-400">or select a file</span>
+                    </div>
+                  )}
+
+                  {/* Expandable Extra Settings for Notes/Tags */}
+                  <div className="flex-1 space-y-1.5">
+                    <button
+                      onClick={() => setExtraSettingsOpen(!extraSettingsOpen)}
+                      className="text-[10px] font-black uppercase text-slate-400 hover:text-slate-650 dark:hover:text-slate-300 flex items-center gap-1 transition-all"
+                    >
+                      <span>Settings & Tags</span>
+                      <ChevronDown className={cn("size-3.5 transition-transform", extraSettingsOpen ? "rotate-180" : "")} />
+                    </button>
+                    {extraSettingsOpen && (
+                      <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-850 rounded-xl space-y-2 animate-in fade-in slide-in-from-top-1 duration-150">
+                        <div className="grid gap-2 grid-cols-2">
+                          <div>
+                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block mb-0.5">Tags</span>
+                            <Input
+                              placeholder="e.g. tips, news"
+                              value={newIdeaTags}
+                              onChange={(e) => setNewIdeaTags(e.target.value)}
+                              className="h-7 text-[10px] font-semibold focus-visible:ring-[#30FC47]"
+                            />
+                          </div>
+                          <div>
+                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block mb-0.5">Status Column</span>
+                            <select
+                              value={newIdeaStatus}
+                              onChange={(e) => setNewIdeaStatus(e.target.value as any)}
+                              className="w-full text-[10px] font-bold text-slate-655 bg-white border border-slate-200 p-1 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#30FC47] h-7 dark:bg-slate-950 dark:border-slate-850 dark:text-slate-355"
+                            >
+                              <option value="Ideas">Ideas</option>
+                              <option value="Drafts">Drafts</option>
+                              <option value="Ready To Publish">Ready To Publish</option>
+                              <option value="Published">Published</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block mb-0.5">Content Notes</span>
+                          <input
+                            type="text"
+                            placeholder="Visual instructions or links..."
+                            value={newIdeaNotes}
+                            onChange={(e) => setNewIdeaNotes(e.target.value)}
+                            className="w-full h-7 text-[10px] font-semibold px-2 border border-slate-200 dark:border-slate-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#30FC47] bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200"
+                          />
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
-                <Textarea
-                  placeholder="Draft your main caption text copy here..."
-                  value={newIdeaContent}
-                  onChange={(e) => setNewIdeaContent(e.target.value)}
-                  rows={4}
-                  className="text-xs font-semibold resize-none focus-visible:ring-[#30FC47] bg-slate-50/20"
-                />
               </div>
 
-              <div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Content Notes</span>
-                <Textarea
-                  placeholder="Research links, visual details, references..."
-                  value={newIdeaNotes}
-                  onChange={(e) => setNewIdeaNotes(e.target.value)}
-                  rows={2}
-                  className="text-xs font-medium resize-none bg-slate-50/50 dark:bg-slate-900/50"
-                />
-              </div>
-
-              {/* Media Upload */}
-              <div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Media Attachment</span>
-                {newIdeaMedia ? (
-                  <div className="flex items-center justify-between p-2 bg-[#EFFFF1] dark:bg-emerald-950/20 rounded-xl border border-[#D9F8DF] dark:border-slate-800">
-                    <div className="flex items-center gap-2 truncate">
-                      <ImageIcon className="size-4 text-emerald-700 shrink-0" />
-                      <span className="text-xs font-semibold text-emerald-800 dark:text-[#30FC47] truncate">{newIdeaMedia.name}</span>
-                      <span className="text-[9px] text-slate-400 font-bold">({newIdeaMedia.size}MB)</span>
-                    </div>
+              {/* Bottom Toolbar & Footer */}
+              <div className="pt-3 mt-4 border-t border-slate-100 dark:border-slate-850 flex items-center justify-between relative">
+                {/* Left controls: Platform circle selector, divider, emoji, divider, AI sidebar trigger */}
+                <div className="flex items-center gap-2">
+                  {/* Circled C Platform Dropdown */}
+                  <div className="relative">
                     <button
-                      onClick={() => setNewIdeaMedia(null)}
-                      className="text-slate-400 hover:text-rose-500 p-0.5"
+                      onClick={() => setPlatformDropdownOpen(!platformDropdownOpen)}
+                      className="flex items-center gap-1 hover:scale-105 active:scale-95 transition-all p-1 bg-slate-50 dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700"
+                      title="Select Platform"
                     >
-                      <X className="size-3.5" />
+                      <div className="size-6 rounded-full flex items-center justify-center shrink-0">
+                        {renderToolbarPlatformIcon(newIdeaPlatform)}
+                      </div>
+                      <ChevronDown className="size-3 text-slate-400 mr-1" />
                     </button>
+
+                    {platformDropdownOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setPlatformDropdownOpen(false)} />
+                        <div className="absolute left-0 bottom-9 z-20 w-36 rounded-xl border border-slate-100 bg-white p-1 shadow-lg dark:border-slate-800 dark:bg-slate-950 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                          {["Facebook", "Instagram", "LinkedIn", "Twitter", "TikTok"].map((plat) => (
+                            <button
+                              key={plat}
+                              onClick={() => {
+                                setNewIdeaPlatform(plat.toLowerCase())
+                                setPlatformDropdownOpen(false)
+                              }}
+                              className="w-full text-left text-xs font-semibold px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-colors text-slate-700 dark:text-slate-355 flex items-center gap-2"
+                            >
+                              <span className="size-4 flex items-center justify-center">{renderToolbarPlatformIcon(plat)}</span>
+                              <span>{plat}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
-                ) : (
+
+                  <div className="h-5 w-px bg-slate-100 dark:bg-slate-850" />
+
+                  {/* Emoji Button */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setEmojiDropdownOpen(!emojiDropdownOpen)}
+                      className="size-7 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-all"
+                      title="Insert Emoji"
+                    >
+                      <span className="text-base select-none">😊</span>
+                    </button>
+
+                    {emojiDropdownOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setEmojiDropdownOpen(false)} />
+                        <div className="absolute left-0 bottom-9 z-20 grid grid-cols-5 gap-1 p-2 bg-white rounded-xl border border-slate-100 shadow-xl w-44 dark:bg-slate-900 dark:border-slate-800">
+                          {emojis.map((emoji) => (
+                            <button
+                              key={emoji}
+                              onClick={() => handleEmojiClick(emoji)}
+                              className="size-7 flex items-center justify-center text-base hover:bg-slate-50 dark:hover:bg-slate-800 rounded transition-colors"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="h-5 w-px bg-slate-100 dark:bg-slate-850" />
+
+                  {/* AI Assistant Button */}
                   <button
-                    onClick={handleSimulateMediaUpload}
-                    className="w-full border border-dashed border-slate-200 hover:border-[#30FC47] rounded-xl py-4.5 text-center text-slate-500 hover:text-slate-800 transition-all text-xs font-bold flex items-center justify-center gap-1.5"
+                    onClick={() => setIsAiSidebarOpen(!isAiSidebarOpen)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200/50 dark:bg-purple-950/35 dark:border-purple-900/60 dark:text-purple-300 transition-all select-none"
                   >
-                    <ImageIcon className="size-4" />
-                    <span>Upload Attachment (Simulated)</span>
+                    <Sparkles className="size-3 text-purple-500 fill-current" />
+                    <span>AI Assistant</span>
                   </button>
-                )}
-              </div>
-
-              <div className="grid gap-3 grid-cols-2">
-                <div>
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Tags</span>
-                  <Input
-                    placeholder="e.g. promo, values"
-                    value={newIdeaTags}
-                    onChange={(e) => setNewIdeaTags(e.target.value)}
-                    className="h-9 text-xs font-semibold focus-visible:ring-[#30FC47]"
-                  />
                 </div>
 
-                <div>
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Platform</span>
-                  <select
-                    value={newIdeaPlatform}
-                    onChange={(e) => setNewIdeaPlatform(e.target.value)}
-                    className="w-full text-xs font-bold text-slate-650 bg-white border border-slate-200 p-2 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#30FC47] h-9 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-350"
+                {/* Right controls: Create Post (Ready To Publish status), Save Idea */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setNewIdeaStatus("Ready To Publish")
+                      setTimeout(handleSaveIdea, 0)
+                    }}
+                    className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-805 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-extrabold text-[11px] px-4 py-2 rounded-xl uppercase tracking-wider transition-all"
                   >
-                    <option value="facebook">Facebook</option>
-                    <option value="instagram">Instagram</option>
-                    <option value="linkedin">LinkedIn</option>
-                    <option value="twitter">Twitter / X</option>
-                    <option value="tiktok">TikTok</option>
-                  </select>
+                    Create Post
+                  </button>
+                  <button
+                    onClick={handleSaveIdea}
+                    className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-805 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-extrabold text-[11px] px-4 py-2 rounded-xl uppercase tracking-wider transition-all"
+                  >
+                    Save Idea
+                  </button>
                 </div>
-              </div>
-
-              <div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Status Column</span>
-                <select
-                  value={newIdeaStatus}
-                  onChange={(e) => setNewIdeaStatus(e.target.value as any)}
-                  className="w-full text-xs font-bold text-slate-650 bg-white border border-slate-200 p-2 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#30FC47] h-9 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-350"
-                >
-                  <option value="Ideas">Ideas</option>
-                  <option value="Drafts">Drafts</option>
-                  <option value="Ready To Publish">Ready To Publish</option>
-                  <option value="Published">Published</option>
-                </select>
               </div>
             </div>
 
-            <div className="pt-3 border-t flex justify-end gap-2.5">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIdeaFormOpen(false)}
-                className="text-xs font-bold rounded-lg uppercase tracking-wider h-9"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSaveIdea}
-                className="bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-xs px-5 rounded-lg uppercase tracking-wider h-9"
-              >
-                Save
-              </Button>
+          </div>
+        </div>
+      )}
             </div>
           </div>
         </div>
