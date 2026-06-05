@@ -41,14 +41,18 @@
     
     /* V2 GrowWave Brand Color System */
     --color-brand-green: #30FC47;
-    --color-brand-green-hover: #24D93B;
-    --color-brand-green-light: #EAFEF0;
-    --color-brand-green-dark: #0E8F24;
-    --color-sidebar-bg: #FAFBFC;
-    --color-border-light: #E5E7EB;
-    --color-text-primary: #0F172A;
-    --color-text-secondary: #64748B;
-    --color-text-muted: #94A3B8;
+    --color-brand-green-hover: #DDFBE3;
+    --color-brand-green-light: #EFFFF1;
+    --color-brand-green-border: #D9F8DF;
+    --color-brand-primary: #30FC47;
+    --color-brand-accent: #EFFFF1;
+    --color-brand-hover: #DDFBE3;
+    --color-brand-border: #D9F8DF;
+    --color-brand-success: #30FC47;
+    --color-brand-bg: #FFFFFF;
+    --color-brand-page-bg: #FAFBFC;
+    --color-brand-text: #111827;
+    --color-brand-text-secondary: #6B7280;
 
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
