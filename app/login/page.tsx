@@ -12,7 +12,11 @@ export default function LoginPage() {
 
   React.useEffect(() => {
     if (session?.user) {
-      router.push("/dashboard")
+      if (session.user.plan === "PRO") {
+        router.push("/dashboard")
+      } else {
+        router.push("/free-user/create")
+      }
     }
   }, [session, router])
 

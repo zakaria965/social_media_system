@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Sidebar } from "@/components/dashboard/sidebar"
-import { TopNavbar } from "@/components/dashboard/top-navbar"
+import { Sidebar } from "@/components/free-user/sidebar"
+import { TopNavbar } from "@/components/free-user/top-navbar"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 
-export default function DashboardLayout({
+export default function FreeUserLayout({
   children,
 }: {
   children: React.ReactNode
@@ -22,35 +22,19 @@ export default function DashboardLayout({
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login")
-    } else if (status === "authenticated" && session?.user?.plan !== "PRO") {
-      router.push("/free-user/create")
+    } else if (status === "authenticated" && session?.user?.plan === "PRO") {
+      router.push("/dashboard")
     }
   }, [status, session, router])
 
   useEffect(() => {
-    // 1. Initial Local Storage Loading (Fast UI render)
-    const saved = localStorage.getItem("growwave-sidebar-collapsed")
+    // 1. Initial Local Storage Loading
+    const saved = localStorage.getItem("growwave-free-sidebar-collapsed")
     if (saved !== null) {
       setIsCollapsed(JSON.parse(saved))
     }
 
-    // 2. Database Preference Synchronization (Secure login restore)
-    const fetchDatabasePreferences = async () => {
-      try {
-        const res = await fetch("/api/user/sidebar-preferences")
-        if (res.ok) {
-          const data = await res.json()
-          if (data.preferences && data.preferences.isCollapsed !== undefined) {
-            setIsCollapsed(data.preferences.isCollapsed)
-            localStorage.setItem("growwave-sidebar-collapsed", JSON.stringify(data.preferences.isCollapsed))
-          }
-        }
-      } catch (err) {
-        console.error("Failed to restore sidebar collapse preferences from database:", err)
-      }
-    }
-
-    // 3. Responsive Breakpoints Listener
+    // 2. Responsive Breakpoints Listener
     const checkResponsiveSize = () => {
       const width = window.innerWidth
       if (width >= 1024 && width < 1200) {
@@ -60,7 +44,6 @@ export default function DashboardLayout({
       }
     }
 
-    fetchDatabasePreferences()
     checkResponsiveSize()
     window.addEventListener("resize", checkResponsiveSize)
     return () => window.removeEventListener("resize", checkResponsiveSize)
@@ -69,25 +52,25 @@ export default function DashboardLayout({
   const handleToggleCollapse = () => {
     const nextValue = !isCollapsed
     setIsCollapsed(nextValue)
-    localStorage.setItem("growwave-sidebar-collapsed", JSON.stringify(nextValue))
+    localStorage.setItem("growwave-free-sidebar-collapsed", JSON.stringify(nextValue))
   }
 
   const activeCollapsed = isCollapsed || isTablet
 
   if (status === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50/50 dark:bg-slate-950">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50/30 dark:bg-slate-950">
         <p className="text-sm text-muted-foreground animate-pulse">Loading workspace...</p>
       </div>
     )
   }
 
-  if (status === "unauthenticated" || session?.user?.plan !== "PRO") {
+  if (status === "unauthenticated" || session?.user?.plan !== "FREE") {
     return null
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-slate-50/30 dark:bg-slate-950">
       <Sidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -101,7 +84,7 @@ export default function DashboardLayout({
         )}
       >
         <TopNavbar onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+        <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto">{children}</main>
       </div>
     </div>
   )

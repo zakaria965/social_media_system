@@ -4,6 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import crypto from "crypto"
 import { connectDB } from "./db"
 import { User } from "./models/user"
+import { Subscription } from "./models/subscription"
 import { getOrCreateDefaultWorkspace } from "./workspaces"
 
 const googleClientId =
@@ -54,6 +55,15 @@ export const authOptions: NextAuthOptions = {
             username: name,
             passwordHash,
             googleConnected: false,
+            plan: "FREE",
+            subscriptionStatus: "ACTIVE",
+          })
+
+          await Subscription.create({
+            userId: user._id,
+            plan: "FREE",
+            status: "ACTIVE",
+            billingCycle: "free",
           })
 
           // Securely create their default workspace as well
@@ -120,7 +130,17 @@ export const authOptions: NextAuthOptions = {
             name: user.name || "",
             avatar: user.image || "",
             googleConnected: true,
+            plan: "FREE",
+            subscriptionStatus: "ACTIVE",
           })
+          
+          await Subscription.create({
+            userId: dbUser._id,
+            plan: "FREE",
+            status: "ACTIVE",
+            billingCycle: "free",
+          })
+
           await getOrCreateDefaultWorkspace(user.email.toLowerCase(), user.name || undefined)
         } else {
           if (!dbUser.googleConnected) {
@@ -140,6 +160,25 @@ export const authOptions: NextAuthOptions = {
         token.name = user.name
         token.picture = user.image
       }
+      
+      if (token.email) {
+        try {
+          await connectDB()
+          const dbUser = await User.findOne({ email: token.email.toLowerCase() }).select("plan subscriptionStatus")
+          if (dbUser) {
+            token.plan = dbUser.plan || "FREE"
+            token.subscriptionStatus = dbUser.subscriptionStatus || "ACTIVE"
+          } else {
+            token.plan = "FREE"
+            token.subscriptionStatus = "ACTIVE"
+          }
+        } catch (err) {
+          console.error("JWT Session DB error:", err)
+          token.plan = token.plan || "FREE"
+          token.subscriptionStatus = token.subscriptionStatus || "ACTIVE"
+        }
+      }
+      
       return token
     },
     async session({ session, token }) {
@@ -147,6 +186,8 @@ export const authOptions: NextAuthOptions = {
         session.user.name = token.name
         session.user.email = token.email
         session.user.image = token.picture as string
+        session.user.plan = token.plan || "FREE"
+        session.user.subscriptionStatus = token.subscriptionStatus || "ACTIVE"
       }
       return session
     },

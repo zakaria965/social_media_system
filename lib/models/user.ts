@@ -42,6 +42,8 @@ export interface IUser extends Document {
   animationsEnabled: boolean
   activeSessions: ISessionHistory[]
   loginHistory: ILoginHistory[]
+  plan?: "FREE" | "PRO"
+  subscriptionStatus?: "ACTIVE" | "CANCELLED" | "EXPIRED"
   createdAt: Date
   updatedAt: Date
 }
@@ -89,6 +91,8 @@ const UserSchema = new Schema<IUser>(
     animationsEnabled: { type: Boolean, default: true },
     activeSessions: [SessionHistorySchema],
     loginHistory: [LoginHistorySchema],
+    plan: { type: String, enum: ["FREE", "PRO"], default: "FREE" },
+    subscriptionStatus: { type: String, enum: ["ACTIVE", "CANCELLED", "EXPIRED"], default: "ACTIVE" },
   },
   { timestamps: true }
 )
