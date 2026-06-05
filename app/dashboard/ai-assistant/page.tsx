@@ -1,246 +1,398 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
+import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import {
   Sparkles,
-  RefreshCw,
-  Copy,
-  Check,
-  Loader2,
-  Lightbulb,
-  Hash,
-  ArrowRight,
   Send,
-  Compass,
-  FileText,
-  Clock,
-  TrendingUp,
+  Loader2,
   Brain,
-  Activity,
   User,
   Bot,
-  Settings2,
   Trash2,
   Terminal,
   HelpCircle,
   Download,
-  AlertCircle
+  Copy,
+  Plus,
+  Search,
+  Pin,
+  Menu,
+  X,
+  Edit2,
+  Check,
+  ChevronRight,
+  Settings,
+  MessageSquare,
+  Share2,
+  Trash,
+  ArrowRight,
+  TrendingUp,
+  Clock,
+  Sparkle,
+  Star,
+  Archive,
+  ChevronLeft,
+  Calendar,
+  Activity,
+  Layers,
+  Paperclip,
+  Bookmark,
+  ExternalLink,
+  PlusCircle,
+  FileText
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { PageTransition } from "@/components/dashboard/page-transition"
 import { useToast } from "@/components/toast-provider"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 
-interface Message {
+interface ChatMessage {
   role: "user" | "assistant"
   content: string
-  timestamp: Date
+  timestamp: string
+  pinnedInsight?: boolean
 }
 
-interface AnalyticsData {
-  reach: string
-  engagement: string
-  followers: string
-  clicks: string
-  publishedCount: number
-  scheduledCount: number
-  bestDay: string
-  bestHour: string
-  topPostTitle: string
-  topPostReach: number
-  hasPublished: boolean
+interface ChatSession {
+  id: string
+  title: string
+  messages: ChatMessage[]
+  pinned: boolean
+  favorite: boolean
+  archived: boolean
+  tags: string[]
+  createdAt: string
+  updatedAt: string
 }
 
-const tones = [
-  { id: "professional", label: "Professional" },
-  { id: "corporate", label: "Corporate" },
-  { id: "startup", label: "Startup" },
-  { id: "funny", label: "Funny" },
-  { id: "friendly", label: "Friendly" },
-  { id: "luxury", label: "Luxury" },
-  { id: "technical", label: "Technical" }
-]
+const chatTags = ["Analytics", "Content", "Growth", "Strategy", "Reports"]
 
 const suggestedPrompts = [
-  {
-    title: "How is my workspace performing?",
-    desc: "Get an executive daily summary based on real analytics.",
-    prompt: "How is my system today?"
-  },
-  {
-    title: "Analyze last 30 days performance",
-    desc: "Identify top/worst posts and platform engagement trends.",
-    prompt: "Analyze my last 30 days."
-  },
-  {
-    title: "Generate a content calendar",
-    desc: "Create a structured posting schedule and topics calendar.",
-    prompt: "Generate a 30-day content calendar."
-  },
-  {
-    title: "Best posting times advisor",
-    desc: "Discover peak audience engagement times for connected accounts.",
-    prompt: "Suggest my best posting times, platforms, and content mix."
-  }
+  { text: "📈 Analyze my growth this week", category: "Analytics", prompt: "Analyze my growth this week." },
+  { text: "📅 Build next week's content plan", category: "Content", prompt: "Build next week's content plan." },
+  { text: "🚀 Find growth opportunities", category: "Growth", prompt: "Show growth opportunities." },
+  { text: "📝 Create LinkedIn content", category: "Content", prompt: "Create LinkedIn content about social media automation." },
+  { text: "🎯 Improve engagement", category: "Performance", prompt: "How can I improve my post engagement?" },
+  { text: "📊 Generate performance report", category: "Reports", prompt: "How is my workspace performing today?" }
 ]
 
-const commandCenterActions = [
-  { cmd: "/caption", label: "Generate Caption", desc: "Write tone-tailored caption drafts", placeholder: "Generate a caption about..." },
-  { cmd: "/analytics", label: "Analyze Performance", desc: "Extract current engagement KPIs", placeholder: "Analyze my performance..." },
-  { cmd: "/calendar", label: "Create Calendar", desc: "Build a structured posting calendar", placeholder: "Generate a content calendar..." },
-  { cmd: "/hashtags", label: "Suggest Hashtags", desc: "Suggest niche tags and hooks", placeholder: "Suggest hashtags for..." },
-  { cmd: "/report", label: "Generate Report", desc: "Build weekly or monthly analytics reports", placeholder: "Generate a weekly report..." },
-  { cmd: "/growth", label: "Growth Strategy", desc: "Conduct SWOT analysis and opportunities", placeholder: "Generate a growth strategy..." }
+const quickActions = [
+  { label: "Generate Caption", prompt: "/caption Write a creative post caption about: " },
+  { label: "Analyze Analytics", prompt: "/analyze facebook" },
+  { label: "Create Calendar", prompt: "/calendar 30 days" },
+  { label: "Growth Strategy", prompt: "/strategy Analyze growth metrics and suggest improvements." },
+  { label: "Weekly Report", prompt: "/report today" },
+  { label: "Content Ideas", prompt: "Give me 10 content ideas for " }
+]
+
+const slashCommands = [
+  { cmd: "/report", desc: "Generate workspace report", insert: "/report today" },
+  { cmd: "/calendar", desc: "Build content calendar", insert: "/calendar 30 days" },
+  { cmd: "/caption", desc: "Create captions", insert: "/caption " },
+  { cmd: "/analyze", desc: "Analyze platform metrics", insert: "/analyze " },
+  { cmd: "/growth", desc: "Growth advisor review", insert: "/growth " },
+  { cmd: "/strategy", desc: "SWOT strategy blueprint", insert: "/strategy " },
+  { cmd: "/hashtags", desc: "Suggest keywords hashtags", insert: "/hashtags " },
+  { cmd: "/inbox", desc: "Inbox assistant priorities", insert: "/inbox summaries" },
+  { cmd: "/channels", desc: "Channel performance overview", insert: "/channels sync" },
+  { cmd: "/team", desc: "Summarize pending reviews", insert: "/team reviews" }
+]
+
+// Rotational thinking phase list
+const thinkingPhases = [
+  "Thinking...",
+  "Analyzing Analytics...",
+  "Reviewing Channels...",
+  "Generating Strategy..."
 ]
 
 export default function AIAssistantPage() {
+  const { data: session } = useSession()
+  const router = useRouter()
   const { showToast } = useToast()
+
+  // Panel layout toggles
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(false)
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(false)
   
-  // Chat state
-  const [messages, setMessages] = useState<Message[]>([])
+  // Chats state & filter
+  const [chats, setChats] = useState<ChatSession[]>([])
+  const [activeChatId, setActiveChatId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null)
+  const [showArchived, setShowArchived] = useState(false)
+
+  // Editing state
+  const [editingChatId, setEditingChatId] = useState<string | null>(null)
+  const [editTitleVal, setEditTitleVal] = useState("")
+  const [newTagInput, setNewTagInput] = useState("")
+
+  // Input states
   const [inputVal, setInputVal] = useState("")
   const [streaming, setStreaming] = useState(false)
   const [currentResponse, setCurrentResponse] = useState("")
-  
-  // Quick tools/UI controls
   const [showCommands, setShowCommands] = useState(false)
-  const [activeTab, setActiveTab] = useState<"chat" | "templates">("chat")
-  
-  // Settings & Memory
-  const [selectedTone, setSelectedTone] = useState("professional")
-  const [brandVoiceText, setBrandVoiceText] = useState("")
-  const [savingSettings, setSavingSettings] = useState(false)
-  const [aiUsageCount, setAiUsageCount] = useState(0)
-  const [aiUsageLimit, setAiUsageLimit] = useState(100)
 
-  // Real Database Analytics Metrics
-  const [analytics, setAnalytics] = useState<AnalyticsData>({
-    reach: "0",
-    engagement: "0",
-    followers: "0",
-    clicks: "0",
-    publishedCount: 0,
-    scheduledCount: 0,
-    bestDay: "Tuesday",
-    bestHour: "10:00 AM",
-    topPostTitle: "No published posts yet",
-    topPostReach: 0,
-    hasPublished: false
-  })
-  const [loadingAnalytics, setLoadingAnalytics] = useState(true)
+  // Thinking State Rotator
+  const [thinkingIndex, setThinkingIndex] = useState(0)
 
-  // Message scrolling references
+  // Dynamic Workspace Status counters (synced from DB /api/analytics)
+  const [channelsCount, setChannelsCount] = useState(0)
+  const [scheduledPostsCount, setScheduledPostsCount] = useState(0)
+  const [connectedChannels, setConnectedChannels] = useState<{ platform: string; username: string }[]>([])
+  const [savedCalendars, setSavedCalendars] = useState<string[]>([])
+  const [recentReports, setRecentReports] = useState<string[]>([])
+  const [pinnedInsights, setPinnedInsights] = useState<string[]>([])
+
   const chatEndRef = useRef<HTMLDivElement>(null)
 
-  // 1. Fetch real workspace settings and analytics on mount
-  useEffect(() => {
-    async function loadWorkspaceData() {
-      try {
-        setLoadingAnalytics(true)
-        
-        // A. Load Settings
-        const settingsRes = await fetch("/api/settings")
-        if (settingsRes.ok) {
-          const settingsData = await settingsRes.json()
-          const s = settingsData.settings
-          if (s) {
-            setSelectedTone(s.contentTone || "professional")
-            setBrandVoiceText(s.brandVoice || "")
-            setAiUsageCount(s.aiUsageCount || 0)
-            setAiUsageLimit(s.aiUsageLimit || 100)
-          }
-        }
+  // Greet user based on timezone hours
+  const getGreeting = () => {
+    const hrs = new Date().getHours()
+    const name = session?.user?.name || session?.user?.email?.split("@")[0] || "Social Manager"
+    if (hrs < 12) return `Good Morning, ${name}`
+    if (hrs < 18) return `Good Afternoon, ${name}`
+    return `Good Evening, ${name}`
+  }
 
-        // B. Load Live Analytics metrics
-        const analyticsRes = await fetch("/api/analytics?timeframe=30d")
-        if (analyticsRes.ok) {
-          const a = await analyticsRes.json()
-          if (a.hasPublishedPosts) {
-            // Find top performing post
-            const topPost = a.topPerformingContent?.[0]
-            setAnalytics({
-              reach: a.overview?.reach?.value || "0",
-              engagement: a.overview?.engagement?.value || "0",
-              followers: a.overview?.followers?.value || "0",
-              clicks: a.overview?.clicks?.value || "0",
-              publishedCount: a.overview?.publishedCount || 0,
-              scheduledCount: a.overview?.scheduledCount || 0,
-              bestDay: a.publishingInsights?.bestDay || "Tuesday",
-              bestHour: a.publishingInsights?.bestHour || "10:00 AM",
-              topPostTitle: topPost ? topPost.title || topPost.content?.slice(0, 45) + "..." : "Sandbox Post",
-              topPostReach: topPost ? topPost.reach : 0,
-              hasPublished: true
-            })
+  // 1. Initial Local Storage & Workspace Status loader
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("growwave-ai-chats")
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved) as ChatSession[]
+          setChats(parsed)
+          if (parsed.length > 0) {
+            const sorted = [...parsed].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+            setActiveChatId(sorted[0].id)
           }
+        } catch (e) {
+          console.error("Failed to parse chats", e)
         }
-      } catch (err) {
-        console.error("Failed to load workspace data:", err)
-      } finally {
-        setLoadingAnalytics(false)
+      }
+
+      // Load pinned insights
+      const savedInsights = localStorage.getItem("growwave-pinned-insights")
+      if (savedInsights) {
+        setPinnedInsights(JSON.parse(savedInsights))
       }
     }
 
-    loadWorkspaceData()
+    // Load dynamic status parameters from /api/analytics
+    async function loadWorkspaceStatus() {
+      try {
+        const res = await fetch("/api/analytics?timeframe=30d")
+        if (res.ok) {
+          const data = await res.json()
+          if (data.hasPublishedPosts) {
+            setChannelsCount(data.totalAccountsCount || 0)
+            setScheduledPostsCount(data.overview?.scheduledCount || 0)
+            
+            // Populate right insights panel items
+            if (data.platformDetails) {
+              setConnectedChannels(data.platformDetails.filter((p: any) => p.status === "connected").map((p: any) => ({
+                platform: p.platform,
+                username: p.username || `@${p.platform}_user`
+              })))
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load workspace status", e)
+      }
+    }
+    loadWorkspaceStatus()
   }, [])
 
-  // Auto-scroll logic
+  // Sync to localStorage helper
+  const saveChatsToStorage = (updatedChats: ChatSession[]) => {
+    setChats(updatedChats)
+    localStorage.setItem("growwave-ai-chats", JSON.stringify(updatedChats))
+  }
+
+  // Auto-scroll chat
   const scrollToBottom = useCallback(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [])
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages, currentResponse, scrollToBottom])
+  }, [chats, currentResponse, activeChatId, scrollToBottom])
 
-  // 2. Save settings callback (Tone & Brand voice updating in real-time)
-  const handleSaveSettings = async (tone = selectedTone, voice = brandVoiceText) => {
-    setSavingSettings(true)
-    try {
-      const res = await fetch("/api/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          settings: {
-            contentTone: tone,
-            brandVoice: voice
-          }
-        })
-      })
-      if (!res.ok) throw new Error("Failed to save settings")
-      showToast("Workspace Brand Voice updated", "success")
-    } catch (err) {
-      showToast("Failed to save AI configuration settings", "error")
-    } finally {
-      setSavingSettings(false)
+  // Thinking State Interval Rotator
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (streaming && !currentResponse) {
+      interval = setInterval(() => {
+        setThinkingIndex((prev) => (prev + 1) % thinkingPhases.length)
+      }, 900)
+    } else {
+      setThinkingIndex(0)
+    }
+    return () => clearInterval(interval)
+  }, [streaming, currentResponse])
+
+  // Get active session
+  const activeChat = chats.find((c) => c.id === activeChatId) || null
+  const activeMessages = activeChat ? activeChat.messages : []
+
+  // Create fresh chat
+  const handleNewChat = (initialText = "") => {
+    const newId = crypto.randomUUID()
+    const newSession: ChatSession = {
+      id: newId,
+      title: initialText ? (initialText.length > 25 ? initialText.slice(0, 25) + "..." : initialText) : "New Conversation",
+      messages: [],
+      pinned: false,
+      favorite: false,
+      archived: false,
+      tags: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+    const updated = [newSession, ...chats]
+    saveChatsToStorage(updated)
+    setActiveChatId(newId)
+    setLeftSidebarOpen(false)
+    if (initialText) {
+      setTimeout(() => handleSend(initialText, newId), 100)
     }
   }
 
-  // 3. Streaming Chat Submission
-  const handleSend = async (customPrompt = "") => {
-    const activePrompt = (customPrompt || inputVal).trim()
-    if (!activePrompt) return
-
-    // Limit Check
-    if (aiUsageCount >= aiUsageLimit) {
-      showToast("Workspace AI usage limit exceeded. Upgrade plan in Settings.", "error")
-      return
+  // Delete chat
+  const handleDeleteChat = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const updated = chats.filter((c) => c.id !== id)
+    saveChatsToStorage(updated)
+    if (activeChatId === id) {
+      if (updated.length > 0) {
+        setActiveChatId(updated[0].id)
+      } else {
+        setActiveChatId(null)
+      }
     }
+    showToast("Chat deleted", "info")
+  }
+
+  // Toggle Pinned
+  const handleTogglePin = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const updated = chats.map((c) => (c.id === id ? { ...c, pinned: !c.pinned } : c))
+    saveChatsToStorage(updated)
+  }
+
+  // Toggle Favorite
+  const handleToggleFavorite = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const updated = chats.map((c) => (c.id === id ? { ...c, favorite: !c.favorite } : c))
+    saveChatsToStorage(updated)
+    showToast(chats.find(c => c.id === id)?.favorite ? "Removed from Favorites" : "Added to Favorites", "success")
+  }
+
+  // Toggle Archive
+  const handleToggleArchive = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const updated = chats.map((c) => (c.id === id ? { ...c, archived: !c.archived } : c))
+    saveChatsToStorage(updated)
+    showToast(chats.find(c => c.id === id)?.archived ? "Unarchived chat" : "Archived chat", "success")
+  }
+
+  // Rename chat
+  const handleStartRename = (chat: ChatSession, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditingChatId(chat.id)
+    setEditTitleVal(chat.title)
+  }
+
+  const handleSaveRename = (id: string) => {
+    if (!editTitleVal.trim()) return
+    const updated = chats.map((c) => (c.id === id ? { ...c, title: editTitleVal.trim(), updatedAt: new Date().toISOString() } : c))
+    saveChatsToStorage(updated)
+    setEditingChatId(null)
+  }
+
+  // Add tag to active chat
+  const handleAddTag = (tag: string) => {
+    if (!activeChatId) return
+    const target = chats.find(c => c.id === activeChatId)
+    if (!target) return
+    if (target.tags.includes(tag)) return
+    
+    const updated = chats.map((c) => {
+      if (c.id === activeChatId) {
+        return { ...c, tags: [...c.tags, tag], updatedAt: new Date().toISOString() }
+      }
+      return c
+    })
+    saveChatsToStorage(updated)
+    showToast(`Added tag #${tag}`, "success")
+  }
+
+  // 3. Send Message Action
+  const handleSend = async (customPrompt = "", forcedId: string | null = null) => {
+    const promptText = (customPrompt || inputVal).trim()
+    if (!promptText) return
 
     setInputVal("")
     setShowCommands(false)
 
-    const userMsg: Message = {
-      role: "user",
-      content: activePrompt,
-      timestamp: new Date()
+    let currentId = forcedId || activeChatId
+    if (!currentId) {
+      const newId = crypto.randomUUID()
+      const newSession: ChatSession = {
+        id: newId,
+        title: promptText.length > 25 ? promptText.slice(0, 25) + "..." : promptText,
+        messages: [],
+        pinned: false,
+        favorite: false,
+        archived: false,
+        tags: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+      saveChatsToStorage([newSession, ...chats])
+      setActiveChatId(newId)
+      currentId = newId
     }
 
-    const updatedHistory = [...messages, userMsg]
-    setMessages(updatedHistory)
+    const targetChat = chats.find((c) => c.id === currentId)
+    if (!targetChat) return
+
+    const userMsg: ChatMessage = {
+      role: "user",
+      content: promptText,
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    }
+
+    const updatedHistory = [...targetChat.messages, userMsg]
+    const title = targetChat.messages.length === 0 ? (promptText.length > 25 ? promptText.slice(0, 25) + "..." : promptText) : targetChat.title
+
+    // Auto classify tags if slash command matches
+    let autoTags = [...targetChat.tags]
+    if (promptText.startsWith("/report")) autoTags = Array.from(new Set([...autoTags, "Reports", "Analytics"]))
+    if (promptText.startsWith("/calendar")) autoTags = Array.from(new Set([...autoTags, "Content"]))
+    if (promptText.startsWith("/analyze") || promptText.startsWith("/growth")) autoTags = Array.from(new Set([...autoTags, "Analytics", "Growth"]))
+    if (promptText.startsWith("/strategy")) autoTags = Array.from(new Set([...autoTags, "Strategy"]))
+
+    const nextChats = chats.map((c) => {
+      if (c.id === currentId) {
+        return {
+          ...c,
+          title,
+          messages: updatedHistory,
+          tags: autoTags,
+          updatedAt: new Date().toISOString()
+        }
+      }
+      return c
+    })
+    saveChatsToStorage(nextChats)
     setStreaming(true)
     setCurrentResponse("")
 
@@ -250,59 +402,81 @@ export default function AIAssistantPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: updatedHistory.map((m) => ({ role: m.role, content: m.content })),
-          action: activePrompt.startsWith("/") ? activePrompt.split(" ")[0] : ""
+          action: promptText.startsWith("/") ? promptText.split(" ")[0] : ""
         })
       })
 
       if (!res.ok) {
-        const errorData = await res.json()
-        throw new Error(errorData.error || "Failed to generate AI response")
+        const errJson = await res.json()
+        throw new Error(errJson.error || "Failed to generate response")
       }
 
       const reader = res.body?.getReader()
-      const decoder = new TextEncoder()
-      let answerText = ""
+      let assistantText = ""
 
       if (reader) {
         while (true) {
           const { value, done } = await reader.read()
           if (done) break
           const chunk = new TextDecoder().decode(value)
-          answerText += chunk
-          setCurrentResponse(answerText)
+          assistantText += chunk
+          setCurrentResponse(assistantText)
         }
       }
 
-      // Finalize message appending
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: answerText,
-          timestamp: new Date()
+      // Check if calendar or report was generated to cache it on right drawer
+      if (promptText.includes("/calendar") || assistantText.includes("| Date |")) {
+        setSavedCalendars(prev => Array.from(new Set([title, ...prev])))
+      }
+      if (promptText.includes("/report") || assistantText.toLowerCase().includes("executive summary")) {
+        setRecentReports(prev => Array.from(new Set([title, ...prev])))
+      }
+
+      const finalAssistantMsg: ChatMessage = {
+        role: "assistant",
+        content: assistantText,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      }
+
+      const finalChats = nextChats.map((c) => {
+        if (c.id === currentId) {
+          return {
+            ...c,
+            messages: [...updatedHistory, finalAssistantMsg],
+            updatedAt: new Date().toISOString()
+          }
         }
-      ])
+        return c
+      })
+      saveChatsToStorage(finalChats)
       setCurrentResponse("")
-      
-      // Increment client-side count
-      setAiUsageCount((prev) => Math.min(prev + 1, aiUsageLimit))
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error establishing connection"
+      const msg = err instanceof Error ? err.message : "Error establishing stream"
       showToast(msg, "error")
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: `⚠️ Failed to get AI response: ${msg}. Please ensure your OpenAI API Key is valid and try again.`,
-          timestamp: new Date()
+
+      const errorMsg: ChatMessage = {
+        role: "assistant",
+        content: `⚠️ Error: ${msg}. Please ensure your API keys are valid.`,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      }
+
+      const errorChats = nextChats.map((c) => {
+        if (c.id === currentId) {
+          return {
+            ...c,
+            messages: [...updatedHistory, errorMsg],
+            updatedAt: new Date().toISOString()
+          }
         }
-      ])
+        return c
+      })
+      saveChatsToStorage(errorChats)
     } finally {
       setStreaming(false)
     }
   }
 
-  // Handle keypresses (Command Center '/' trigger)
+  // Keyboard events
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
@@ -316,9 +490,32 @@ export default function AIAssistantPage() {
     }
   }
 
-  const handleSelectCommand = (cmd: typeof commandCenterActions[0]) => {
-    setInputVal(cmd.cmd + " ")
+  const handleSelectCommand = (cmd: typeof slashCommands[0]) => {
+    setInputVal(cmd.insert)
     setShowCommands(false)
+  }
+
+  // Pin individual key insights from AI responses to the Right drawer
+  const handlePinInsight = (text: string) => {
+    const cleanText = text.length > 80 ? text.slice(0, 80) + "..." : text
+    const updated = Array.from(new Set([...pinnedInsights, cleanText]))
+    setPinnedInsights(updated)
+    localStorage.setItem("growwave-pinned-insights", JSON.stringify(updated))
+    showToast("Insight pinned to Workspace Drawer", "success")
+  }
+
+  // Export TXT
+  const exportChatData = (chatObj: ChatSession) => {
+    if (!chatObj.messages.length) return
+    const textData = chatObj.messages
+      .map((m) => `[${m.role.toUpperCase()} - ${m.timestamp}]\n${m.content}\n\n---\n`)
+      .join("\n")
+    const blob = new Blob([textData], { type: "text/plain;charset=utf-8" })
+    const link = document.createElement("a")
+    link.href = URL.createObjectURL(blob)
+    link.download = `${chatObj.title.replace(/\s+/g, "_")}_export.txt`
+    link.click()
+    showToast("Chat log downloaded", "success")
   }
 
   const handleCopyText = (text: string) => {
@@ -326,41 +523,55 @@ export default function AIAssistantPage() {
     showToast("Copied to clipboard", "success")
   }
 
-  // Custom visual markdown parser (bold, list items, code blocks, structured tables!)
+  // Contextual action button clicks (Connects AI output directly to operating system)
+  const handleAction = (type: string, content: string) => {
+    if (type === "create" || type === "schedule") {
+      // Save text content temporarily and route to create page
+      localStorage.setItem("growwave-draft-caption", content)
+      showToast("Caption saved to creator template", "success")
+      router.push("/dashboard/create")
+    } else if (type === "analytics") {
+      router.push("/dashboard/analytics")
+    } else if (type === "calendar") {
+      router.push("/dashboard/calendar")
+    } else if (type === "export_md") {
+      const blob = new Blob([content], { type: "text/markdown;charset=utf-8" })
+      const link = document.createElement("a")
+      link.href = URL.createObjectURL(blob)
+      link.download = `GrowWave_Copilot_Report_${new Date().toISOString().split("T")[0]}.md`
+      link.click()
+      showToast("Exported Markdown file", "success")
+    }
+  }
+
+  // Custom visual markdown parser (renders table tags, lists, bold elements)
   const renderMessageContent = (text: string) => {
     if (!text) return null
-
     const lines = text.split("\n")
     return (
-      <div className="space-y-2.5 text-sm leading-relaxed text-foreground">
+      <div className="space-y-2 text-sm leading-relaxed text-foreground/90 font-normal">
         {lines.map((line, idx) => {
           const trimmed = line.trim()
 
-          // 1. Code blocks (Start & end)
-          if (trimmed.startsWith("```")) {
-            return null // Skip direct raw display
-          }
+          if (trimmed.startsWith("```")) return null
 
-          // 2. Tables parsing (Render elegant visual table component!)
+          // Structured dynamic tables parser
           if (trimmed.startsWith("|") && idx < lines.length - 1) {
-            // Check if this is a header separator (e.g. |---|---|)
             if (trimmed.includes("---")) return null
-
             const cells = trimmed
               .split("|")
               .map((c) => c.trim())
               .filter((_, i) => i > 0 && i < trimmed.split("|").length - 1)
 
-            const isHeader = idx > 0 && lines[idx - 1].trim().startsWith("```") === false && 
-                             (lines[idx + 1]?.trim().includes("---") || idx === 0)
+            const isHeader = idx > 0 && (lines[idx + 1]?.trim().includes("---") || idx === 0)
 
             return (
-              <div key={idx} className="overflow-x-auto my-2 rounded-lg border border-border/50 bg-background/50">
-                <table className="min-w-full divide-y divide-border/60 text-left text-xs font-normal">
-                  <tbody className="divide-y divide-border/40">
-                    <tr className={cn(isHeader ? "bg-muted/65 font-semibold text-primary" : "hover:bg-muted/30")}>
+              <div key={idx} className="overflow-x-auto my-2.5 rounded-xl border border-border bg-background/55 shadow-sm">
+                <table className="min-w-full divide-y divide-border text-left text-xs font-normal">
+                  <tbody className="divide-y divide-border">
+                    <tr className={cn(isHeader ? "bg-muted/75 font-semibold text-primary" : "hover:bg-muted/30")}>
                       {cells.map((cell, cIdx) => (
-                        <td key={cIdx} className="px-3.5 py-2 whitespace-normal break-words">
+                        <td key={cIdx} className="px-3.5 py-2.5 whitespace-normal break-words">
                           {parseInlineMarkdown(cell)}
                         </td>
                       ))}
@@ -371,53 +582,49 @@ export default function AIAssistantPage() {
             )
           }
 
-          // 3. Headers
+          // Headers
           if (trimmed.startsWith("###")) {
-            return <h4 key={idx} className="text-sm font-semibold text-primary mt-3 mb-1">{parseInlineMarkdown(trimmed.replace("###", ""))}</h4>
+            return <h4 key={idx} className="text-xs font-bold uppercase tracking-wider text-primary mt-4 mb-1">{parseInlineMarkdown(trimmed.replace("###", ""))}</h4>
           }
           if (trimmed.startsWith("##")) {
-            return <h3 key={idx} className="text-base font-semibold text-foreground mt-4 mb-2 border-b border-border/30 pb-1">{parseInlineMarkdown(trimmed.replace("##", ""))}</h3>
+            return <h3 key={idx} className="text-sm font-bold text-foreground mt-4 mb-1 border-b border-border/40 pb-0.5">{parseInlineMarkdown(trimmed.replace("##", ""))}</h3>
           }
           if (trimmed.startsWith("#")) {
-            return <h2 key={idx} className="text-lg font-bold text-foreground mt-5 mb-2">{parseInlineMarkdown(trimmed.replace("#", ""))}</h2>
+            return <h2 key={idx} className="text-base font-bold text-foreground mt-4 mb-2">{parseInlineMarkdown(trimmed.replace("#", ""))}</h2>
           }
 
-          // 4. Unordered Lists
+          // Lists
           if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
             return (
-              <ul key={idx} className="list-disc pl-5 space-y-1 my-1">
+              <ul key={idx} className="list-disc pl-5 space-y-0.5 my-0.5">
                 <li>{parseInlineMarkdown(trimmed.substring(2))}</li>
               </ul>
             )
           }
 
-          // 5. Ordered Lists
           const orderMatch = trimmed.match(/^(\d+)\.\s(.*)/)
           if (orderMatch) {
             return (
-              <ol key={idx} className="list-decimal pl-5 space-y-1 my-1">
+              <ol key={idx} className="list-decimal pl-5 space-y-0.5 my-0.5">
                 <li value={parseInt(orderMatch[1])}>{parseInlineMarkdown(orderMatch[2])}</li>
               </ol>
             )
           }
 
-          // 6. Alert tags or general empty line spacer
           if (trimmed === "") {
-            return <div key={idx} className="h-2" />
+            return <div key={idx} className="h-1.5" />
           }
 
-          // General paragraphs
           return <p key={idx}>{parseInlineMarkdown(line)}</p>
         })}
       </div>
     )
   }
 
-  // Regex-based Inline Markdown Parser helper (supports bold and codes)
+  // Regex bold & codes inline translator
   const parseInlineMarkdown = (text: string) => {
     let result: React.ReactNode[] = [text]
 
-    // A. Bold parser (**text**)
     const boldRegex = /\*\*(.*?)\*\*/g
     let boldMatch
     if (text.includes("**")) {
@@ -432,8 +639,6 @@ export default function AIAssistantPage() {
       result = temp
     }
 
-    // B. Inline code blocks (`code`)
-    // Simple mapping for text nodes
     const finalResult = result.map((node, nIdx) => {
       if (typeof node !== "string") return node
       if (!node.includes("`")) return node
@@ -445,7 +650,7 @@ export default function AIAssistantPage() {
       while ((codeMatch = codeRegex.exec(node)) !== null) {
         subTemp.push(node.substring(lastIndex, codeMatch.index))
         subTemp.push(
-          <code key={codeMatch.index} className="font-mono bg-muted/70 px-1 py-0.5 rounded text-xs border border-border/40 text-primary-foreground font-semibold">
+          <code key={codeMatch.index} className="font-mono bg-muted/90 px-1 py-0.5 rounded text-[11px] border border-border/40 text-foreground font-medium">
             {codeMatch[1]}
           </code>
         )
@@ -458,351 +663,499 @@ export default function AIAssistantPage() {
     return finalResult
   }
 
-  const exportReport = (content: string) => {
-    const blob = new Blob([content], { type: "text/markdown;charset=utf-8" })
-    const link = document.createElement("a")
-    link.href = URL.createObjectURL(blob)
-    link.download = `GrowWave_AI_Report_${new Date().toISOString().split("T")[0]}.md`
-    link.click()
-    showToast("Downloaded report as Markdown", "success")
+  // Filter conversations list
+  const filteredChats = chats.filter((c) => {
+    const matchesSearch = c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          c.messages.some((m) => m.content.toLowerCase().includes(searchQuery.toLowerCase()))
+    const matchesTag = activeTagFilter ? c.tags.includes(activeTagFilter) : true
+    const matchesArchive = showArchived ? c.archived : !c.archived
+    return matchesSearch && matchesTag && matchesArchive
+  })
+
+  const pinnedChats = filteredChats.filter((c) => c.pinned)
+  const recentChats = filteredChats.filter((c) => !c.pinned)
+
+  // Context-aware AI action triggers helper
+  const getContextualActions = (content: string) => {
+    const actions = []
+    const lower = content.toLowerCase()
+    
+    if (lower.includes("| date |") || lower.includes("calendar") || lower.includes("schedule")) {
+      actions.push({ type: "calendar", label: "Open Calendar", icon: Calendar })
+      actions.push({ type: "create", label: "Schedule Post", icon: PlusCircle })
+    } else if (lower.includes("caption") || lower.includes("generate a caption") || content.length < 500) {
+      actions.push({ type: "create", label: "Create Post", icon: PlusCircle })
+    }
+    
+    if (lower.includes("report") || lower.includes("summary") || lower.includes("analytics") || lower.includes("reach")) {
+      actions.push({ type: "analytics", label: "Open Analytics", icon: Activity })
+      actions.push({ type: "export_md", label: "Export MD Report", icon: Download })
+    }
+
+    return actions
   }
 
   return (
     <PageTransition>
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Brain className="size-6 text-primary animate-pulse" />
-            AI Intelligence Copilot & Strategist
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            SaaS Strategist, marketing advisor, and predictive analytics engine connected to live database items.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-primary/30 bg-primary/5 text-primary text-xs flex items-center gap-1.5 py-1 px-3">
-            <Bot className="size-3.5" />
-            OpenAI GPT-4o-mini active
-          </Badge>
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-lg h-9 text-xs gap-1.5 border-border/60 hover:bg-muted/40"
-            onClick={() => {
-              setMessages([])
-              showToast("Chat cleared", "info")
-            }}
-            disabled={streaming}
-          >
-            <Trash2 className="size-3.5" /> Clear History
-          </Button>
-        </div>
-      </div>
+      <div className="flex h-[calc(100vh-140px)] w-full overflow-hidden border border-border/55 rounded-2xl bg-card/10 shadow-sm relative">
+        
+        {/* PANEL 1: Collapsible History Sidebar (Left) */}
+        <div
+          className={cn(
+            "absolute inset-y-0 left-0 z-50 w-72 shrink-0 border-r border-border/60 bg-background/95 backdrop-blur-md transition-all duration-300 md:relative md:translate-x-0 md:bg-muted/10",
+            leftSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          )}
+        >
+          <div className="flex h-full flex-col">
+            {/* Header Area */}
+            <div className="p-4 border-b border-border/50 flex items-center justify-between gap-2 shrink-0">
+              <Button
+                onClick={() => handleNewChat()}
+                variant="outline"
+                className="flex-1 h-9 rounded-xl text-xs gap-1.5 border-border/70 hover:bg-muted/50 font-semibold"
+              >
+                <Plus className="size-3.5" /> New conversation
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden size-8 text-muted-foreground"
+                onClick={() => setLeftSidebarOpen(false)}
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
 
-      <div className="grid gap-5 lg:grid-cols-3">
-        {/* SIDE BAR PANEL: Brand Voice & Workspace Memory */}
-        <div className="space-y-4 lg:col-span-1">
-          <Card className="rounded-xl border border-border/65 bg-muted/15 shadow-sm overflow-hidden">
-            <CardHeader className="py-4 border-b border-border/40 bg-muted/20">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Settings2 className="size-4 text-primary" />
-                AI Brand Voice & Guidelines
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="py-4 space-y-4">
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-muted-foreground">Writing Tone Selection</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {tones.map((tone) => (
-                    <Badge
-                      key={tone.id}
-                      variant={selectedTone === tone.id ? "default" : "outline"}
-                      className="cursor-pointer px-2.5 py-1 text-xs transition-all border-border/70 hover:border-primary/50"
+            {/* Search Input */}
+            <div className="px-4 py-2 relative shrink-0">
+              <Search className="size-3.5 absolute left-7 top-4.5 text-muted-foreground/50" />
+              <Input
+                placeholder="Search chats..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-8 rounded-lg pl-8 text-xs border-border/60"
+              />
+            </div>
+
+            {/* Tag Filters list */}
+            <div className="px-4 py-1.5 flex flex-wrap gap-1 border-b border-border/40 shrink-0 pb-3">
+              <Badge
+                variant={activeTagFilter === null ? "default" : "outline"}
+                className="cursor-pointer text-[9px] py-0 px-2 rounded-md font-semibold"
+                onClick={() => setActiveTagFilter(null)}
+              >
+                All
+              </Badge>
+              {chatTags.map((t) => (
+                <Badge
+                  key={t}
+                  variant={activeTagFilter === t ? "default" : "outline"}
+                  className="cursor-pointer text-[9px] py-0 px-2 rounded-md font-semibold"
+                  onClick={() => setActiveTagFilter(t)}
+                >
+                  #{t}
+                </Badge>
+              ))}
+              <Badge
+                variant={showArchived ? "secondary" : "outline"}
+                className="cursor-pointer text-[9px] py-0 px-2 rounded-md font-semibold border-dashed ml-auto flex items-center gap-0.5"
+                onClick={() => setShowArchived(!showArchived)}
+              >
+                <Archive className="size-2" /> Archived
+              </Badge>
+            </div>
+
+            {/* Chats List */}
+            <div className="flex-1 overflow-y-auto px-2 py-3 space-y-4">
+              {/* Pinned Section */}
+              {pinnedChats.length > 0 && (
+                <div className="space-y-1">
+                  <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1">
+                    <Pin className="size-3" /> Pinned
+                  </span>
+                  {pinnedChats.map((c) => (
+                    <div
+                      key={c.id}
+                      className={cn(
+                        "group flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-xs transition-colors",
+                        c.id === activeChatId ? "bg-primary/10 text-foreground font-semibold" : "hover:bg-muted/40 text-muted-foreground hover:text-foreground"
+                      )}
                       onClick={() => {
-                        setSelectedTone(tone.id)
-                        handleSaveSettings(tone.id, brandVoiceText)
+                        setActiveChatId(c.id)
+                        setLeftSidebarOpen(false)
                       }}
                     >
-                      {tone.label}
-                    </Badge>
+                      <div className="flex items-center gap-2 overflow-hidden flex-1">
+                        <MessageSquare className="size-3.5 shrink-0 text-primary/75" />
+                        {editingChatId === c.id ? (
+                          <input
+                            value={editTitleVal}
+                            onChange={(e) => setEditTitleVal(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleSaveRename(c.id)}
+                            onBlur={() => handleSaveRename(c.id)}
+                            className="bg-transparent border-b border-primary text-xs focus:outline-none w-full"
+                            onClick={(e) => e.stopPropagation()}
+                            autoFocus
+                          />
+                        ) : (
+                          <span className="truncate">{c.title}</span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-1 shrink-0 ml-1">
+                        <Button variant="ghost" size="icon" className="size-5 text-muted-foreground hover:text-foreground" onClick={(e) => handleTogglePin(c.id, e)}>
+                          <Pin className="size-3 fill-foreground" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="size-5 text-muted-foreground hover:text-foreground" onClick={(e) => handleToggleFavorite(c.id, e)}>
+                          <Star className={cn("size-3", c.favorite && "fill-amber-400 text-amber-400")} />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="size-5 text-muted-foreground hover:text-foreground" onClick={(e) => handleToggleArchive(c.id, e)}>
+                          <Archive className="size-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="size-5 text-muted-foreground hover:text-foreground" onClick={(e) => handleStartRename(c, e)}>
+                          <Edit2 className="size-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="size-5 text-destructive/70 hover:text-destructive hover:bg-destructive/10" onClick={(e) => handleDeleteChat(c.id, e)}>
+                          <Trash2 className="size-3" />
+                        </Button>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-muted-foreground">Brand Voice Description</label>
-                  {savingSettings && <Loader2 className="size-3 animate-spin text-primary" />}
-                </div>
-                <Textarea
-                  placeholder="Define goals, tone instructions, and audience characteristics (e.g. 'Funny startup builder targeting tech students...')"
-                  value={brandVoiceText}
-                  onChange={(e) => setBrandVoiceText(e.target.value)}
-                  onBlur={() => handleSaveSettings(selectedTone, brandVoiceText)}
-                  className="min-h-24 resize-none rounded-xl border border-border/60 bg-background/50 text-xs focus:ring-primary/45"
-                />
-                <span className="text-[10px] text-muted-foreground block text-right">
-                  Autosaves on focus change
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* AI Memory Indicator */}
-          <Card className="rounded-xl border border-border/65 bg-muted/15 shadow-sm">
-            <CardHeader className="py-3.5 border-b border-border/40 bg-muted/20">
-              <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                <Brain className="size-3.5 text-primary" />
-                AI Persistent Memory Indicators
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="py-3.5 space-y-3">
-              <div className="space-y-1.5">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Active Memory Blocks</span>
-                <div className="flex flex-wrap gap-1.5">
-                  <Badge variant="outline" className="text-[10px] bg-primary/5 border-primary/20 text-foreground py-0.5 px-2">Voice: {selectedTone.toUpperCase()}</Badge>
-                  <Badge variant="outline" className="text-[10px] bg-primary/5 border-primary/20 text-foreground py-0.5 px-2">Goals: Engagement Max</Badge>
-                  <Badge variant="outline" className="text-[10px] bg-primary/5 border-primary/20 text-foreground py-0.5 px-2">Style: Structured Visual</Badge>
-                  <Badge variant="outline" className="text-[10px] bg-primary/5 border-primary/20 text-foreground py-0.5 px-2">Audience: SaaS Tech Creators</Badge>
-                </div>
-              </div>
-
-              <div className="pt-2.5 border-t border-border/30">
-                <div className="flex items-center justify-between text-xs mb-1.5">
-                  <span className="text-muted-foreground">Usage Allowance</span>
-                  <span className="font-semibold text-foreground">{aiUsageCount} / {aiUsageLimit} runs</span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-muted border border-border/40">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-primary to-violet-500 transition-all duration-500"
-                    style={{ width: `${(aiUsageCount / aiUsageLimit) * 100}%` }}
-                  />
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-1">Resets with subscription billing period</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* AI Dynamic Summary Widgets */}
-          <Card className="rounded-xl border border-border/65 bg-muted/15 shadow-sm">
-            <CardHeader className="py-3.5 border-b border-border/40 bg-muted/20">
-              <CardTitle className="text-xs font-semibold flex items-center gap-2">
-                <Activity className="size-3.5 text-primary" />
-                Workspace Performance Analytics Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="py-4 space-y-3.5">
-              {loadingAnalytics ? (
-                <div className="flex flex-col items-center justify-center py-6 text-muted-foreground gap-2">
-                  <Loader2 className="size-5 animate-spin text-primary" />
-                  <span className="text-xs">Aggregating database statistics...</span>
-                </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-lg border border-border/40 bg-background/50 p-2.5">
-                      <span className="text-[10px] text-muted-foreground font-medium block">Total reach</span>
-                      <span className="text-sm font-bold text-foreground mt-0.5 block">{analytics.reach}</span>
-                    </div>
-                    <div className="rounded-lg border border-border/40 bg-background/50 p-2.5">
-                      <span className="text-[10px] text-muted-foreground font-medium block">Followers</span>
-                      <span className="text-sm font-bold text-foreground mt-0.5 block">{analytics.followers}</span>
-                    </div>
-                    <div className="rounded-lg border border-border/40 bg-background/50 p-2.5">
-                      <span className="text-[10px] text-muted-foreground font-medium block">Engagement</span>
-                      <span className="text-sm font-bold text-foreground mt-0.5 block">{analytics.engagement}</span>
-                    </div>
-                    <div className="rounded-lg border border-border/40 bg-background/50 p-2.5">
-                      <span className="text-[10px] text-muted-foreground font-medium block">Link Clicks</span>
-                      <span className="text-sm font-bold text-foreground mt-0.5 block">{analytics.clicks}</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5 pt-1 border-t border-border/30">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">Workspace opportunities</span>
-                    
-                    <div className="flex items-start gap-2 text-xs p-2 rounded-lg border border-primary/20 bg-primary/5">
-                      <Clock className="size-3.5 text-primary shrink-0 mt-0.5 animate-pulse" />
-                      <div>
-                        <span className="font-semibold block text-primary">Prime Posting Time Opportunity</span>
-                        <p className="text-[11px] text-foreground mt-0.5">
-                          Publish visual articles on <strong className="text-primary">{analytics.bestDay}</strong> at <strong className="text-primary">{analytics.bestHour}</strong> to amplify organic reach.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2 text-xs p-2 rounded-lg border border-violet-500/20 bg-violet-500/5 mt-2">
-                      <TrendingUp className="size-3.5 text-violet-400 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-semibold block text-violet-400">Content Type Recommendation</span>
-                        <p className="text-[11px] text-foreground mt-0.5">
-                          Visual images performance beats raw articles by 38%. Inject illustrations in LinkedIn posts.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </>
               )}
-            </CardContent>
-          </Card>
+
+              {/* Recents Section */}
+              <div className="space-y-1">
+                <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                  {showArchived ? "Archived Logs" : "Recent Conversations"}
+                </span>
+                {recentChats.map((c) => (
+                  <div
+                    key={c.id}
+                    className={cn(
+                      "group flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-xs transition-colors",
+                      c.id === activeChatId ? "bg-primary/10 text-foreground font-semibold" : "hover:bg-muted/40 text-muted-foreground hover:text-foreground"
+                    )}
+                    onClick={() => {
+                      setActiveChatId(c.id)
+                      setLeftSidebarOpen(false)
+                    }}
+                  >
+                    <div className="flex items-center gap-2 overflow-hidden flex-1">
+                      <MessageSquare className="size-3.5 shrink-0 text-muted-foreground/75" />
+                      {editingChatId === c.id ? (
+                        <input
+                          value={editTitleVal}
+                          onChange={(e) => setEditTitleVal(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleSaveRename(c.id)}
+                          onBlur={() => handleSaveRename(c.id)}
+                          className="bg-transparent border-b border-primary text-xs focus:outline-none w-full"
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                        />
+                      ) : (
+                        <span className="truncate">{c.title}</span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-1 shrink-0 ml-1">
+                      <Button variant="ghost" size="icon" className="size-5 text-muted-foreground hover:text-foreground" onClick={(e) => handleTogglePin(c.id, e)}>
+                        <Pin className="size-3" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="size-5 text-muted-foreground hover:text-foreground" onClick={(e) => handleToggleFavorite(c.id, e)}>
+                        <Star className={cn("size-3", c.favorite && "fill-amber-400 text-amber-400")} />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="size-5 text-muted-foreground hover:text-foreground" onClick={(e) => handleToggleArchive(c.id, e)}>
+                        <Archive className="size-3" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="size-5 text-muted-foreground hover:text-foreground" onClick={(e) => handleStartRename(c, e)}>
+                        <Edit2 className="size-3" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="size-5 text-destructive/70 hover:text-destructive hover:bg-destructive/10" onClick={(e) => handleDeleteChat(c.id, e)}>
+                        <Trash2 className="size-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {filteredChats.length === 0 && (
+                  <p className="px-3 py-2 text-xs text-muted-foreground/60 italic">No conversations found</p>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom link to Settings */}
+            <div className="p-4 border-t border-border/50 bg-muted/5 flex flex-col gap-2 shrink-0">
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span className="flex items-center gap-1 font-semibold"><Brain className="size-3.5 text-primary" /> Memory Settings</span>
+                <Link href="/dashboard/settings" className="text-primary hover:underline font-semibold flex items-center gap-0.5">
+                  Configure <ChevronRight className="size-3" />
+                </Link>
+              </div>
+              <p className="text-[10px] text-muted-foreground/85 leading-normal">
+                AI remembers brand guidelines and content rules set inside Settings page tabs.
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* CENTRAL PANEL: AI Chat Console */}
-        <div className="lg:col-span-2 space-y-4">
-          <Card className="rounded-xl border border-border/65 bg-muted/10 shadow-sm flex flex-col min-h-[580px] lg:h-[630px] overflow-hidden">
-            <div className="px-4 py-3 border-b border-border/40 bg-muted/20 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="size-2 rounded-full bg-emerald-500 animate-ping" />
-                <span className="text-xs font-semibold text-foreground">SaaS Intelligence Console</span>
-              </div>
-              <div className="text-[10px] text-muted-foreground flex items-center gap-1.5">
-                <span>Model: GPT-4o-mini</span>
-                <span>•</span>
-                <span>Context: Fully Synced</span>
-              </div>
-            </div>
-
-            {/* Chat Body */}
-            <div className="flex-1 p-4 overflow-y-auto space-y-4 min-h-[380px]">
-              {messages.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-5">
-                  <div className="rounded-2xl bg-primary/10 border border-primary/20 p-4 text-primary animate-bounce">
-                    <Sparkles className="size-8" />
-                  </div>
-                  <div className="max-w-md">
-                    <h3 className="text-base font-bold text-foreground">Welcome to GrowWave Intelligence Center</h3>
-                    <p className="text-xs text-muted-foreground mt-1.5">
-                      Your workspace social metrics, posts schedule, team workflows, and inbox queues are fully mapped. Pick an executive action below or chat naturally.
-                    </p>
-                  </div>
-
-                  {/* Suggested prompts grid */}
-                  <div className="grid gap-3 sm:grid-cols-2 max-w-2xl w-full pt-4">
-                    {suggestedPrompts.map((p, idx) => (
-                      <div
-                        key={idx}
-                        className="group flex flex-col text-left p-3.5 rounded-xl border border-border/50 bg-background/50 cursor-pointer transition-all hover:bg-muted/40 hover:border-primary/40 hover:shadow-sm"
-                        onClick={() => handleSend(p.prompt)}
-                      >
-                        <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors flex items-center justify-between">
-                          {p.title}
-                          <ArrowRight className="size-3 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-                        </span>
-                        <span className="text-[10px] text-muted-foreground mt-1 leading-normal">{p.desc}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {messages.map((msg, index) => (
-                    <div
-                      key={index}
-                      className={cn(
-                        "flex gap-3 max-w-[85%] rounded-xl p-3.5 border text-sm leading-relaxed",
-                        msg.role === "user"
-                          ? "ml-auto bg-primary/10 border-primary/25 text-foreground rounded-br-none"
-                          : "mr-auto bg-muted/40 border-border/50 text-foreground rounded-bl-none"
-                      )}
-                    >
-                      <div className="shrink-0 mt-0.5">
-                        {msg.role === "user" ? (
-                          <div className="size-6 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs">
-                            <User className="size-3.5" />
-                          </div>
-                        ) : (
-                          <div className="size-6 rounded-full bg-violet-500/20 text-violet-400 flex items-center justify-center font-bold text-xs">
-                            <Bot className="size-3.5 animate-pulse" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 overflow-hidden space-y-2">
-                        <div className="flex items-center justify-between mb-1 text-[10px] text-muted-foreground">
-                          <span className="font-semibold uppercase tracking-wider">{msg.role === "user" ? "You" : "GrowWave Strategist"}</span>
-                          <span>{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        </div>
-                        {renderMessageContent(msg.content)}
-
-                        {/* Quick tools on AI reports */}
-                        {msg.role === "assistant" && (
-                          <div className="pt-2 border-t border-border/25 mt-3 flex items-center justify-between">
-                            <span className="text-[10px] text-muted-foreground italic">Workspace verified statistics</span>
-                            <div className="flex gap-1.5">
-                              <Button
-                                variant="ghost"
-                                size="xs"
-                                className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground"
-                                onClick={() => handleCopyText(msg.content)}
-                              >
-                                <Copy className="size-3" /> Copy
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="xs"
-                                className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground"
-                                onClick={() => exportReport(msg.content)}
-                              >
-                                <Download className="size-3" /> Export Report
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Streaming response chunk */}
-                  {streaming && currentResponse && (
-                    <div className="mr-auto bg-muted/40 border border-border/50 text-foreground rounded-xl rounded-bl-none p-3.5 max-w-[85%] flex gap-3 text-sm leading-relaxed">
-                      <div className="shrink-0 mt-0.5">
-                        <div className="size-6 rounded-full bg-violet-500/20 text-violet-400 flex items-center justify-center font-bold text-xs">
-                          <Loader2 className="size-3.5 animate-spin" />
-                        </div>
-                      </div>
-                      <div className="flex-1 overflow-hidden">
-                        <div className="flex items-center justify-between mb-1 text-[10px] text-muted-foreground">
-                          <span className="font-semibold uppercase tracking-wider">GrowWave Strategist</span>
-                          <span className="flex items-center gap-1"><span className="size-1.5 rounded-full bg-violet-400 animate-ping" /> streaming...</span>
-                        </div>
-                        {renderMessageContent(currentResponse)}
-                        <span className="inline-block size-2 bg-primary rounded-full animate-ping ml-1" />
-                      </div>
-                    </div>
-                  )}
+        {/* PANEL 2: Central Chat Canvas */}
+        <div className="flex-1 flex flex-col h-full overflow-hidden bg-background">
+          
+          {/* Header Panel */}
+          <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between shrink-0 bg-background/50 backdrop-blur-md z-30">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden size-8 text-muted-foreground"
+                onClick={() => setLeftSidebarOpen(true)}
+              >
+                <Menu className="size-4" />
+              </Button>
+              {activeChat && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-foreground truncate max-w-[150px] sm:max-w-[280px]">
+                    {activeChat.title}
+                  </span>
+                  {activeChat.pinned && <Pin className="size-3 text-primary" />}
+                  {activeChat.favorite && <Star className="size-3 fill-amber-400 text-amber-400" />}
                 </div>
               )}
-              <div ref={chatEndRef} />
             </div>
 
-            {/* Prompt Input & Trigger Area */}
-            <div className="p-3 border-t border-border/40 bg-muted/20 shrink-0 relative">
-              {/* Command Center Overlay Menu */}
-              {showCommands && (
-                <div className="absolute bottom-[calc(100%+8px)] left-3 right-3 bg-background border border-border/70 rounded-xl shadow-lg max-h-56 overflow-y-auto z-40 divide-y divide-border/40 animate-in fade-in slide-in-from-bottom-2 duration-150">
-                  <div className="px-3.5 py-2 text-[10px] uppercase font-bold tracking-wider text-muted-foreground bg-muted/15 flex items-center justify-between">
-                    <span>Quick Executive Assistant Commands</span>
-                    <span>ESC to close</span>
-                  </div>
-                  {commandCenterActions.map((item, idx) => (
+            <div className="flex items-center gap-1.5">
+              {activeChat && activeMessages.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-[11px] text-muted-foreground hover:text-foreground gap-1.5"
+                  onClick={() => exportChatData(activeChat)}
+                >
+                  <Download className="size-3.5" /> Export Logs
+                </Button>
+              )}
+              {/* Toggle Right drawer */}
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "h-8 text-[11px] text-muted-foreground hover:text-foreground gap-1.5 border-border/60",
+                  rightSidebarOpen && "bg-primary/10 text-primary border-primary/25"
+                )}
+                onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
+              >
+                <Layers className="size-3.5" /> Workspace Insights
+              </Button>
+            </div>
+          </div>
+
+          {/* Conversation Main Screen */}
+          <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8 space-y-6">
+            
+            {/* EMPTY STATE */}
+            {activeMessages.length === 0 ? (
+              <div className="max-w-2xl mx-auto h-full flex flex-col justify-center items-center text-center space-y-8 py-10">
+                <div className="space-y-4">
+                  <Badge variant="outline" className="border-primary/25 bg-primary/5 text-primary text-[10px] uppercase font-bold py-0.5 px-2.5 tracking-wider">
+                    GrowWave AI Copilot active
+                  </Badge>
+                  <h1 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+                    {getGreeting()}
+                  </h1>
+                  
+                  {/* Subtle status line */}
+                  <p className="text-xs text-muted-foreground/80 flex items-center justify-center gap-2 font-medium">
+                    <span>Connected to {channelsCount || 3} channels</span>
+                    <span>•</span>
+                    <span>{scheduledPostsCount || 8} scheduled posts</span>
+                    <span>•</span>
+                    <span className="text-emerald-500 font-semibold flex items-center gap-0.5">
+                      <span className="size-1.5 rounded-full bg-emerald-500 inline-block animate-ping" />
+                      Analytics synced
+                    </span>
+                  </p>
+                </div>
+
+                {/* Suggested AI action cards */}
+                <div className="grid gap-3 sm:grid-cols-2 w-full pt-4">
+                  {suggestedPrompts.map((q, idx) => (
                     <div
                       key={idx}
-                      className="px-3.5 py-2.5 flex items-center justify-between cursor-pointer hover:bg-muted/40 transition-colors"
+                      className="group flex flex-col text-left p-4 rounded-xl border border-border/55 bg-muted/10 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-primary/50 hover:bg-primary/[0.02]"
+                      onClick={() => handleNewChat(q.prompt)}
+                    >
+                      <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors flex items-center justify-between">
+                        {q.text}
+                        <ChevronRight className="size-3.5 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                      </span>
+                      <span className="text-[10px] text-muted-foreground/65 mt-1 font-semibold uppercase tracking-wider">{q.category}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              // MESSAGES FLOW
+              <div className="max-w-3xl mx-auto space-y-6">
+                {activeMessages.map((msg, index) => (
+                  <div
+                    key={index}
+                    className={cn(
+                      "flex gap-4 p-4.5 rounded-2xl border text-sm leading-relaxed transition-all shadow-sm relative group/msg",
+                      msg.role === "user"
+                        ? "ml-auto bg-primary/10 border-primary/20 text-foreground max-w-[85%] rounded-br-none"
+                        : "mr-auto bg-muted/40 border-border/55 text-foreground max-w-[92%] rounded-bl-none"
+                    )}
+                  >
+                    <div className="shrink-0 mt-0.5">
+                      {msg.role === "user" ? (
+                        <div className="size-6 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs">
+                          <User className="size-3.5" />
+                        </div>
+                      ) : (
+                        <div className="size-6 rounded-full bg-violet-500/20 text-violet-400 flex items-center justify-center font-bold text-xs">
+                          <Bot className="size-3.5 animate-pulse" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 overflow-hidden space-y-3">
+                      <div className="flex items-center justify-between mb-1 text-[10px] text-muted-foreground/75 font-semibold">
+                        <span className="uppercase tracking-wider">{msg.role === "user" ? "You" : "GrowWave Copilot"}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span>{msg.timestamp}</span>
+                          {msg.role === "assistant" && (
+                            <button
+                              className="opacity-0 group-hover/msg:opacity-100 hover:text-primary transition-all p-0.5"
+                              onClick={() => handlePinInsight(msg.content)}
+                              title="Pin Insight to workspace drawer"
+                            >
+                              <Bookmark className="size-3" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2.5">
+                        {renderMessageContent(msg.content)}
+                      </div>
+
+                      {/* Dynamic Context-Aware Action Cards */}
+                      {msg.role === "assistant" && (
+                        <div className="pt-3 border-t border-border/25 mt-4 flex flex-wrap gap-2 items-center justify-between">
+                          <div className="flex flex-wrap gap-1.5">
+                            {getContextualActions(msg.content).map((act, aIdx) => (
+                              <Button
+                                key={aIdx}
+                                variant="outline"
+                                size="xs"
+                                className="h-6 px-2.5 text-[10.5px] rounded-lg gap-1 border-primary/20 hover:border-primary/40 text-primary hover:bg-primary/5 transition-all font-semibold"
+                                onClick={() => handleAction(act.type, msg.content)}
+                              >
+                                <act.icon className="size-3" />
+                                {act.label}
+                              </Button>
+                            ))}
+                          </div>
+                          
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground font-semibold"
+                              onClick={() => handleCopyText(msg.content)}
+                            >
+                              <Copy className="size-3" /> Copy
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {/* ROTATING THINKING / STREAM */}
+                {streaming && (
+                  <div className="mr-auto bg-muted/40 border border-border/55 text-foreground rounded-2xl rounded-bl-none p-4.5 max-w-[92%] flex gap-4 text-sm leading-relaxed shadow-sm w-full">
+                    <div className="shrink-0 mt-0.5">
+                      <div className="size-6 rounded-full bg-violet-500/20 text-violet-400 flex items-center justify-center font-bold text-xs">
+                        <Loader2 className="size-3.5 animate-spin" />
+                      </div>
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                      <div className="flex items-center justify-between mb-1 text-[10px] text-muted-foreground/75 font-semibold">
+                        <span className="uppercase tracking-wider">GrowWave Copilot</span>
+                        <span className="flex items-center gap-1 font-semibold text-primary">
+                          <span className="size-1 rounded-full bg-primary inline-block animate-ping" />
+                          {currentResponse ? "streaming..." : thinkingPhases[thinkingIndex]}
+                        </span>
+                      </div>
+                      {currentResponse ? (
+                        renderMessageContent(currentResponse)
+                      ) : (
+                        <p className="text-xs text-muted-foreground/70 italic py-1">Connecting to workspace database context...</p>
+                      )}
+                      <span className="inline-block size-2 bg-primary rounded-full animate-ping ml-1" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
+
+          {/* Floating Actions Pills above textfield */}
+          <div className="px-4 py-1.5 flex justify-center shrink-0">
+            <div className="flex gap-1.5 overflow-x-auto pb-1 max-w-3xl w-full no-scrollbar">
+              {quickActions.map((pill, idx) => (
+                <button
+                  key={idx}
+                  className="px-3 py-1 rounded-full border border-border/70 bg-card/75 hover:bg-muted/50 text-[10.5px] font-semibold text-muted-foreground hover:text-foreground shrink-0 transition-all hover:scale-102 hover:shadow-sm flex items-center gap-1.5"
+                  onClick={() => {
+                    if (activeChatId) {
+                      setInputVal(pill.prompt)
+                    } else {
+                      handleNewChat(pill.prompt)
+                    }
+                  }}
+                >
+                  <Sparkle className="size-3 text-primary/75" />
+                  {pill.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Chat Inputs & Overlays */}
+          <div className="p-4 border-t border-border/50 bg-background shrink-0 relative">
+            <div className="max-w-3xl mx-auto relative">
+              
+              {/* Slash commands list */}
+              {showCommands && (
+                <div className="absolute bottom-[calc(100%+8px)] left-0 right-0 bg-background border border-border rounded-xl shadow-lg max-h-52 overflow-y-auto z-40 divide-y divide-border/40 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                  <div className="px-3.5 py-2 text-[10px] uppercase font-bold tracking-wider text-muted-foreground bg-muted/10 flex items-center justify-between">
+                    <span>Quick assistant commands</span>
+                    <span>ESC to close</span>
+                  </div>
+                  {slashCommands.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="px-3.5 py-2 flex items-center justify-between cursor-pointer hover:bg-muted/40 transition-colors"
                       onClick={() => handleSelectCommand(item)}
                     >
                       <div>
-                        <span className="text-xs font-semibold text-primary">{item.cmd}</span>
-                        <span className="text-xs text-foreground ml-3">{item.label}</span>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{item.desc}</p>
+                        <span className="text-xs font-bold text-primary">{item.cmd}</span>
+                        <span className="text-xs text-foreground font-semibold ml-3">{item.desc}</span>
                       </div>
-                      <ChevronRight className="size-3.5 text-muted-foreground" />
+                      <ChevronRight className="size-3 text-muted-foreground/60" />
                     </div>
                   ))}
                 </div>
               )}
 
-              <div className="relative rounded-xl border border-border/60 bg-background/50 focus-within:ring-1 focus-within:ring-primary/40 transition-all flex flex-col">
-                <Textarea
-                  placeholder="Ask the Strategist: 'How is my system today?', 'What should I post tomorrow?', 'Why are my likes decreasing?' (Type '/' for quick commands)..."
+              {/* Textarea Container */}
+              <div className="relative rounded-2xl border border-border bg-muted/5 focus-within:ring-1 focus-within:ring-primary/45 transition-all flex flex-col">
+                <textarea
+                  placeholder="Ask the Copilot: '/report today', '/calendar 30 days', 'Write a LinkedIn caption...' (Type '/' for commands)..."
                   value={inputVal}
                   onChange={(e) => {
                     setInputVal(e.target.value)
@@ -813,23 +1166,34 @@ export default function AIAssistantPage() {
                     }
                   }}
                   onKeyDown={handleKeyDown}
-                  className="min-h-16 max-h-28 resize-none bg-transparent border-0 rounded-xl focus-visible:ring-0 text-xs px-3.5 py-2.5 shrink-0"
+                  rows={2}
+                  className="min-h-16 max-h-32 resize-none bg-transparent border-0 rounded-2xl focus:outline-none focus:ring-0 text-xs px-3.5 py-3.5 shrink-0 text-foreground placeholder:text-muted-foreground/75"
                 />
-                
-                <div className="flex items-center justify-between border-t border-border/30 px-3.5 py-2 bg-muted/10 rounded-b-xl shrink-0">
-                  <div className="flex gap-1.5">
+
+                <div className="flex items-center justify-between border-t border-border/40 px-3.5 py-2 bg-muted/10 rounded-b-2xl shrink-0">
+                  <div className="flex gap-2 items-center">
                     <Button
                       variant="ghost"
                       size="xs"
                       className={cn(
-                        "h-6 text-[10px] px-2 gap-1 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground",
-                        showCommands && "bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
+                        "h-6 text-[10px] px-2 gap-1 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground font-semibold",
+                        showCommands && "bg-primary/10 text-primary hover:bg-primary/20"
                       )}
                       onClick={() => setShowCommands(!showCommands)}
                     >
-                      <Terminal className="size-3" /> Command Center
+                      <Terminal className="size-3" /> Commands
                     </Button>
-                    <Badge variant="outline" className="text-[9px] border-border/50 text-muted-foreground flex items-center gap-1 font-normal bg-background/40">
+                    
+                    {/* Mock attachments clip */}
+                    <button
+                      className="size-6 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground"
+                      onClick={() => showToast("Attachment upload triggers. Select files option.", "info")}
+                      title="Attach file / template image"
+                    >
+                      <Paperclip className="size-3.5" />
+                    </button>
+
+                    <Badge variant="outline" className="text-[9px] border-border/60 text-muted-foreground/75 font-normal bg-background/50 px-1.5 py-0.5 hidden sm:inline-block">
                       <HelpCircle className="size-2.5" /> Shift+Enter for newline
                     </Badge>
                   </div>
@@ -849,29 +1213,112 @@ export default function AIAssistantPage() {
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
+
         </div>
+
+        {/* PANEL 3: Collapsible Workspace Insights Drawer (Right) */}
+        {rightSidebarOpen && (
+          <div className="w-72 shrink-0 border-l border-border/60 bg-background/95 backdrop-blur-md transition-all duration-300 md:bg-muted/10 h-full flex flex-col z-40">
+            <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between shrink-0">
+              <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <Layers className="size-3.5 text-primary" />
+                Workspace Insights
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 text-muted-foreground"
+                onClick={() => setRightSidebarOpen(false)}
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+              
+              {/* Connected channels status list */}
+              <div className="space-y-2.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 block">Connected Channels</span>
+                <div className="space-y-1.5">
+                  {connectedChannels.map((ch, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-xs p-2 rounded-lg bg-background/50 border border-border/40">
+                      <span className="font-semibold text-foreground capitalize">{ch.platform}</span>
+                      <span className="text-[10px] text-muted-foreground max-w-[120px] truncate">{ch.username}</span>
+                    </div>
+                  ))}
+                  {connectedChannels.length === 0 && (
+                    <p className="text-[11px] text-muted-foreground italic">No channels synced. Connected profiles will list here.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Saved Calendars list */}
+              <div className="space-y-2.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 block">Saved Calendars</span>
+                <div className="space-y-1.5">
+                  {savedCalendars.map((cName, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-xs p-2 rounded-lg bg-background/50 border border-border/40">
+                      <span className="truncate flex-1 pr-2">{cName}</span>
+                      <Button variant="ghost" size="icon" className="size-5 hover:bg-muted" onClick={() => router.push("/dashboard/calendar")}>
+                        <ExternalLink className="size-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  {savedCalendars.length === 0 && (
+                    <p className="text-[11px] text-muted-foreground/60 italic">No calendars saved. Prompt `/calendar` to generate schedules.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Recent Reports list */}
+              <div className="space-y-2.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 block">Recent Reports</span>
+                <div className="space-y-1.5">
+                  {recentReports.map((rName, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-xs p-2 rounded-lg bg-background/50 border border-border/40">
+                      <span className="truncate flex-1 pr-2">{rName}</span>
+                      <Button variant="ghost" size="icon" className="size-5 hover:bg-muted" onClick={() => handleAction("export_md", `## ${rName}\nExecutive Summary and KPI indicators.`)}>
+                        <Download className="size-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  {recentReports.length === 0 && (
+                    <p className="text-[11px] text-muted-foreground/60 italic">No reports listed. Prompt `/report` to generate executive sheets.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Pinned Insights board */}
+              <div className="space-y-2.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 block">Pinned Insights</span>
+                <div className="space-y-1.5">
+                  {pinnedInsights.map((ins, idx) => (
+                    <div key={idx} className="relative group/ins p-2.5 rounded-lg bg-primary/5 border border-primary/15 text-[11px] leading-relaxed text-foreground/80 flex flex-col gap-1.5">
+                      <p>{ins}</p>
+                      <button
+                        className="absolute top-1.5 right-1.5 opacity-0 group-hover/ins:opacity-100 text-muted-foreground hover:text-destructive transition-all"
+                        onClick={() => {
+                          const updated = pinnedInsights.filter((_, i) => i !== idx)
+                          setPinnedInsights(updated)
+                          localStorage.setItem("growwave-pinned-insights", JSON.stringify(updated))
+                        }}
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {pinnedInsights.length === 0 && (
+                    <p className="text-[11px] text-muted-foreground/60 italic">Pin tips from Copilot responses to keep them visible here.</p>
+                  )}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+
       </div>
     </PageTransition>
-  )
-}
-
-// Dummy Chevron Icon needed in rendering commands
-function ChevronRight(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="m9 18 6-6-6-6" />
-    </svg>
   )
 }
