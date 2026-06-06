@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -94,8 +95,8 @@ function SettingsContent() {
         { id: "c-fb", name: "Facebook", platform: "facebook", username: "", connected: false, followers: 0, locked: false },
         { id: "c-ig", name: "Instagram", platform: "instagram", username: "", connected: false, followers: 0, locked: false },
         { id: "c-li", name: "LinkedIn", platform: "linkedin", username: "", connected: false, followers: 0, locked: false },
-        { id: "c-tw", name: "Twitter / X", platform: "twitter", username: "", connected: false, followers: 0, locked: true },
-        { id: "c-tk", name: "TikTok", platform: "tiktok", username: "", connected: false, followers: 0, locked: true }
+        { id: "c-tw", name: "Twitter / X", platform: "twitter", username: "", connected: false, followers: 0, locked: false },
+        { id: "c-tk", name: "TikTok", platform: "tiktok", username: "", connected: false, followers: 0, locked: false }
       ]
       setChannels(initialChannels)
       localStorage.setItem("growwave-lite-channels", JSON.stringify(initialChannels))
@@ -118,11 +119,21 @@ function SettingsContent() {
       // Disconnect
       if (confirm(`Disconnect your ${target.name} account?`)) {
         nextChannels = channels.map(c => c.id === id ? { ...c, connected: false, username: "", followers: 0 } : c)
+        
+        // Disconnect from database
+        fetch("/api/accounts")
+          .then(res => res.json())
+          .then(data => {
+            const dbAcc = data.accounts?.find((a: any) => a.platform === target.platform)
+            if (dbAcc?._id) {
+              fetch(`/api/accounts?id=${dbAcc._id}`, { method: "DELETE" })
+            }
+          }).catch(err => console.error("Error deleting account from DB:", err))
       }
     } else {
-      // Connect: Check channel limit (max 3)
+      // Connect: Check channel limit (max 1 for Free Plan)
       const activeCount = channels.filter(c => c.connected).length
-      if (activeCount >= 3) {
+      if (activeCount >= 1) {
         setUpgradeReason("channels_limit")
         setUpgradeOpen(true)
         return
@@ -135,6 +146,18 @@ function SettingsContent() {
             username: handleName,
             followers: Math.floor(Math.random() * 200) + 10
           } : c)
+
+          // Connect to database
+          fetch("/api/accounts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              platform: target.platform,
+              accessToken: "mock_lite_token",
+              username: handleName,
+              avatar: ""
+            })
+          }).catch(err => console.error("Error saving account to DB:", err))
         }
       }
     }
@@ -232,7 +255,7 @@ function SettingsContent() {
 
           {/* PROFILE SETTINGS */}
           {activeTab === "profile" && (
-            <Card className="rounded-xl border border-slate-200 bg-white shadow-sm dark:bg-slate-900 dark:border-slate-800">
+            <Card className="rounded-xl border border-slate-200 bg-background shadow-sm dark:bg-slate-900 dark:border-slate-800">
               <CardHeader className="pb-3 border-b">
                 <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-white">Profile Settings</CardTitle>
               </CardHeader>
@@ -281,7 +304,7 @@ function SettingsContent() {
                 <div className="flex justify-end pt-2 border-t">
                   <Button
                     onClick={handleSaveProfile}
-                    className="bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-xs px-5 rounded-lg uppercase tracking-wider shadow-sm"
+                    className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-5 rounded-lg uppercase tracking-wider shadow-sm"
                   >
                     Save Profile
                   </Button>
@@ -292,7 +315,7 @@ function SettingsContent() {
 
           {/* PASSWORD SETTINGS */}
           {activeTab === "password" && (
-            <Card className="rounded-xl border border-slate-200 bg-white shadow-sm dark:bg-slate-900 dark:border-slate-800">
+            <Card className="rounded-xl border border-slate-200 bg-background shadow-sm dark:bg-slate-900 dark:border-slate-800">
               <CardHeader className="pb-3 border-b">
                 <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-white">Update Password</CardTitle>
               </CardHeader>
@@ -331,7 +354,7 @@ function SettingsContent() {
                   <div className="flex justify-end pt-2 border-t">
                     <Button
                       type="submit"
-                      className="bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-xs px-5 rounded-lg uppercase tracking-wider shadow-sm"
+                      className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-5 rounded-lg uppercase tracking-wider shadow-sm"
                     >
                       Save Password
                     </Button>
@@ -343,61 +366,71 @@ function SettingsContent() {
 
           {/* ACCOUNTS / CHANNEL LIMITS */}
           {activeTab === "accounts" && (
-            <Card className="rounded-xl border border-slate-200 bg-white shadow-sm dark:bg-slate-900 dark:border-slate-800">
+            <Card className="rounded-xl border border-slate-200 bg-background shadow-sm dark:bg-slate-900 dark:border-slate-800">
               <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-white">Linked Channels</CardTitle>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Link or unlink social profiles. Max 3 accounts on Free Plan.</p>
+                  <p className="text-[11px] text-[#6B7280] mt-0.5">Link or unlink social profiles. Max 1 active account on Free Plan.</p>
                 </div>
                 <Badge variant="outline" className="text-[8px] font-bold uppercase border-slate-200">
-                  {channels.filter(c => c.connected).length} / 3 Connected
+                  {channels.filter(c => c.connected).length} / 1 Connected
                 </Badge>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="divide-y divide-slate-100 dark:divide-slate-850">
-                  {channels.map((chan) => (
-                    <div
-                      key={chan.id}
-                      className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-lg bg-slate-50 border dark:bg-slate-800 dark:border-slate-700">
-                          {renderPlatformIcon(chan.platform)}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-extrabold text-slate-900 dark:text-white">{chan.name}</span>
-                            {chan.locked && (
-                              <Badge className="bg-[#30FC47]/20 hover:bg-[#30FC47]/30 text-emerald-700 text-[8px] font-black uppercase py-0.2 px-1">
-                                Pro Link
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
-                            {chan.connected ? `@${chan.username} • ${chan.followers} followers` : chan.locked ? "Requires Pro Upgrade" : "Not Linked"}
-                          </p>
-                        </div>
-                      </div>
+                  {channels.map((chan) => {
+                    const isAnyChannelConnected = channels.some(c => c.connected)
+                    const isDisabledForFree = isAnyChannelConnected && !chan.connected
 
-                      <button
-                        onClick={() => handleConnectChannel(chan.id, chan.locked)}
-                        className={`text-[10px] font-extrabold px-3 py-1.5 rounded-lg uppercase tracking-wider transition-all border select-none ${
-                          chan.connected
-                            ? "bg-slate-50 border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300 text-slate-500"
-                            : chan.locked
-                            ? "bg-[#30FC47]/10 hover:bg-[#30FC47]/20 border-emerald-500/20 text-emerald-700 flex items-center gap-0.5"
-                            : "bg-slate-900 text-white border-slate-900 hover:bg-slate-950"
-                        }`}
+                    return (
+                      <div
+                        key={chan.id}
+                        className={cn(
+                          "flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-all",
+                          isDisabledForFree && "opacity-75"
+                        )}
                       >
-                        {chan.connected ? "Disconnect" : chan.locked ? (
-                          <>
-                            <Zap className="size-3 fill-emerald-600" />
-                            Unlock
-                          </>
-                        ) : "Connect"}
-                      </button>
-                    </div>
-                  ))}
+                        <div className="flex items-center gap-3">
+                          <div className="p-2.5 rounded-lg bg-slate-50 border dark:bg-slate-800 dark:border-slate-700">
+                            {renderPlatformIcon(chan.platform)}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-extrabold text-[#1F2937] dark:text-white">{chan.name}</span>
+                            </div>
+                            <p className="text-[10px] text-[#9CA3AF] font-semibold mt-0.5">
+                              {chan.connected 
+                                ? `@${chan.username} • ${chan.followers} followers` 
+                                : isDisabledForFree 
+                                ? "Free Plan Limit Reached: Upgrade To Connect More Channels" 
+                                : "Not Linked"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            if (isDisabledForFree) {
+                              setUpgradeReason("channels_limit")
+                              setUpgradeOpen(true)
+                            } else {
+                              handleConnectChannel(chan.id, chan.locked)
+                            }
+                          }}
+                          className={cn(
+                            "text-[10px] font-extrabold px-3 py-1.5 rounded-lg uppercase tracking-wider transition-all border select-none cursor-pointer",
+                            chan.connected
+                              ? "bg-slate-50 border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300 text-slate-500"
+                              : isDisabledForFree
+                              ? "bg-slate-100 text-slate-400 border-slate-200 hover:bg-slate-200 hover:text-slate-600"
+                              : "bg-[#30FC47] hover:bg-[#24D93B] text-white border-transparent hover:scale-[1.02] active:scale-[0.98]"
+                          )}
+                        >
+                          {chan.connected ? "Disconnect" : "Connect"}
+                        </button>
+                      </div>
+                    )
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -405,7 +438,7 @@ function SettingsContent() {
 
           {/* NOTIFICATION SETTINGS */}
           {activeTab === "notifications" && (
-            <Card className="rounded-xl border border-slate-200 bg-white shadow-sm dark:bg-slate-900 dark:border-slate-800">
+            <Card className="rounded-xl border border-slate-200 bg-background shadow-sm dark:bg-slate-900 dark:border-slate-800">
               <CardHeader className="pb-3 border-b">
                 <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-white">Notification Preferences</CardTitle>
               </CardHeader>
@@ -480,7 +513,7 @@ function SettingsContent() {
 
           {/* BILLING & PLAN DETAILS */}
           {activeTab === "billing" && (
-            <Card className="rounded-xl border border-slate-200 bg-white shadow-sm dark:bg-slate-900 dark:border-slate-800 overflow-hidden">
+            <Card className="rounded-xl border border-slate-200 bg-background shadow-sm dark:bg-slate-900 dark:border-slate-800 overflow-hidden">
               <CardHeader className="pb-3 border-b bg-slate-50 dark:bg-slate-850/50">
                 <div className="flex items-center justify-between">
                   <div>
@@ -495,21 +528,28 @@ function SettingsContent() {
               <CardContent className="p-5 md:p-6 space-y-6">
                 
                 {/* Free plan metrics check */}
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 dark:bg-slate-850">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Storage quota</span>
-                    <span className="text-sm font-black text-slate-800 block mt-1 dark:text-white">325MB / 500MB</span>
-                    <Progress value={65} className="h-1 bg-slate-200 mt-2" />
+                <div className="grid gap-4 sm:grid-cols-4">
+                  <div className="p-3 bg-background rounded-xl border border-slate-200 dark:bg-slate-850">
+                    <span className="text-[9px] font-black text-[#6B7280] uppercase tracking-wider block">Connected Channels</span>
+                    <span className="text-sm font-black text-[#1F2937] block mt-1 dark:text-white">
+                      {channels.filter(c => c.connected).length} / 1
+                    </span>
+                    <Progress value={(channels.filter(c => c.connected).length / 1) * 100} className="h-1 bg-slate-200 mt-2" />
                   </div>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 dark:bg-slate-850">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">AI Credits</span>
-                    <span className="text-sm font-black text-slate-800 block mt-1 dark:text-white">32 / 50 requests</span>
-                    <Progress value={64} className="h-1 bg-slate-200 mt-2" />
+                  <div className="p-3 bg-background rounded-xl border border-slate-200 dark:bg-slate-850">
+                    <span className="text-[9px] font-black text-[#6B7280] uppercase tracking-wider block">AI Requests</span>
+                    <span className="text-sm font-black text-[#1F2937] block mt-1 dark:text-white">12 / 50</span>
+                    <Progress value={(12 / 50) * 100} className="h-1 bg-slate-200 mt-2" />
                   </div>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 dark:bg-slate-850">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Channels linked</span>
-                    <span className="text-sm font-black text-slate-800 block mt-1 dark:text-white">3 / 3 maximum</span>
-                    <Progress value={100} className="h-1 bg-slate-200 mt-2" />
+                  <div className="p-3 bg-background rounded-xl border border-slate-200 dark:bg-slate-850">
+                    <span className="text-[9px] font-black text-[#6B7280] uppercase tracking-wider block">Scheduled Posts</span>
+                    <span className="text-sm font-black text-[#1F2937] block mt-1 dark:text-white">3 / 30</span>
+                    <Progress value={(3 / 30) * 100} className="h-1 bg-slate-200 mt-2" />
+                  </div>
+                  <div className="p-3 bg-background rounded-xl border border-slate-200 dark:bg-slate-850">
+                    <span className="text-[9px] font-black text-[#6B7280] uppercase tracking-wider block">Storage</span>
+                    <span className="text-sm font-black text-[#1F2937] block mt-1 dark:text-white">120MB / 500MB</span>
+                    <Progress value={(120 / 500) * 100} className="h-1 bg-slate-200 mt-2" />
                   </div>
                 </div>
 
@@ -531,7 +571,7 @@ function SettingsContent() {
                       <tbody className="divide-y font-medium text-slate-700 dark:text-slate-300">
                         <tr>
                           <td className="p-3 font-bold">Social Channels</td>
-                          <td className="p-3 text-center">3 channels maximum</td>
+                          <td className="p-3 text-center">1 channel maximum</td>
                           <td className="p-3 text-center text-emerald-600 font-bold">Unlimited channels</td>
                         </tr>
                         <tr>
@@ -576,7 +616,7 @@ function SettingsContent() {
                       setUpgradeReason("")
                       setUpgradeOpen(true)
                     }}
-                    className="bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-xs px-6 rounded-lg uppercase tracking-wider shrink-0"
+                    className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-6 rounded-lg uppercase tracking-wider shrink-0"
                   >
                     Upgrade Now
                   </Button>

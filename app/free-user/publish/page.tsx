@@ -46,8 +46,11 @@ export default function FreePublishPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedPlatform, setSelectedPlatform] = useState<string>("all")
   const [activeTab, setActiveTab] = useState<"draft" | "ready" | "published" | "failed">("draft")
+  const [channels, setChannels] = useState<any[]>([])
+  const [connectedCount, setConnectedCount] = useState(0)
+  const [publishingPost, setPublishingPost] = useState<PostItem | null>(null)
 
-  // Load posts
+  // Load posts and channels
   useEffect(() => {
     const savedScheduled = localStorage.getItem("growwave-lite-scheduled")
     const scheduledList: any[] = savedScheduled ? JSON.parse(savedScheduled) : []
@@ -62,6 +65,25 @@ export default function FreePublishPage() {
     })), ...defaultPosts.filter(p => !scheduledList.some(s => s.id === p.id))] as PostItem[]
 
     setPosts(merged)
+
+    // Load channels
+    const savedChannels = localStorage.getItem("growwave-lite-channels")
+    if (savedChannels) {
+      const parsed = JSON.parse(savedChannels)
+      setChannels(parsed)
+      setConnectedCount(parsed.filter((c: any) => c.connected).length)
+    } else {
+      const defaultChannels = [
+        { id: "c-fb", name: "Facebook", platform: "facebook", username: "", connected: false, followers: 0, locked: false },
+        { id: "c-ig", name: "Instagram", platform: "instagram", username: "", connected: false, followers: 0, locked: false },
+        { id: "c-li", name: "LinkedIn", platform: "linkedin", username: "", connected: false, followers: 0, locked: false },
+        { id: "c-tw", name: "Twitter / X", platform: "twitter", username: "", connected: false, followers: 0, locked: false },
+        { id: "c-tk", name: "TikTok", platform: "tiktok", username: "", connected: false, followers: 0, locked: false }
+      ]
+      setChannels(defaultChannels)
+      setConnectedCount(0)
+      localStorage.setItem("growwave-lite-channels", JSON.stringify(defaultChannels))
+    }
   }, [])
 
   // Save changes back
@@ -147,7 +169,7 @@ export default function FreePublishPage() {
           </p>
         </div>
         <Link href="/free-user/create">
-          <Button className="bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-xs rounded-lg uppercase tracking-wider flex items-center gap-1">
+          <Button className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs rounded-lg uppercase tracking-wider flex items-center gap-1">
             <Plus className="size-3.5" />
             Compose Post
           </Button>
@@ -155,7 +177,7 @@ export default function FreePublishPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="grid gap-3 sm:grid-cols-12 bg-white p-3 rounded-xl border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+      <div className="grid gap-3 sm:grid-cols-12 bg-background p-3 rounded-xl border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800">
         {/* Search */}
         <div className="relative sm:col-span-8">
           <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
@@ -217,7 +239,7 @@ export default function FreePublishPage() {
       {/* Lists */}
       <div className="space-y-4">
         {filteredPosts.map((post) => (
-          <Card key={post.id} className="rounded-xl border border-slate-200 bg-white shadow-sm dark:bg-slate-900 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-750 transition-all">
+          <Card key={post.id} className="rounded-xl border border-slate-200 bg-background shadow-sm dark:bg-slate-900 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-750 transition-all">
             <CardContent className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               
               {/* Left detail */}
@@ -265,7 +287,7 @@ export default function FreePublishPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => handleDeletePost(post.id)}
-                    className="p-2 rounded-lg border border-slate-200 hover:border-rose-500/30 hover:bg-rose-50/50 text-slate-400 hover:text-rose-500 transition-all bg-white"
+                    className="p-2 rounded-lg border border-slate-200 hover:border-rose-500/30 hover:bg-rose-50/50 text-slate-400 hover:text-rose-500 transition-all bg-background"
                     title="Delete Post"
                   >
                     <Trash2 className="size-4" />
@@ -278,7 +300,7 @@ export default function FreePublishPage() {
                         onClick={() => {
                           router.push(`/free-user/create?title=${encodeURIComponent(post.title)}&content=${encodeURIComponent(post.content)}`)
                         }}
-                        className="p-2 rounded-lg border border-slate-200 hover:border-[#30FC47]/40 hover:bg-slate-50 text-slate-600 transition-all bg-white"
+                        className="p-2 rounded-lg border border-slate-200 hover:border-[#30FC47]/40 hover:bg-slate-50 text-slate-600 transition-all bg-background"
                         title="Edit in Composer"
                       >
                         <Edit className="size-4" />
@@ -295,7 +317,7 @@ export default function FreePublishPage() {
                   {post.status === "ready" && (
                     <>
                       <button
-                        onClick={() => handlePublishNow(post)}
+                        onClick={() => setPublishingPost(post)}
                         className="bg-slate-900 hover:bg-slate-950 text-white font-extrabold text-[10px] py-2 px-3.5 rounded-lg uppercase tracking-wider transition-all"
                       >
                         Publish Now
@@ -334,7 +356,7 @@ export default function FreePublishPage() {
               Your publishing list is empty. Get started by composing a new idea or draft.
             </p>
             <Link href="/free-user/create" className="mt-4">
-              <Button size="xs" className="bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold uppercase text-[10px]">
+              <Button size="xs" className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold uppercase text-[10px]">
                 Create Content
               </Button>
             </Link>
@@ -342,6 +364,71 @@ export default function FreePublishPage() {
         )}
       </div>
 
+      {publishingPost && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div onClick={() => setPublishingPost(null)} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" />
+          <div className="relative w-full max-w-sm rounded-2xl border border-slate-200 bg-white shadow-2xl p-6 dark:border-slate-800 dark:bg-slate-900 z-10 space-y-4">
+            <h3 className="text-sm font-extrabold text-[#1F2937] dark:text-white">Publish Post</h3>
+            {connectedCount === 0 ? (
+              <div className="space-y-4 py-2">
+                <p className="text-xs text-[#6B7280]">Connect a channel before publishing.</p>
+                <Button 
+                  onClick={() => {
+                    router.push("/free-user/settings?tab=accounts&action=connect-facebook")
+                  }}
+                  className="w-full bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs py-2 rounded-lg uppercase tracking-wider transition-all"
+                >
+                  Connect Facebook
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Publish To:</label>
+                  <select className="w-full text-xs font-bold text-[#1F2937] bg-[#FCFAF6] border border-slate-200 p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#30FC47] h-9 dark:bg-slate-800 dark:border-slate-700">
+                    {channels.filter(c => c.connected).map(c => (
+                      <option key={c.id} value={c.platform}>{c.name} ({c.username})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-2 justify-end pt-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setPublishingPost(null)}
+                    className="text-xs font-bold text-[#6B7280]"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const activeChannel = channels.find(c => c.connected)
+                      const targetPlatform = activeChannel ? activeChannel.platform : "facebook"
+                      
+                      const updated = posts.map(p => {
+                        if (p.id === publishingPost.id) {
+                          return {
+                            ...p,
+                            status: "published" as const,
+                            platforms: [targetPlatform],
+                            publishedAt: new Date().toISOString()
+                          }
+                        }
+                        return p
+                      })
+                      updatePostsInStorage(updated)
+                      setActiveTab("published")
+                      setPublishingPost(null)
+                    }}
+                    className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-4 rounded-lg uppercase tracking-wider"
+                  >
+                    Publish
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

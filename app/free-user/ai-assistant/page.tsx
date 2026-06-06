@@ -229,7 +229,7 @@ export default function FreeAIAssistantPage() {
             setUpgradeReason("ai_quota")
             setUpgradeOpen(true)
           }}
-          className="flex items-center gap-1.5 bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-xs px-4 py-2 rounded-lg uppercase tracking-wider transition-all self-start sm:self-auto shadow-sm"
+          className="flex items-center gap-1.5 bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-4 py-2 rounded-lg uppercase tracking-wider transition-all self-start sm:self-auto shadow-sm"
         >
           <Zap className="size-3.5 fill-current" />
           Get Unlimited AI
@@ -240,7 +240,7 @@ export default function FreeAIAssistantPage() {
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Left Column: Recent Generations history log */}
         <div className="lg:col-span-3 space-y-4">
-          <Card className="rounded-xl border border-slate-200 bg-white shadow-sm dark:bg-slate-900 dark:border-slate-800">
+          <Card className="rounded-xl border border-slate-200 bg-background shadow-sm dark:bg-slate-900 dark:border-slate-800">
             <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center gap-2">
               <History className="size-4 text-slate-400" />
               <CardTitle className="text-xs font-black uppercase text-slate-400 tracking-wider">
@@ -283,7 +283,7 @@ export default function FreeAIAssistantPage() {
         <div className="lg:col-span-9 space-y-6">
           
           {/* AI limits meter */}
-          <Card className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs dark:bg-slate-900 dark:border-slate-800">
+          <Card className="rounded-xl border border-slate-200 bg-background p-4 shadow-xs dark:bg-slate-900 dark:border-slate-800">
             <div className="flex items-center justify-between text-xs font-medium">
               <span className="text-slate-500">AI Monthly Quota (50 Requests Per Month)</span>
               <span className="text-slate-900 font-bold dark:text-white">
@@ -310,7 +310,7 @@ export default function FreeAIAssistantPage() {
                   key={temp.name}
                   onClick={() => handleApplyTemplate(temp)}
                   className={cn(
-                    "p-3 rounded-xl border border-slate-200 bg-white text-center cursor-pointer hover:border-[#30FC47]/40 hover:shadow-xs transition-all dark:bg-slate-900 dark:border-slate-800",
+                    "p-3 rounded-xl border border-slate-200 bg-background text-center cursor-pointer hover:border-[#30FC47]/40 hover:shadow-xs transition-all dark:bg-slate-900 dark:border-slate-800",
                     activeTemplate === temp.name && "border-emerald-500 bg-emerald-500/5 ring-1 ring-emerald-500"
                   )}
                 >
@@ -324,9 +324,9 @@ export default function FreeAIAssistantPage() {
           </div>
 
           {/* Prompt inputs card */}
-          <Card className="rounded-xl border border-[#30FC47]/20 bg-white shadow-sm dark:bg-slate-900 dark:border-slate-800 relative">
+          <Card className="rounded-xl border border-[#30FC47]/20 bg-background shadow-sm dark:bg-slate-900 dark:border-slate-800 relative">
             {loading && (
-              <div className="absolute inset-0 bg-white/70 backdrop-blur-xs z-10 flex items-center justify-center flex-col gap-2 rounded-xl dark:bg-slate-900/70">
+              <div className="absolute inset-0 bg-[#FCFAF6]/70 backdrop-blur-xs z-10 flex items-center justify-center flex-col gap-2 rounded-xl dark:bg-slate-900/70">
                 <RefreshCw className="size-8 text-emerald-500 animate-spin" />
                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Consulting AI Strategist...</span>
               </div>
@@ -377,9 +377,9 @@ export default function FreeAIAssistantPage() {
                 <Button
                   onClick={handleGenerate}
                   disabled={loading}
-                  className="bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-xs px-6 rounded-lg uppercase tracking-wider flex items-center gap-1"
+                  className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-6 rounded-lg uppercase tracking-wider flex items-center gap-1"
                 >
-                  <Sparkles className="size-3.5 text-slate-900 fill-current" />
+                  <Sparkles className="size-3.5 text-white fill-current" />
                   Generate Output
                 </Button>
               </div>
@@ -403,7 +403,7 @@ export default function FreeAIAssistantPage() {
                   variant="outline"
                   size="sm"
                   onClick={handleCopyToClipboard}
-                  className="rounded-lg text-xs font-bold gap-1 text-slate-600 border-slate-200 bg-white"
+                  className="rounded-lg text-xs font-bold gap-1 text-slate-600 border-slate-200 bg-background"
                 >
                   {copied ? (
                     <>

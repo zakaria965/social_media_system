@@ -270,7 +270,7 @@ export default function FreeCalendarPage() {
           </div>
 
           <Link href="/free-user/create?action=schedule">
-            <Button className="bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-xs rounded-lg uppercase tracking-wider flex items-center gap-1">
+            <Button className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs rounded-lg uppercase tracking-wider flex items-center gap-1">
               <Plus className="size-3.5" />
               Schedule Post
             </Button>
@@ -279,11 +279,11 @@ export default function FreeCalendarPage() {
       </div>
 
       {/* Date navigation and Platform filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-3 rounded-xl border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-background p-3 rounded-xl border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800">
         
         {/* Navigation arrow buttons */}
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" onClick={handlePrev} className="size-8 rounded-lg bg-white">
+          <Button variant="outline" size="icon" onClick={handlePrev} className="size-8 rounded-lg bg-background">
             <ChevronLeft className="size-4" />
           </Button>
           <span className="text-sm font-extrabold text-slate-800 dark:text-slate-200 min-w-[120px] text-center">
@@ -291,7 +291,7 @@ export default function FreeCalendarPage() {
             {viewMode === "week" && `Week of ${currentDate.toLocaleDateString("en-US", { month: 'short', day: 'numeric' })}`}
             {viewMode === "day" && currentDate.toLocaleDateString("en-US", { weekday: 'long', month: 'long', day: 'numeric' })}
           </span>
-          <Button variant="outline" size="icon" onClick={handleNext} className="size-8 rounded-lg bg-white">
+          <Button variant="outline" size="icon" onClick={handleNext} className="size-8 rounded-lg bg-background">
             <ChevronRight className="size-4" />
           </Button>
         </div>
@@ -315,7 +315,7 @@ export default function FreeCalendarPage() {
       {/* Calendar Grid rendering */}
       {viewMode === "month" ? (
         /* ================= MONTH VIEW ================= */
-        <Card className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm dark:bg-slate-900 dark:border-slate-800">
+        <Card className="rounded-xl border border-slate-200 bg-background overflow-hidden shadow-sm dark:bg-slate-900 dark:border-slate-800">
           <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850/50">
             {dayNames.map((d) => (
               <span key={d} className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-center py-2 border-r border-slate-200/50 dark:border-slate-800">
@@ -337,7 +337,7 @@ export default function FreeCalendarPage() {
                   key={idx}
                   className={`min-h-[90px] p-2 flex flex-col justify-between transition-colors ${
                     cell.isCurrentMonth
-                      ? "bg-white dark:bg-slate-900"
+                      ? "bg-background dark:bg-slate-900"
                       : "bg-slate-50/50 dark:bg-slate-950/20 opacity-60"
                   } ${isToday && "bg-emerald-500/5"}`}
                 >
@@ -368,7 +368,7 @@ export default function FreeCalendarPage() {
         </Card>
       ) : viewMode === "week" ? (
         /* ================= WEEK VIEW ================= */
-        <Card className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+        <Card className="rounded-xl border border-slate-200 bg-background p-4 shadow-sm dark:bg-slate-900 dark:border-slate-800">
           <div className="grid grid-cols-7 gap-3">
             {Array.from({ length: 7 }).map((_, idx) => {
               const dayDate = new Date(currentDate)
@@ -420,7 +420,7 @@ export default function FreeCalendarPage() {
         </Card>
       ) : (
         /* ================= DAY VIEW ================= */
-        <Card className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+        <Card className="rounded-xl border border-slate-200 bg-background p-4 shadow-sm dark:bg-slate-900 dark:border-slate-800">
           <div className="space-y-3">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block border-b pb-2">
               Scheduled for today ({currentDate.toLocaleDateString()})
@@ -470,7 +470,7 @@ export default function FreeCalendarPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div onClick={() => setSelectedPost(null)} className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" />
           
-          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl p-6 dark:border-slate-800 dark:bg-slate-900 z-10 space-y-4">
+          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-background shadow-2xl p-6 dark:border-slate-800 dark:bg-slate-900 z-10 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider dark:text-white">
                 Reschedule Post
@@ -527,7 +527,7 @@ export default function FreeCalendarPage() {
                 variant="outline"
                 size="sm"
                 onClick={handleDeleteFromEdit}
-                className="text-xs font-bold text-rose-600 hover:bg-rose-50 border-rose-250 bg-white"
+                className="text-xs font-bold text-rose-600 hover:bg-rose-50 border-rose-250 bg-background"
               >
                 <Trash2 className="size-4 mr-1 shrink-0" />
                 Delete
@@ -543,7 +543,7 @@ export default function FreeCalendarPage() {
                 </Button>
                 <Button
                   onClick={handleSaveEdit}
-                  className="bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-xs px-4 rounded-lg uppercase tracking-wider"
+                  className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-4 rounded-lg uppercase tracking-wider"
                 >
                   Save Edits
                 </Button>

@@ -73,7 +73,7 @@ export function UpgradeModal({ isOpen, onClose, reason = "" }: UpgradeModalProps
       case "channels_limit":
         return {
           title: "Connect More Channels",
-          description: "Free plan accounts are limited to 3 social media profiles. Upgrade to connect unlimited profiles.",
+          description: "Free plan accounts are limited to 1 social media profile. Upgrade to connect unlimited profiles.",
           icon: Zap,
         }
       case "platform_locked":
@@ -145,7 +145,7 @@ export function UpgradeModal({ isOpen, onClose, reason = "" }: UpgradeModalProps
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
           transition={{ type: "spring", duration: 0.4 }}
-          className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900 z-10"
+          className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-background shadow-2xl dark:border-slate-800 dark:bg-slate-900 z-10"
         >
           {/* Header Graphic */}
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#30FC47]" />
@@ -256,7 +256,7 @@ export function UpgradeModal({ isOpen, onClose, reason = "" }: UpgradeModalProps
                   <button
                     onClick={handleUpgrade}
                     disabled={isUpgrading}
-                    className="w-full bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-xs py-3 rounded-lg flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/10 active:scale-95 transition-all uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs py-3 rounded-lg flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/10 active:scale-95 transition-all uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isUpgrading ? (
                       <>

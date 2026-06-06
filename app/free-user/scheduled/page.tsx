@@ -159,7 +159,7 @@ export default function FreeScheduledPage() {
           </p>
         </div>
         <Link href="/free-user/create?action=schedule">
-          <Button className="bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-xs rounded-lg uppercase tracking-wider flex items-center gap-1">
+          <Button className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs rounded-lg uppercase tracking-wider flex items-center gap-1">
             <Plus className="size-3.5" />
             Queue Post
           </Button>
@@ -167,7 +167,7 @@ export default function FreeScheduledPage() {
       </div>
 
       {/* Quota Progress meter */}
-      <Card className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+      <Card className="rounded-xl border border-slate-200 bg-background p-4 shadow-sm dark:bg-slate-900 dark:border-slate-800">
         <CardContent className="p-0 space-y-3">
           <div className="flex items-center justify-between text-xs font-medium">
             <span className="text-slate-500">Scheduler limits tracker (30 Scheduled Posts)</span>
@@ -196,7 +196,7 @@ export default function FreeScheduledPage() {
             const isReschedulingThis = reschedulePostId === post.id
 
             return (
-              <Card key={post.id} className="rounded-xl border border-slate-200 bg-white shadow-sm dark:bg-slate-900 dark:border-slate-800 hover:border-slate-350 transition-all">
+              <Card key={post.id} className="rounded-xl border border-slate-200 bg-background shadow-sm dark:bg-slate-900 dark:border-slate-800 hover:border-slate-355 transition-all">
                 <CardContent className="p-4 md:p-5 flex flex-col md:flex-row md:items-start justify-between gap-4">
                   
                   {/* Left segment */}
@@ -250,7 +250,7 @@ export default function FreeScheduledPage() {
                           <Button
                             size="xs"
                             onClick={() => handleSaveReschedule(post.id)}
-                            className="bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-[10px] uppercase rounded-md h-7 px-3.5"
+                            className="bg-[#10B981] hover:bg-[#059669] text-white font-extrabold text-[10px] uppercase rounded-md h-7 px-3.5"
                           >
                             Save
                           </Button>
@@ -269,7 +269,7 @@ export default function FreeScheduledPage() {
                     <div className="flex flex-wrap items-center gap-1.5">
                       <button
                         onClick={() => handleDeletePost(post.id)}
-                        className="p-2 rounded-lg border border-slate-200 hover:border-rose-500/30 hover:bg-rose-50/50 text-slate-400 hover:text-rose-500 transition-all bg-white"
+                        className="p-2 rounded-lg border border-slate-200 hover:border-rose-500/30 hover:bg-rose-50/50 text-slate-400 hover:text-rose-500 transition-all bg-background"
                         title="Delete Post"
                       >
                         <Trash2 className="size-4" />
@@ -277,7 +277,7 @@ export default function FreeScheduledPage() {
 
                       <button
                         onClick={() => handleDuplicatePost(post)}
-                        className="p-2 rounded-lg border border-slate-200 hover:border-slate-350 hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition-all bg-white"
+                        className="p-2 rounded-lg border border-slate-200 hover:border-slate-355 hover:bg-slate-50 text-slate-400 hover:text-slate-655 transition-all bg-background"
                         title="Duplicate Post"
                       >
                         <Copy className="size-4" />
@@ -287,7 +287,7 @@ export default function FreeScheduledPage() {
                         onClick={() => {
                           router.push(`/free-user/create?title=${encodeURIComponent(post.title)}&content=${encodeURIComponent(post.content)}`)
                         }}
-                        className="p-2 rounded-lg border border-slate-200 hover:border-[#30FC47]/40 hover:bg-slate-50 text-slate-600 transition-all bg-white"
+                        className="p-2 rounded-lg border border-slate-200 hover:border-[#30FC47]/40 hover:bg-slate-50 text-slate-600 transition-all bg-background"
                         title="Edit Post"
                       >
                         <Edit className="size-4" />
@@ -295,7 +295,7 @@ export default function FreeScheduledPage() {
 
                       <button
                         onClick={() => triggerReschedule(post)}
-                        className="bg-white hover:bg-slate-50 text-slate-700 font-bold text-[10px] py-2 px-3 border border-slate-200 rounded-lg uppercase tracking-wider transition-all"
+                        className="bg-background hover:bg-slate-50 text-[#6B7280] font-bold text-[10px] py-2 px-3 border border-slate-200 rounded-lg uppercase tracking-wider transition-all"
                       >
                         Reschedule
                       </button>
@@ -322,7 +322,7 @@ export default function FreeScheduledPage() {
               You have no scheduled posts in your queue. Keep your channels active by scheduling some content.
             </p>
             <Link href="/free-user/create?action=schedule" className="mt-4">
-              <Button size="xs" className="bg-[#30FC47] text-slate-900 font-extrabold uppercase text-[10px] hover:bg-[#24D93B]">
+              <Button size="xs" className="bg-[#30FC47] text-white font-extrabold uppercase text-[10px] hover:bg-[#24D93B]">
                 Schedule First Post
               </Button>
             </Link>

@@ -41,18 +41,19 @@
     
     /* V2 GrowWave Brand Color System */
     --color-brand-green: #30FC47;
-    --color-brand-green-hover: #DDFBE3;
+    --color-brand-green-hover: #EFFFF1;
     --color-brand-green-light: #EFFFF1;
-    --color-brand-green-border: #D9F8DF;
+    --color-brand-green-border: #E5E7EB;
     --color-brand-primary: #30FC47;
     --color-brand-accent: #EFFFF1;
-    --color-brand-hover: #DDFBE3;
-    --color-brand-border: #D9F8DF;
+    --color-brand-hover: #EFFFF1;
+    --color-brand-border: #E5E7EB;
     --color-brand-success: #30FC47;
-    --color-brand-bg: #FFFFFF;
-    --color-brand-page-bg: #FAFBFC;
-    --color-brand-text: #111827;
+    --color-brand-bg: #FCFAF6;
+    --color-brand-page-bg: #FCFAF6;
+    --color-brand-text: #1F2937;
     --color-brand-text-secondary: #6B7280;
+    --color-brand-text-muted: #9CA3AF;
 
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
@@ -64,39 +65,39 @@
 }
 
 :root {
-    /* GrowWave — HSL tokens (see theme mapping in @theme inline) */
-    --background: hsl(0 0% 100%);
-    --foreground: hsl(222 47% 11%);
-    --card: hsl(0 0% 100%);
-    --card-foreground: hsl(222 47% 11%);
-    --popover: hsl(0 0% 100%);
-    --popover-foreground: hsl(222 47% 11%);
-    --primary: hsl(142 71% 45%);
-    --primary-foreground: hsl(0 0% 100%);
-    --secondary: hsl(210 40% 96%);
-    --secondary-foreground: hsl(222 47% 11%);
-    --muted: hsl(210 40% 96%);
-    --muted-foreground: hsl(215 16% 47%);
-    --accent: hsl(210 40% 96%);
-    --accent-foreground: hsl(222 47% 11%);
+    /* GrowWave — HSL/Hex tokens (see theme mapping in @theme inline) */
+    --background: #FCFAF6;
+    --foreground: #1F2937;
+    --card: #FCFAF6;
+    --card-foreground: #1F2937;
+    --popover: #FCFAF6;
+    --popover-foreground: #1F2937;
+    --primary: #30FC47;
+    --primary-foreground: #FFFFFF;
+    --secondary: #EFFFF1;
+    --secondary-foreground: #30FC47;
+    --muted: #EFFFF1;
+    --muted-foreground: #6B7280;
+    --accent: #EFFFF1;
+    --accent-foreground: #30FC47;
     --destructive: hsl(0 84% 60%);
-    --border: hsl(214 32% 91%);
-    --input: hsl(214 32% 91%);
-    --ring: hsl(142 71% 45%);
+    --border: #E5E7EB;
+    --input: #E5E7EB;
+    --ring: #30FC47;
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
     --radius: 0.5rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --sidebar: #FCFAF6;
+    --sidebar-foreground: #1F2937;
+    --sidebar-primary: #30FC47;
+    --sidebar-primary-foreground: #FFFFFF;
+    --sidebar-accent: #EFFFF1;
+    --sidebar-accent-foreground: #30FC47;
+    --sidebar-border: #E5E7EB;
+    --sidebar-ring: #30FC47;
 }
 
 .dark {

@@ -70,7 +70,7 @@ export default function FreeUserLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50/30 dark:bg-slate-950">
+    <div className="flex min-h-screen bg-background dark:bg-slate-950">
       <Sidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}

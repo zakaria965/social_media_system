@@ -80,7 +80,7 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
           {/* Profile Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2 px-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+              <Button variant="ghost" className="gap-2 px-2 hover:bg-[#EFFFF1] dark:hover:bg-slate-800 rounded-lg">
                 <Avatar className="size-7">
                   {session?.user?.image ? (
                     <AvatarImage src={session.user.image} alt={session.user.name ?? ""} />

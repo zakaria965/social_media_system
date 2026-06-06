@@ -192,10 +192,12 @@ function CreateContent() {
   // Upgrades
   const [upgradeOpen, setUpgradeOpen] = useState(false)
   const [upgradeReason, setUpgradeReason] = useState<"ai_quota" | "channels_limit" | "platform_locked" | "">("")
+  const [publishingIdea, setPublishingIdea] = useState<IdeaItem | null>(null)
 
   // Onboarding Checklist Integration
   const [checklistOpen, setChecklistOpen] = useState(true)
-  const [connectedCount, setConnectedCount] = useState(3) // mock connected count
+  const [channels, setChannels] = useState<any[]>([])
+  const [connectedCount, setConnectedCount] = useState(0)
   const [scheduledCount, setScheduledCount] = useState(0)
 
   // File Input Ref
@@ -292,6 +294,25 @@ function CreateContent() {
     const onboardingDismissed = localStorage.getItem("growwave-lite-create-onboard")
     if (onboardingDismissed === "dismissed") {
       setOnboardVisible(false)
+    }
+
+    // Load channels
+    const savedChannels = localStorage.getItem("growwave-lite-channels")
+    if (savedChannels) {
+      const parsed = JSON.parse(savedChannels)
+      setChannels(parsed)
+      setConnectedCount(parsed.filter((c: any) => c.connected).length)
+    } else {
+      const defaultChannels = [
+        { id: "c-fb", name: "Facebook", platform: "facebook", username: "", connected: false, followers: 0, locked: false },
+        { id: "c-ig", name: "Instagram", platform: "instagram", username: "", connected: false, followers: 0, locked: false },
+        { id: "c-li", name: "LinkedIn", platform: "linkedin", username: "", connected: false, followers: 0, locked: false },
+        { id: "c-tw", name: "Twitter / X", platform: "twitter", username: "", connected: false, followers: 0, locked: false },
+        { id: "c-tk", name: "TikTok", platform: "tiktok", username: "", connected: false, followers: 0, locked: false }
+      ]
+      setChannels(defaultChannels)
+      setConnectedCount(0)
+      localStorage.setItem("growwave-lite-channels", JSON.stringify(defaultChannels))
     }
 
     fetchIdeas()
@@ -864,13 +885,37 @@ Each object must contain these keys:
       )}
 
       {/* Header */}
-      <div className="border-b border-[#D9F8DF] dark:border-slate-800 pb-5">
-        <h1 className="text-3xl font-black tracking-tight text-[#111827] dark:text-white">
-          Create
-        </h1>
-        <p className="text-sm text-[#6B7280] mt-1 dark:text-slate-400">
-          Capture ideas and turn them into social content.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#D9F8DF] dark:border-slate-800 pb-5 gap-4">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight text-[#111827] dark:text-white">
+            Create
+          </h1>
+          <p className="text-sm text-[#6B7280] mt-1 dark:text-slate-400">
+            Capture ideas and turn them into social content.
+          </p>
+        </div>
+        <div>
+          {/* Top Right Connected Channel Badge */}
+          {(() => {
+            const activeChannel = channels.find((c) => c.connected)
+            if (activeChannel) {
+              return (
+                <div className="inline-flex items-center gap-1.5 bg-[#EFFFF1] text-emerald-800 dark:text-[#30FC47] dark:bg-emerald-950/40 px-3 py-1.5 rounded-full text-xs font-black border border-[#D9F8DF]">
+                  {renderPlatformBadge(activeChannel.platform)}
+                  <span>{activeChannel.name} Connected</span>
+                </div>
+              )
+            }
+            return (
+              <Link href="/free-user/settings?tab=accounts">
+                <div className="inline-flex items-center gap-1.5 bg-rose-50 text-rose-800 dark:text-rose-450 dark:bg-rose-950/20 px-3 py-1.5 rounded-full text-xs font-black border border-rose-200 cursor-pointer hover:bg-rose-100 transition-all">
+                  <span className="size-2 rounded-full bg-rose-500 animate-ping shrink-0" />
+                  <span>No Channel Connected</span>
+                </div>
+              </Link>
+            )
+          })()}
+        </div>
       </div>
 
       {/* Onboarding Welcome Card */}
@@ -907,7 +952,7 @@ Each object must contain these keys:
                 setNewIdeaMedia(null)
                 setIdeaFormOpen(true)
               }}
-              className="bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-xs px-4 py-2.5 rounded-xl uppercase tracking-wider shadow-sm transition-all"
+              className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-4 py-2.5 rounded-xl uppercase tracking-wider shadow-sm transition-all"
             >
               Create First Idea
             </Button>
@@ -952,7 +997,7 @@ Each object must contain these keys:
             <select
               value={filterPlatform}
               onChange={(e) => setFilterPlatform(e.target.value)}
-              className="pl-8.5 pr-8 py-2 text-xs bg-[#FFFFFF] dark:bg-slate-900 border border-[#D9F8DF] dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#30FC47] appearance-none font-bold text-slate-700 dark:text-slate-300"
+              className="pl-8.5 pr-8 py-2 text-xs bg-background dark:bg-slate-900 border border-[#D9F8DF] dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#30FC47] appearance-none font-bold text-slate-700 dark:text-slate-300"
             >
               <option value="all">All Channels</option>
               <option value="facebook">Facebook</option>
@@ -970,7 +1015,7 @@ Each object must contain these keys:
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="pl-8.5 pr-8 py-2 text-xs bg-[#FFFFFF] dark:bg-slate-900 border border-[#D9F8DF] dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#30FC47] appearance-none font-bold text-slate-700 dark:text-slate-300"
+              className="pl-8.5 pr-8 py-2 text-xs bg-background dark:bg-slate-900 border border-[#D9F8DF] dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#30FC47] appearance-none font-bold text-slate-700 dark:text-slate-300"
             >
               <option value="dateNewest">Newest First</option>
               <option value="dateOldest">Oldest First</option>
@@ -991,9 +1036,9 @@ Each object must contain these keys:
               setNewIdeaMedia(null)
               setIdeaFormOpen(true)
             }}
-            className="bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-xs px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-xs"
+            className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-xs"
           >
-            <Plus className="size-4 text-slate-950" />
+            <Plus className="size-4 text-white" />
             New Idea
           </Button>
         </div>
@@ -1001,7 +1046,7 @@ Each object must contain these keys:
 
       {/* Main Kanban Board or Global Empty State */}
       {ideas.length === 0 ? (
-        <div className="flex flex-col items-center justify-center border border-dashed border-[#D9F8DF] dark:border-slate-800 rounded-2xl bg-[#FFFFFF] dark:bg-slate-900/60 p-16 text-center max-w-2xl mx-auto shadow-sm mt-8 animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex flex-col items-center justify-center border border-dashed border-[#D9F8DF] dark:border-slate-800 rounded-2xl bg-background dark:bg-slate-900/60 p-16 text-center max-w-2xl mx-auto shadow-sm mt-8 animate-in fade-in zoom-in-95 duration-200">
           <div className="flex size-14 items-center justify-center rounded-2xl bg-[#EFFFF1] dark:bg-slate-800 mb-6">
             <Sparkles className="size-7 text-[#30FC47] fill-current" />
           </div>
@@ -1021,7 +1066,7 @@ Each object must contain these keys:
                 setNewIdeaMedia(null)
                 setIdeaFormOpen(true)
               }}
-              className="bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-xs px-6 py-2.5 rounded-xl uppercase tracking-wider shadow-sm transition-all"
+              className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-6 py-2.5 rounded-xl uppercase tracking-wider shadow-sm transition-all"
             >
               + New Idea
             </Button>
@@ -1042,7 +1087,7 @@ Each object must contain these keys:
             return (
               <div
                 key={columnName}
-                className="bg-[#FFFFFF] dark:bg-slate-900 border border-[#D9F8DF] dark:border-slate-850 rounded-2xl shadow-xs flex flex-col min-h-[550px] transition-all"
+                className="bg-background dark:bg-slate-900 border border-[#D9F8DF] dark:border-slate-850 rounded-2xl shadow-xs flex flex-col min-h-[550px] transition-all"
                 onDragOver={(e) => handleDragOver(e, columnName)}
                 onDrop={(e) => handleDrop(e, columnName)}
               >
@@ -1106,7 +1151,7 @@ Each object must contain these keys:
                       onDragStart={(e) => handleDragStart(e, idea.id)}
                       onDragEnd={handleDragEnd}
                       className={cn(
-                        "bg-[#FFFFFF] p-4 rounded-xl border border-slate-150 shadow-xs space-y-3 dark:bg-slate-955 dark:border-slate-850 hover:border-[#30FC47]/50 hover:shadow-sm transition-all cursor-grab active:cursor-grabbing relative group/card",
+                        "bg-background p-4 rounded-xl border border-slate-150 shadow-xs space-y-3 dark:bg-slate-955 dark:border-slate-850 hover:border-[#30FC47]/50 hover:shadow-sm transition-all cursor-grab active:cursor-grabbing relative group/card",
                         draggedCardId === idea.id ? "opacity-40 border-dashed border-[#30FC47]" : ""
                       )}
                     >
@@ -1202,17 +1247,24 @@ Each object must contain these keys:
                       </div>
 
                       {/* Card Actions & Status (Bug 5) */}
-                      <div className="pt-2.5 border-t border-slate-50 dark:border-slate-850 flex items-center justify-between gap-2">
+                      <div className="pt-2.5 border-t border-slate-50 dark:border-slate-855 flex items-center justify-between gap-2">
                         {idea.column === "Ideas" ? (
                           <button
                             onClick={() => handleMoveIdea(idea.id, "Drafts")}
-                            className="bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-[9px] px-2.5 py-1.5 rounded-lg uppercase tracking-wider transition-all select-none"
+                            className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-[9px] px-2.5 py-1.5 rounded-lg uppercase tracking-wider transition-all select-none cursor-pointer"
                           >
                             Create Post
                           </button>
+                        ) : idea.column === "Drafts" || idea.column === "Ready To Publish" ? (
+                          <button
+                            onClick={() => setPublishingIdea(idea)}
+                            className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-[9px] px-2.5 py-1.5 rounded-lg uppercase tracking-wider transition-all select-none cursor-pointer"
+                          >
+                            Publish Now
+                          </button>
                         ) : (
                           <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-widest leading-none select-none">
-                            {idea.column === "Ready To Publish" ? "Ready" : idea.column}
+                            {idea.column}
                           </span>
                         )}
                       </div>
@@ -1342,7 +1394,7 @@ Each object must contain these keys:
                       <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-850 shrink-0">
                         <Button
                           onClick={handleInsertIntoIdea}
-                          className="w-full bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-[11px] py-2.5 rounded-xl uppercase tracking-wider transition-all"
+                          className="w-full bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-[11px] py-2.5 rounded-xl uppercase tracking-wider transition-all"
                         >
                           Insert Into Idea
                         </Button>
@@ -1402,7 +1454,7 @@ Each object must contain these keys:
                       className={cn(
                         "w-full font-black text-[11.5px] py-2.5 rounded-xl uppercase tracking-wider transition-all flex items-center justify-center gap-1.5",
                         aiPromptInput.trim() 
-                          ? "bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 shadow-sm" 
+                          ? "bg-[#30FC47] hover:bg-[#24D93B] text-white shadow-sm" 
                           : "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed"
                       )}
                     >
@@ -1413,7 +1465,7 @@ Each object must contain these keys:
                         </>
                       ) : (
                         <>
-                          <Sparkles className="size-3.5 text-slate-950" />
+                          <Sparkles className="size-3.5 text-white" />
                           <span>Generate Content</span>
                         </>
                       )}
@@ -1734,7 +1786,7 @@ Each object must contain these keys:
               <Button
                 onClick={handleGenerateIdeasAI}
                 disabled={aiGenerating}
-                className="bg-[#30FC47] hover:bg-[#24D93B] text-slate-900 font-extrabold text-xs px-5 rounded-lg uppercase tracking-wider h-9 flex items-center gap-1.5 disabled:opacity-60"
+                className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-5 rounded-lg uppercase tracking-wider h-9 flex items-center gap-1.5 disabled:opacity-60"
               >
                 {aiGenerating ? (
                   <>
@@ -1743,7 +1795,7 @@ Each object must contain these keys:
                   </>
                 ) : (
                   <>
-                    <Sparkles className="size-3.5 text-slate-950" />
+                    <Sparkles className="size-3.5 text-white" />
                     <span>Generate 10 Ideas</span>
                   </>
                 )}
@@ -1754,6 +1806,79 @@ Each object must contain these keys:
       )}
 
       <UpgradeModal isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={upgradeReason} />
+
+      {publishingIdea && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div onClick={() => setPublishingIdea(null)} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" />
+          <div className="relative w-full max-w-sm rounded-2xl border border-slate-200 bg-background shadow-2xl p-6 dark:border-slate-800 dark:bg-slate-900 z-10 space-y-4">
+            <h3 className="text-sm font-extrabold text-[#1F2937] dark:text-white">Publish Post</h3>
+            {connectedCount === 0 ? (
+              <div className="space-y-4 py-2">
+                <p className="text-xs text-[#6B7280]">Connect a channel before publishing.</p>
+                <Button 
+                  onClick={() => {
+                    router.push("/free-user/settings?tab=accounts&action=connect-facebook")
+                  }}
+                  className="w-full bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs py-2 rounded-lg uppercase tracking-wider transition-all"
+                >
+                  Connect Facebook
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Publish To:</label>
+                  <select className="w-full text-xs font-bold text-[#1F2937] bg-[#FCFAF6] border border-slate-200 p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#30FC47] h-9 dark:bg-slate-800 dark:border-slate-700">
+                    {channels.filter(c => c.connected).map(c => (
+                      <option key={c.id} value={c.platform}>{c.name} ({c.username})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-2 justify-end pt-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setPublishingIdea(null)}
+                    className="text-xs font-bold text-[#6B7280]"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      const activeChannel = channels.find(c => c.connected)
+                      const targetPlatform = activeChannel ? activeChannel.platform : "facebook"
+                      
+                      try {
+                        const res = await fetch("/api/ideas", {
+                          method: "PUT",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            id: publishingIdea.id,
+                            platform: targetPlatform,
+                            status: "published"
+                          })
+                        })
+                        if (res.ok) {
+                          showToast("✓ Post published successfully")
+                          setPublishingIdea(null)
+                          await fetchIdeas()
+                        } else {
+                          showToast("⚠️ Failed to publish", "error")
+                        }
+                      } catch (err) {
+                        console.error("Publish error", err)
+                        showToast("⚠️ Network error", "error")
+                      }
+                    }}
+                    className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-4 rounded-lg uppercase tracking-wider"
+                  >
+                    Publish
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
