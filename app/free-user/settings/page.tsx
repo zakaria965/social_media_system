@@ -18,7 +18,10 @@ import {
   ShieldAlert,
   RefreshCw,
   Check,
-  Loader2
+  Loader2,
+  Sun,
+  Moon,
+  Paintbrush
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -39,6 +42,10 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { IconFacebook } from "@/components/social-brand-icons"
+import { useTheme } from "@/components/dashboard/theme-provider"
+import { useToast } from "@/components/toast-provider"
+import { GrowWaveModal } from "@/components/growwave-modal"
+
 
 interface ChannelConnection {
   id: string
@@ -65,6 +72,8 @@ function SettingsContent() {
   const { data: session } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { theme, setTheme } = useTheme()
+  const { showToast } = useToast()
 
   const [activeTab, setActiveTab] = useState<string>("profile")
 
@@ -97,6 +106,16 @@ function SettingsContent() {
   // Delete modal confirmation
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
+
+  // Custom disconnect channel confirmation modal states
+  const [disconnectModalOpen, setDisconnectModalOpen] = useState(false)
+  const [disconnectTarget, setDisconnectTarget] = useState<ChannelConnection | null>(null)
+  const [disconnectLoading, setDisconnectLoading] = useState(false)
+
+  // Custom delete account simulation states
+  const [deleteAccountModalOpen, setDeleteAccountModalOpen] = useState(false)
+  const [deleteAccountLoading, setDeleteAccountLoading] = useState(false)
+
 
   // Fetch connected channels from MongoDB
   const fetchDBChannels = async () => {
@@ -154,7 +173,7 @@ function SettingsContent() {
       // Clean parameters from history URL while keeping tab
       window.history.replaceState({}, document.title, window.location.pathname + "?tab=accounts")
     } else if (err) {
-      alert(err || "Connection failed")
+      showToast(err || "Connection failed", "error")
       window.history.replaceState({}, document.title, window.location.pathname + "?tab=accounts")
     }
   }, [searchParams])
@@ -170,10 +189,10 @@ function SettingsContent() {
           setSelectedFbPageId(data.pages[0].id)
         }
       } else {
-        alert(data.error || "Failed to load Facebook Pages")
+        showToast(data.error || "Failed to load Facebook Pages", "error")
       }
     } catch {
-      alert("Failed to connect to Graph API")
+      showToast("Failed to connect to Graph API", "error")
     } finally {
       setLoadingFbPages(false)
     }
@@ -182,7 +201,7 @@ function SettingsContent() {
   const handleConnectFacebookPage = async () => {
     const selectedPage = fbPages.find((p) => p.id === selectedFbPageId)
     if (!selectedPage) {
-      alert("Please select a Facebook Page")
+      showToast("Please select a Facebook Page", "error")
       return
     }
 
@@ -204,14 +223,14 @@ function SettingsContent() {
 
       const data = await res.json()
       if (res.ok) {
-        alert(`Facebook Page "${selectedPage.name}" connected successfully!`)
+        showToast("✓ Facebook Connected", "success")
         setFbPagesModalOpen(false)
         await fetchDBChannels()
       } else {
-        alert(data.error || "Failed to save selected page")
+        showToast(data.error || "Failed to save selected page", "error")
       }
     } catch {
-      alert("Failed to connect page")
+      showToast("Failed to connect page", "error")
     } finally {
       setLoadingFbPages(false)
     }
@@ -229,48 +248,69 @@ function SettingsContent() {
     if (!target) return
 
     if (target.connected || target.status === "expired") {
-      // Disconnect
-      if (confirm(`Disconnect your ${target.name} account?`)) {
-        fetch("/api/accounts")
-          .then(res => res.json())
-          .then(data => {
-            const dbAcc = data.accounts?.find((a: any) => a.platform === target.platform)
-            if (dbAcc?._id) {
-              fetch(`/api/accounts?id=${dbAcc._id}`, { method: "DELETE" })
-                .then(res => {
-                  if (res.ok) {
-                    setChannels(prev => prev.map(c => c.id === id ? { ...c, connected: false, username: "", followers: 0, status: "" } : c))
-                  }
-                })
-            }
-          }).catch(err => console.error("Error deleting account from DB:", err))
-      }
+      setDisconnectTarget(target)
+      setDisconnectModalOpen(true)
     } else {
       // Connect: Redirect to server-side Facebook OAuth endpoint
       window.location.assign("/api/auth/facebook")
     }
   }
 
+  const handleConfirmDisconnectChannel = async () => {
+    if (!disconnectTarget) return
+    setDisconnectLoading(true)
+    try {
+      const res = await fetch("/api/accounts")
+      const data = await res.json()
+      const dbAcc = data.accounts?.find((a: any) => a.platform === disconnectTarget.platform)
+      if (dbAcc?._id) {
+        const deleteRes = await fetch(`/api/accounts?id=${dbAcc._id}`, { method: "DELETE" })
+        if (deleteRes.ok) {
+          setChannels(prev => prev.map(c => c.platform === disconnectTarget.platform ? { ...c, connected: false, username: "", followers: 0, status: "" } : c))
+          showToast("✓ Channel disconnected successfully", "success")
+        } else {
+          showToast("Failed to delete account channel", "error")
+        }
+      }
+    } catch (err) {
+      console.error("Error deleting account from DB:", err)
+      showToast("Failed to disconnect page channel", "error")
+    } finally {
+      setDisconnectLoading(false)
+      setDisconnectModalOpen(false)
+      setDisconnectTarget(null)
+    }
+  }
+
   // Simulated Save profile details
   const handleSaveProfile = () => {
-    alert("Profile settings saved successfully!")
+    showToast("✓ Profile settings saved successfully!", "success")
   }
 
   // Simulated Password update
   const handleSavePassword = (e: React.FormEvent) => {
     e.preventDefault()
-    alert("Password updated successfully!")
+    showToast("✓ Password updated successfully!", "success")
   }
 
   // Simulated Delete Account
   const handleDeleteAccount = () => {
     if (deleteConfirmText.toLowerCase() === "delete my account") {
-      alert("Simulating account deletion... Redirecting to home.")
-      router.push("/")
+      setDeleteAccountModalOpen(true)
     } else {
-      alert("Verification text mismatch. Please type exactly 'delete my account'.")
+      showToast("Verification text mismatch. Please type exactly 'delete my account'.", "error")
     }
   }
+
+  const handleConfirmDeleteAccount = async () => {
+    setDeleteAccountLoading(true)
+    await new Promise((resolve) => setTimeout(resolve, 1500)) // Simulation delay
+    setDeleteAccountLoading(false)
+    setDeleteAccountModalOpen(false)
+    showToast("✓ Workspace deleted successfully", "success")
+    router.push("/")
+  }
+
 
   // Render platform icons
   const renderPlatformIcon = (plat: string) => {
@@ -286,8 +326,10 @@ function SettingsContent() {
     { id: "accounts", label: "Linked Channels", icon: LinkIcon },
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "billing", label: "Billing & Plans", icon: CreditCard },
+    { id: "appearance", label: "Appearance Settings", icon: Paintbrush },
     { id: "delete", label: "Delete Account", icon: Trash2 },
   ]
+
 
   return (
     <div className="space-y-6">
@@ -788,6 +830,49 @@ function SettingsContent() {
             </Card>
           )}
 
+          {/* APPEARANCE SETTINGS */}
+          {activeTab === "appearance" && (
+            <Card className="rounded-xl border border-slate-200 bg-background shadow-sm dark:bg-slate-900 dark:border-slate-800">
+              <CardHeader className="pb-3 border-b">
+                <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-white">Appearance Settings</CardTitle>
+                <p className="text-[11px] text-[#6B7280] dark:text-slate-400 mt-0.5">Customize how GrowWave Lite looks on your device.</p>
+              </CardHeader>
+              <CardContent className="p-5 md:p-6 space-y-6">
+                <div className="space-y-4">
+                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                    Choose Theme
+                  </span>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <button
+                      onClick={() => setTheme("light")}
+                      className={`flex flex-col items-center justify-center p-5 rounded-2xl border transition-all hover:bg-slate-50 dark:hover:bg-slate-800/20 ${
+                        theme === "light"
+                          ? "border-[#30FC47] bg-[#EFFFF1] text-slate-900 font-extrabold"
+                          : "border-slate-200 dark:border-slate-800 text-slate-500"
+                      }`}
+                    >
+                      <Sun className="size-6 mb-2 text-amber-500" />
+                      <span className="text-xs font-bold">Light Theme</span>
+                    </button>
+
+                    <button
+                      onClick={() => setTheme("dark")}
+                      className={`flex flex-col items-center justify-center p-5 rounded-2xl border transition-all hover:bg-slate-50 dark:hover:bg-slate-800/20 ${
+                        theme === "dark"
+                          ? "border-[#30FC47] bg-[#30FC47]/5 text-[#30FC47] font-extrabold"
+                          : "border-slate-200 dark:border-slate-800 text-slate-400"
+                      }`}
+                    >
+                      <Moon className="size-6 mb-2 text-indigo-400" />
+                      <span className="text-xs font-bold">Dark Theme</span>
+                    </button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
         </div>
       </div>
 
@@ -869,7 +954,43 @@ function SettingsContent() {
       </Dialog>
 
       <UpgradeModal isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={upgradeReason} />
+
+      <GrowWaveModal
+        isOpen={disconnectModalOpen}
+        onClose={() => {
+          if (!disconnectLoading) {
+            setDisconnectModalOpen(false)
+            setDisconnectTarget(null)
+          }
+        }}
+        title="Disconnect Facebook Page"
+        message={`Are you sure you want to disconnect the Facebook Page "${disconnectTarget?.username || ""}"? This page will no longer be linked to your workspace.`}
+        confirmText="Disconnect"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDisconnectChannel}
+        variant="danger"
+        loading={disconnectLoading}
+        loadingText="Disconnecting..."
+      />
+
+      <GrowWaveModal
+        isOpen={deleteAccountModalOpen}
+        onClose={() => {
+          if (!deleteAccountLoading) {
+            setDeleteAccountModalOpen(false)
+          }
+        }}
+        title="Permanently Delete Workspace"
+        message="Are you sure you want to permanently delete your workspace? All your content ideas, scheduled posts, and connections will be lost forever. This action cannot be undone."
+        confirmText="Permanently Delete"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDeleteAccount}
+        variant="danger"
+        loading={deleteAccountLoading}
+        loadingText="Deleting Workspace..."
+      />
     </div>
+
   )
 }
 

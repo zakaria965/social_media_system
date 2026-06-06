@@ -27,6 +27,9 @@ import {
   IconInstagram,
   IconLinkedin
 } from "@/components/social-brand-icons"
+import { useToast } from "@/components/toast-provider"
+import { GrowWaveModal } from "@/components/growwave-modal"
+
 
 interface ScheduledPost {
   id: string
@@ -39,6 +42,7 @@ interface ScheduledPost {
 
 export default function FreeScheduledPage() {
   const router = useRouter()
+  const { showToast } = useToast()
 
   const [posts, setPosts] = useState<ScheduledPost[]>([])
   const [reschedulePostId, setReschedulePostId] = useState<string | null>(null)
@@ -48,6 +52,11 @@ export default function FreeScheduledPage() {
   // Upgrade Modal
   const [upgradeOpen, setUpgradeOpen] = useState(false)
   const [upgradeReason, setUpgradeReason] = useState<"ai_quota" | "channels_limit" | "bulk_scheduling" | "analytics_pro" | "team_feature" | "inbox_feature" | "platform_locked" | "">("")
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [deletePostId, setDeletePostId] = useState<string | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+
 
   // Load scheduled posts from localStorage
   const loadPosts = () => {
@@ -72,10 +81,21 @@ export default function FreeScheduledPage() {
 
   // Delete Post
   const handleDeletePost = (id: string) => {
-    if (confirm("Are you sure you want to delete this scheduled post?")) {
-      const updated = posts.filter(p => p.id !== id)
-      savePosts(updated)
-    }
+    setDeletePostId(id)
+    setDeleteModalOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deletePostId) return
+    setDeleteLoading(true)
+    // Simulate delay
+    await new Promise((resolve) => setTimeout(resolve, 800))
+    const updated = posts.filter(p => p.id !== deletePostId)
+    savePosts(updated)
+    setDeleteLoading(false)
+    setDeleteModalOpen(false)
+    setDeletePostId(null)
+    showToast("✓ Post Deleted", "success")
   }
 
   // Duplicate Post (checking limit)
@@ -94,7 +114,7 @@ export default function FreeScheduledPage() {
     }
 
     savePosts([...posts, newPost])
-    alert("Post duplicated successfully for tomorrow!")
+    showToast("✓ Post Scheduled", "success")
   }
 
   // Publish Now immediately
@@ -104,7 +124,7 @@ export default function FreeScheduledPage() {
       // Move to published logs in history (simulated by deleting from queue and alerting)
       const updated = posts.filter(p => p.id !== id)
       savePosts(updated)
-      alert(`Published "${post.title}" immediately toconnected channels!`)
+      showToast("✓ Post Published", "success")
     }
   }
 
@@ -129,8 +149,9 @@ export default function FreeScheduledPage() {
     })
     savePosts(updated)
     setReschedulePostId(null)
-    alert("Post rescheduled successfully!")
+    showToast("✓ Post Scheduled", "success")
   }
+
 
   // Render platform icons
   const renderPlatformBadge = (plat: string) => {
@@ -331,6 +352,24 @@ export default function FreeScheduledPage() {
       </div>
 
       <UpgradeModal isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={upgradeReason} />
+      <GrowWaveModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          if (!deleteLoading) {
+            setDeleteModalOpen(false)
+            setDeletePostId(null)
+          }
+        }}
+        title="Delete Content Idea"
+        message="Are you sure you want to permanently delete this content idea? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDelete}
+        variant="danger"
+        loading={deleteLoading}
+        loadingText="Deleting..."
+      />
     </div>
   )
+
 }

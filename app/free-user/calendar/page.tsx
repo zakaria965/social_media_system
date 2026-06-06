@@ -25,6 +25,9 @@ import {
   IconInstagram,
   IconLinkedin
 } from "@/components/social-brand-icons"
+import { useToast } from "@/components/toast-provider"
+import { GrowWaveModal } from "@/components/growwave-modal"
+
 
 interface ScheduledPost {
   id: string
@@ -37,6 +40,7 @@ interface ScheduledPost {
 
 export default function FreeCalendarPage() {
   const router = useRouter()
+  const { showToast } = useToast()
 
   const [posts, setPosts] = useState<ScheduledPost[]>([])
   const [currentDate, setCurrentDate] = useState(new Date("2026-06-05")) // Focus on local meta date June 2026
@@ -49,6 +53,10 @@ export default function FreeCalendarPage() {
   const [editContent, setEditContent] = useState("")
   const [editDate, setEditDate] = useState("")
   const [editTime, setEditTime] = useState("")
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+
 
   // Load scheduled posts from storage
   const loadPosts = () => {
@@ -187,19 +195,28 @@ export default function FreeCalendarPage() {
     })
     savePosts(updated)
     setSelectedPost(null)
-    alert("Post updated successfully!")
+    showToast("✓ Post Updated", "success")
   }
 
   // Delete post from edit dialog
   const handleDeleteFromEdit = () => {
     if (!selectedPost) return
-    if (confirm("Are you sure you want to delete this scheduled post?")) {
-      const updated = posts.filter(p => p.id !== selectedPost.id)
-      savePosts(updated)
-      setSelectedPost(null)
-      alert("Post deleted successfully.")
-    }
+    setDeleteModalOpen(true)
   }
+
+  const handleConfirmDelete = async () => {
+    if (!selectedPost) return
+    setDeleteLoading(true)
+    // Simulate delay
+    await new Promise((resolve) => setTimeout(resolve, 800))
+    const updated = posts.filter(p => p.id !== selectedPost.id)
+    savePosts(updated)
+    setSelectedPost(null)
+    setDeleteLoading(false)
+    setDeleteModalOpen(false)
+    showToast("✓ Post Scheduled", "success")
+  }
+
 
   // Render platform icons helper
   const getPlatformColors = (plat: string) => {
@@ -553,6 +570,23 @@ export default function FreeCalendarPage() {
         </div>
       )}
 
+      <GrowWaveModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          if (!deleteLoading) {
+            setDeleteModalOpen(false)
+          }
+        }}
+        title="Delete Content Idea"
+        message="Are you sure you want to permanently delete this content idea? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDelete}
+        variant="danger"
+        loading={deleteLoading}
+        loadingText="Deleting..."
+      />
     </div>
   )
+
 }

@@ -27,6 +27,9 @@ import {
   IconInstagram,
   IconLinkedin
 } from "@/components/social-brand-icons"
+import { useToast } from "@/components/toast-provider"
+import { GrowWaveModal } from "@/components/growwave-modal"
+
 
 interface PostItem {
   id: string
@@ -41,6 +44,7 @@ interface PostItem {
 
 export default function FreePublishPage() {
   const router = useRouter()
+  const { showToast } = useToast()
 
   const [posts, setPosts] = useState<PostItem[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -49,6 +53,11 @@ export default function FreePublishPage() {
   const [channels, setChannels] = useState<any[]>([])
   const [connectedCount, setConnectedCount] = useState(0)
   const [publishingPost, setPublishingPost] = useState<PostItem | null>(null)
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [deletePostId, setDeletePostId] = useState<string | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+
 
   // Load posts and channels
   useEffect(() => {
@@ -133,10 +142,21 @@ export default function FreePublishPage() {
 
   // Delete handler
   const handleDeletePost = (id: string) => {
-    if (confirm("Are you sure you want to delete this post?")) {
-      const updated = posts.filter(p => p.id !== id)
-      updatePostsInStorage(updated)
-    }
+    setDeletePostId(id)
+    setDeleteModalOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deletePostId) return
+    setDeleteLoading(true)
+    // Simulate delay
+    await new Promise((resolve) => setTimeout(resolve, 800))
+    const updated = posts.filter(p => p.id !== deletePostId)
+    updatePostsInStorage(updated)
+    setDeleteLoading(false)
+    setDeleteModalOpen(false)
+    setDeletePostId(null)
+    showToast("✓ Post Deleted", "success")
   }
 
   // Quick action: publish immediately
@@ -153,7 +173,8 @@ export default function FreePublishPage() {
     })
     updatePostsInStorage(updated)
     setActiveTab("published")
-    alert("Post published successfully!")
+    showToast("✓ Post Published", "success")
+
   }
 
   // Quick action: change post status
@@ -449,15 +470,15 @@ export default function FreePublishPage() {
                           })
                           updatePostsInStorage(updated)
                           setActiveTab("published")
-                          alert("Post published to Facebook successfully!")
+                          showToast("✓ Post Published", "success")
                         } else {
                           const err = resData.results?.[targetPlatform]?.error || resData.error || "Publishing failed"
-                          alert(`Error publishing to Facebook: ${err}`)
+                          showToast(`⚠️ Error publishing: ${err}`, "error")
                         }
                       })
                       .catch(err => {
                         console.error("Publishing error:", err)
-                        alert("Network error: failed to publish post.")
+                        showToast("⚠️ Network error: failed to publish", "error")
                       })
                       .finally(() => {
                         setPublishingPost(null)
@@ -473,6 +494,25 @@ export default function FreePublishPage() {
           </div>
         </div>
       )}
+
+      <GrowWaveModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          if (!deleteLoading) {
+            setDeleteModalOpen(false)
+            setDeletePostId(null)
+          }
+        }}
+        title="Delete Content Idea"
+        message="Are you sure you want to permanently delete this content idea? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDelete}
+        variant="danger"
+        loading={deleteLoading}
+        loadingText="Deleting..."
+      />
     </div>
   )
 }
+

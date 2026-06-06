@@ -24,6 +24,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
 import { UpgradeModal } from "@/components/free-user/upgrade-modal"
+import { useToast } from "@/components/toast-provider"
+
 
 interface GenerationLog {
   id: string
@@ -35,6 +37,7 @@ interface GenerationLog {
 
 export default function FreeAIAssistantPage() {
   const router = useRouter()
+  const { showToast } = useToast()
 
   const [prompt, setPrompt] = useState("")
   const [selectedAction, setSelectedAction] = useState<string>("generate-caption")
@@ -113,9 +116,10 @@ export default function FreeAIAssistantPage() {
   // Generate Action
   const handleGenerate = async () => {
     if (!prompt.trim()) {
-      alert("Please enter a prompt first.")
+      showToast("Please enter a prompt first.", "error")
       return
     }
+
 
     // Free limit check: 50 AI requests limit
     if (aiUsage >= 50) {

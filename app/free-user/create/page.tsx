@@ -33,6 +33,8 @@ import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { UpgradeModal } from "@/components/free-user/upgrade-modal"
+import { GrowWaveModal } from "@/components/growwave-modal"
+
 import {
   IconFacebook,
   IconInstagram,
@@ -648,23 +650,73 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
     }
   }
 
+  // Custom state for single idea delete modal
+  const [deleteIdeaModalOpen, setDeleteIdeaModalOpen] = useState(false)
+  const [deleteIdeaId, setDeleteIdeaId] = useState<string | null>(null)
+  const [deleteIdeaLoading, setDeleteIdeaLoading] = useState(false)
+
+  // Custom state for clear column modal
+  const [clearColumnModalOpen, setClearColumnModalOpen] = useState(false)
+  const [clearColumnName, setClearColumnName] = useState<IdeaItem["column"] | null>(null)
+  const [clearColumnLoading, setClearColumnLoading] = useState(false)
+
   // Delete an idea in MongoDB
   const handleDeleteIdea = async (id: string) => {
-    if (confirm("Are you sure you want to delete this content idea?")) {
-      try {
-        const res = await fetch(`/api/ideas?id=${id}`, {
-          method: "DELETE"
-        })
-        if (res.ok) {
-          showToast("✓ Idea Deleted")
-          await fetchIdeas()
-        }
-      } catch (err) {
-        console.error("Delete error", err)
+    try {
+      const res = await fetch(`/api/ideas?id=${id}`, {
+        method: "DELETE"
+      })
+      if (res.ok) {
+        showToast("✓ Idea Deleted")
+        await fetchIdeas()
+      } else {
         showToast("⚠️ Failed to delete idea", "error")
       }
+    } catch (err) {
+      console.error("Delete error", err)
+      showToast("⚠️ Failed to delete idea", "error")
     }
   }
+
+  const handleDeleteIdeaTrigger = (id: string) => {
+    setDeleteIdeaId(id)
+    setDeleteIdeaModalOpen(true)
+  }
+
+  const handleConfirmDeleteIdea = async () => {
+    if (!deleteIdeaId) return
+    setDeleteIdeaLoading(true)
+    await handleDeleteIdea(deleteIdeaId)
+    setDeleteIdeaLoading(false)
+    setDeleteIdeaModalOpen(false)
+    setDeleteIdeaId(null)
+  }
+
+  const handleClearColumnTrigger = (columnName: IdeaItem["column"]) => {
+    setClearColumnName(columnName)
+    setClearColumnModalOpen(true)
+  }
+
+  const handleConfirmClearColumn = async () => {
+    if (!clearColumnName) return
+    setClearColumnLoading(true)
+    const toDelete = ideas.filter((i) => i.column === clearColumnName)
+    for (const item of toDelete) {
+      try {
+        await fetch(`/api/ideas?id=${item.id}`, {
+          method: "DELETE"
+        })
+      } catch (err) {
+        console.error("Bulk delete error for idea:", item.id, err)
+      }
+    }
+    showToast(`✓ Ideas cleared successfully`)
+    await fetchIdeas()
+    setClearColumnLoading(false)
+    setClearColumnModalOpen(false)
+    setClearColumnName(null)
+  }
+
 
   // Start Edit Mode
   const handleStartEdit = (idea: IdeaItem) => {
@@ -1143,9 +1195,8 @@ Each object must contain these keys:
                     {/* Menu button (...) */}
                     <button
                       onClick={() => {
-                        if (columnIdeas.length > 0 && confirm(`Clear all ideas in ${columnName}?`)) {
-                          const toDelete = ideas.filter((i) => i.column === columnName)
-                          toDelete.forEach((i) => handleDeleteIdea(i.id))
+                        if (columnIdeas.length > 0) {
+                          handleClearColumnTrigger(columnName)
                         }
                       }}
                       className="size-6 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:hover:text-white transition-all"
@@ -1153,6 +1204,7 @@ Each object must contain these keys:
                     >
                       <MoreVertical className="size-3.5" />
                     </button>
+
                   </div>
                 </div>
 
@@ -1213,7 +1265,7 @@ Each object must contain these keys:
                                 </button>
                                 <button
                                   onClick={() => {
-                                    handleDeleteIdea(idea.id)
+                                    handleDeleteIdeaTrigger(idea.id)
                                     setOpenMenuCardId(null)
                                   }}
                                   className="w-full text-left text-[11px] font-bold px-2.5 py-1.5 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/20 dark:hover:text-rose-450 rounded-lg transition-colors text-rose-500 flex items-center gap-1.5"
@@ -1888,8 +1940,44 @@ Each object must contain these keys:
           </div>
         </div>
       )}
+      <GrowWaveModal
+        isOpen={deleteIdeaModalOpen}
+        onClose={() => {
+          if (!deleteIdeaLoading) {
+            setDeleteIdeaModalOpen(false)
+            setDeleteIdeaId(null)
+          }
+        }}
+        title="Delete Content Idea"
+        message="Are you sure you want to permanently delete this content idea? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDeleteIdea}
+        variant="danger"
+        loading={deleteIdeaLoading}
+        loadingText="Deleting..."
+      />
+
+      <GrowWaveModal
+        isOpen={clearColumnModalOpen}
+        onClose={() => {
+          if (!clearColumnLoading) {
+            setClearColumnModalOpen(false)
+            setClearColumnName(null)
+          }
+        }}
+        title={`Clear Column: ${clearColumnName || ""}`}
+        message={`Are you sure you want to permanently delete all content items inside the "${clearColumnName || ""}" column? This action cannot be undone.`}
+        confirmText="Clear Column"
+        cancelText="Cancel"
+        onConfirm={handleConfirmClearColumn}
+        variant="danger"
+        loading={clearColumnLoading}
+        loadingText="Clearing..."
+      />
     </div>
   )
+
 }
 
 export default function FreeCreatePage() {
