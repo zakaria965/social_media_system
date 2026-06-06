@@ -71,7 +71,7 @@ const platformConfig: Record<
     bg: "bg-[#1877F2]/10 text-[#1877F2]",
     border: "border-[#1877F2]/20 focus-within:border-[#1877F2]/50",
     icon: IconFacebook,
-    authUrl: `https://www.facebook.com/v22.0/dialog/oauth?client_id=2361932354276346&redirect_uri=${typeof window !== "undefined" ? window.location.origin : ""}/api/auth/facebook/callback&scope=pages_show_list,pages_read_engagement,pages_manage_posts`,
+    authUrl: "/api/auth/facebook",
   },
   instagram: {
     label: "Instagram",

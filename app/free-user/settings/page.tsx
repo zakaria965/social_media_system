@@ -16,7 +16,9 @@ import {
   Zap,
   Info,
   ShieldAlert,
-  RefreshCw
+  RefreshCw,
+  Check,
+  Loader2
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -28,19 +30,15 @@ import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { UpgradeModal } from "@/components/free-user/upgrade-modal"
 import {
-  IconFacebook,
-  IconInstagram,
-  IconLinkedin,
-  IconX
-} from "@/components/social-brand-icons"
-
-function IconTikTok(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
-      <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.02 1.59 4.19.98 1.13 2.37 1.83 3.86 2v3.7c-1.39-.02-2.77-.38-3.95-1.12-.48-.3-.92-.66-1.31-1.07V15c.02 2.15-.7 4.29-2.07 5.92-1.74 2.05-4.47 3.19-7.14 3.06-2.92-.12-5.63-1.92-6.85-4.58-1.46-3.14-.79-7.13 1.63-9.53 1.84-1.84 4.54-2.58 7.02-1.98v3.83c-1.41-.45-3 .02-3.91 1.12-.99 1.16-1.09 2.97-.24 4.24.81 1.25 2.34 1.95 3.82 1.76 1.48-.15 2.74-1.32 2.92-2.8.06-.55.03-1.11.03-1.66V0h.69z" />
-    </svg>
-  )
-}
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { IconFacebook } from "@/components/social-brand-icons"
 
 interface ChannelConnection {
   id: string
@@ -50,6 +48,17 @@ interface ChannelConnection {
   connected: boolean
   followers: number
   locked: boolean
+  status?: string
+}
+
+interface MetaPage {
+  id: string
+  name: string
+  username: string
+  category: string
+  followers: number
+  accessToken: string
+  picture: string
 }
 
 function SettingsContent() {
@@ -65,7 +74,16 @@ function SettingsContent() {
   const [profileBio, setProfileBio] = useState("Managing my social media workspace easily with GrowWave Lite.")
 
   // Channels state
-  const [channels, setChannels] = useState<ChannelConnection[]>([])
+  const [channels, setChannels] = useState<ChannelConnection[]>([
+    { id: "c-fb", name: "Facebook Page", platform: "facebook", username: "", connected: false, followers: 0, locked: false }
+  ])
+
+  // Facebook pages modal states
+  const [fbPagesModalOpen, setFbPagesModalOpen] = useState(false)
+  const [fbPages, setFbPages] = useState<MetaPage[]>([])
+  const [selectedFbPageId, setSelectedFbPageId] = useState<string>("")
+  const [loadingFbPages, setLoadingFbPages] = useState(false)
+  const [fbUserToken, setFbUserToken] = useState<string>("")
 
   // Notifications
   const [notifyPublishSuccess, setNotifyPublishSuccess] = useState(true)
@@ -80,28 +98,124 @@ function SettingsContent() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
 
-  // Read tab parameter
+  // Fetch connected channels from MongoDB
+  const fetchDBChannels = async () => {
+    try {
+      const res = await fetch("/api/accounts")
+      const data = await res.json()
+      if (res.ok && data.accounts) {
+        const fbAccount = data.accounts.find((a: any) => a.platform === "facebook")
+        setChannels(prev => prev.map(c => {
+          if (c.platform === "facebook") {
+            if (fbAccount) {
+              return {
+                ...c,
+                connected: fbAccount.status === "connected",
+                username: fbAccount.username || "Facebook Page",
+                followers: fbAccount.followers || 0,
+                status: fbAccount.status
+              }
+            } else {
+              return {
+                ...c,
+                connected: false,
+                username: "",
+                followers: 0,
+                status: ""
+              }
+            }
+          }
+          return c
+        }))
+      }
+    } catch (err) {
+      console.error("Failed to fetch channels from DB:", err)
+    }
+  }
+
+  // Read tab parameter and OAuth triggers
   useEffect(() => {
     const tabParam = searchParams.get("tab")
     if (tabParam) {
       setActiveTab(tabParam)
     }
 
-    const savedChannels = localStorage.getItem("growwave-lite-channels")
-    if (savedChannels) {
-      setChannels(JSON.parse(savedChannels))
-    } else {
-      const initialChannels = [
-        { id: "c-fb", name: "Facebook", platform: "facebook", username: "", connected: false, followers: 0, locked: false },
-        { id: "c-ig", name: "Instagram", platform: "instagram", username: "", connected: false, followers: 0, locked: false },
-        { id: "c-li", name: "LinkedIn", platform: "linkedin", username: "", connected: false, followers: 0, locked: false },
-        { id: "c-tw", name: "Twitter / X", platform: "twitter", username: "", connected: false, followers: 0, locked: false },
-        { id: "c-tk", name: "TikTok", platform: "tiktok", username: "", connected: false, followers: 0, locked: false }
-      ]
-      setChannels(initialChannels)
-      localStorage.setItem("growwave-lite-channels", JSON.stringify(initialChannels))
+    fetchDBChannels()
+
+    // Handle URL parameters for page selection or error callbacks
+    const selectFb = searchParams.get("select_facebook_page")
+    const token = searchParams.get("token")
+    const err = searchParams.get("error")
+
+    if (selectFb === "true" && token) {
+      setFbUserToken(token)
+      setFbPagesModalOpen(true)
+      loadFacebookPages(token)
+      // Clean parameters from history URL while keeping tab
+      window.history.replaceState({}, document.title, window.location.pathname + "?tab=accounts")
+    } else if (err) {
+      alert(err || "Connection failed")
+      window.history.replaceState({}, document.title, window.location.pathname + "?tab=accounts")
     }
   }, [searchParams])
+
+  const loadFacebookPages = async (token: string) => {
+    setLoadingFbPages(true)
+    try {
+      const res = await fetch(`/api/accounts/facebook-pages?token=${token}`)
+      const data = await res.json()
+      if (res.ok) {
+        setFbPages(data.pages || [])
+        if (data.pages && data.pages.length > 0) {
+          setSelectedFbPageId(data.pages[0].id)
+        }
+      } else {
+        alert(data.error || "Failed to load Facebook Pages")
+      }
+    } catch {
+      alert("Failed to connect to Graph API")
+    } finally {
+      setLoadingFbPages(false)
+    }
+  }
+
+  const handleConnectFacebookPage = async () => {
+    const selectedPage = fbPages.find((p) => p.id === selectedFbPageId)
+    if (!selectedPage) {
+      alert("Please select a Facebook Page")
+      return
+    }
+
+    setLoadingFbPages(true)
+    try {
+      const res = await fetch("/api/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platform: "facebook",
+          accessToken: selectedPage.accessToken,
+          username: selectedPage.name,
+          platformAccountId: selectedPage.id,
+          avatar: selectedPage.picture,
+          followers: selectedPage.followers,
+          engagement: parseFloat((Math.random() * 4 + 1.2).toFixed(1)),
+        }),
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        alert(`Facebook Page "${selectedPage.name}" connected successfully!`)
+        setFbPagesModalOpen(false)
+        await fetchDBChannels()
+      } else {
+        alert(data.error || "Failed to save selected page")
+      }
+    } catch {
+      alert("Failed to connect page")
+    } finally {
+      setLoadingFbPages(false)
+    }
+  }
 
   // Handle connection toggling
   const handleConnectChannel = (id: string, locked: boolean) => {
@@ -114,55 +228,27 @@ function SettingsContent() {
     const target = channels.find(c => c.id === id)
     if (!target) return
 
-    let nextChannels = [...channels]
-    if (target.connected) {
+    if (target.connected || target.status === "expired") {
       // Disconnect
       if (confirm(`Disconnect your ${target.name} account?`)) {
-        nextChannels = channels.map(c => c.id === id ? { ...c, connected: false, username: "", followers: 0 } : c)
-        
-        // Disconnect from database
         fetch("/api/accounts")
           .then(res => res.json())
           .then(data => {
             const dbAcc = data.accounts?.find((a: any) => a.platform === target.platform)
             if (dbAcc?._id) {
               fetch(`/api/accounts?id=${dbAcc._id}`, { method: "DELETE" })
+                .then(res => {
+                  if (res.ok) {
+                    setChannels(prev => prev.map(c => c.id === id ? { ...c, connected: false, username: "", followers: 0, status: "" } : c))
+                  }
+                })
             }
           }).catch(err => console.error("Error deleting account from DB:", err))
       }
     } else {
-      // Connect: Check channel limit (max 1 for Free Plan)
-      const activeCount = channels.filter(c => c.connected).length
-      if (activeCount >= 1) {
-        setUpgradeReason("channels_limit")
-        setUpgradeOpen(true)
-        return
-      } else {
-        const handleName = prompt(`Enter your ${target.name} profile handle / username:`)
-        if (handleName) {
-          nextChannels = channels.map(c => c.id === id ? {
-            ...c,
-            connected: true,
-            username: handleName,
-            followers: Math.floor(Math.random() * 200) + 10
-          } : c)
-
-          // Connect to database
-          fetch("/api/accounts", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              platform: target.platform,
-              accessToken: "mock_lite_token",
-              username: handleName,
-              avatar: ""
-            })
-          }).catch(err => console.error("Error saving account to DB:", err))
-        }
-      }
+      // Connect: Redirect to server-side Facebook OAuth endpoint
+      window.location.assign("/api/auth/facebook")
     }
-    setChannels(nextChannels)
-    localStorage.setItem("growwave-lite-channels", JSON.stringify(nextChannels))
   }
 
   // Simulated Save profile details
@@ -188,20 +274,10 @@ function SettingsContent() {
 
   // Render platform icons
   const renderPlatformIcon = (plat: string) => {
-    switch (plat) {
-      case "facebook":
-        return <IconFacebook className="size-5 text-blue-600 shrink-0" />
-      case "instagram":
-        return <IconInstagram className="size-5 text-pink-600 shrink-0" />
-      case "linkedin":
-        return <IconLinkedin className="size-5 text-sky-700 shrink-0" />
-      case "twitter":
-        return <IconX className="size-5 text-slate-800 dark:text-white shrink-0" />
-      case "tiktok":
-        return <IconTikTok className="size-5 text-fuchsia-600 shrink-0" />
-      default:
-        return null
+    if (plat === "facebook") {
+      return <IconFacebook className="size-5 text-blue-600 shrink-0" />
     }
+    return null
   }
 
   const menuItems = [
@@ -366,74 +442,121 @@ function SettingsContent() {
 
           {/* ACCOUNTS / CHANNEL LIMITS */}
           {activeTab === "accounts" && (
-            <Card className="rounded-xl border border-slate-200 bg-background shadow-sm dark:bg-slate-900 dark:border-slate-800">
-              <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-white">Linked Channels</CardTitle>
-                  <p className="text-[11px] text-[#6B7280] mt-0.5">Link or unlink social profiles. Max 1 active account on Free Plan.</p>
-                </div>
-                <Badge variant="outline" className="text-[8px] font-bold uppercase border-slate-200">
-                  {channels.filter(c => c.connected).length} / 1 Connected
-                </Badge>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y divide-slate-100 dark:divide-slate-850">
+            <div className="space-y-6">
+              <Card className="rounded-xl border border-slate-200 bg-background shadow-sm dark:bg-slate-900 dark:border-slate-800">
+                <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-white">Linked Channels</CardTitle>
+                    <p className="text-[11px] text-[#6B7280] mt-0.5">Link or unlink Facebook Pages. Max 1 active account on Free Plan.</p>
+                  </div>
+                  <Badge variant="outline" className="text-[8px] font-bold uppercase border-slate-200">
+                    {channels.filter(c => c.connected).length} / 1 Connected
+                  </Badge>
+                </CardHeader>
+                <CardContent className="p-5">
                   {channels.map((chan) => {
-                    const isAnyChannelConnected = channels.some(c => c.connected)
-                    const isDisabledForFree = isAnyChannelConnected && !chan.connected
+                    const isConnected = chan.connected
+                    const isExpired = chan.status === "expired"
 
                     return (
                       <div
                         key={chan.id}
-                        className={cn(
-                          "flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-all",
-                          isDisabledForFree && "opacity-75"
-                        )}
+                        className="rounded-2xl border p-4 flex flex-col justify-between gap-4 border-border/60 bg-muted/10"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="p-2.5 rounded-lg bg-slate-50 border dark:bg-slate-800 dark:border-slate-700">
-                            {renderPlatformIcon(chan.platform)}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-extrabold text-[#1F2937] dark:text-white">{chan.name}</span>
+                        <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2.5 rounded-lg bg-blue-50 border dark:bg-slate-800 dark:border-slate-700">
+                              {renderPlatformIcon(chan.platform)}
                             </div>
-                            <p className="text-[10px] text-[#9CA3AF] font-semibold mt-0.5">
-                              {chan.connected 
-                                ? `@${chan.username} • ${chan.followers} followers` 
-                                : isDisabledForFree 
-                                ? "Free Plan Limit Reached: Upgrade To Connect More Channels" 
-                                : "Not Linked"}
-                            </p>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-extrabold text-[#1F2937] dark:text-white">{chan.name}</span>
+                                <Badge variant={isConnected ? "default" : "outline"} className="h-5 px-1.5 text-[9px] rounded-lg">
+                                  {isConnected ? "Connected" : isExpired ? "Expired" : "Not Connected"}
+                                </Badge>
+                              </div>
+                              <p className="text-[10px] text-[#9CA3AF] font-semibold mt-0.5">
+                                {isConnected
+                                  ? `@${chan.username} • ${chan.followers.toLocaleString()} followers`
+                                  : isExpired
+                                  ? `@${chan.username} • Session Expired`
+                                  : "Not Linked"}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {isConnected || isExpired ? (
+                              <button
+                                onClick={() => handleConnectChannel(chan.id, chan.locked)}
+                                className="text-[10px] font-extrabold px-3 py-1.5 rounded-lg uppercase tracking-wider transition-all border bg-slate-50 border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300 text-slate-500 cursor-pointer"
+                              >
+                                Disconnect
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleConnectChannel(chan.id, chan.locked)}
+                                className="text-[10px] font-extrabold px-3 py-1.5 rounded-lg uppercase tracking-wider transition-all bg-[#30FC47] hover:bg-[#24D93B] text-white border-transparent hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                              >
+                                Connect Facebook Account
+                              </button>
+                            )}
                           </div>
                         </div>
 
-                        <button
-                          onClick={() => {
-                            if (isDisabledForFree) {
-                              setUpgradeReason("channels_limit")
-                              setUpgradeOpen(true)
-                            } else {
-                              handleConnectChannel(chan.id, chan.locked)
-                            }
-                          }}
-                          className={cn(
-                            "text-[10px] font-extrabold px-3 py-1.5 rounded-lg uppercase tracking-wider transition-all border select-none cursor-pointer",
-                            chan.connected
-                              ? "bg-slate-50 border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300 text-slate-500"
-                              : isDisabledForFree
-                              ? "bg-slate-100 text-slate-400 border-slate-200 hover:bg-slate-200 hover:text-slate-600"
-                              : "bg-[#30FC47] hover:bg-[#24D93B] text-white border-transparent hover:scale-[1.02] active:scale-[0.98]"
-                          )}
-                        >
-                          {chan.connected ? "Disconnect" : "Connect"}
-                        </button>
+                        {isConnected && (
+                          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-[11px] text-emerald-750 dark:text-[#30FC47] font-semibold space-y-0.5">
+                            <p className="font-extrabold">Facebook Connected</p>
+                            <p className="text-[10px] opacity-90">Free Plan Limit Reached: Only 1 channel allowed.</p>
+                          </div>
+                        )}
+
+                        {isExpired && (
+                          <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-3 text-[11px] text-rose-700 dark:text-rose-455 font-semibold space-y-1">
+                            <p className="font-extrabold">Facebook Session Expired</p>
+                            <p className="text-[10px] opacity-90">Please reconnect your Facebook Account to authorize publishing.</p>
+                            <button
+                              onClick={() => handleConnectChannel(chan.id, chan.locked)}
+                              className="text-[9px] font-black uppercase text-rose-800 dark:text-rose-400 hover:underline block mt-1 text-left"
+                            >
+                              Reconnect Account
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )
                   })}
+                </CardContent>
+              </Card>
+
+              {/* Upgrade To Pro Card */}
+              <Card className="rounded-xl border border-purple-500/20 bg-purple-500/[0.02] shadow-sm dark:bg-slate-900 dark:border-purple-900/40 p-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-extrabold text-purple-950 dark:text-purple-400">Upgrade to GrowWave Pro</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-normal">
+                      Link additional accounts and unlock publishing to premium platforms.
+                    </p>
+                    <div className="flex flex-wrap gap-2.5 pt-2">
+                      {["Instagram", "LinkedIn", "TikTok", "Twitter / X", "Unlimited Channels"].map((feat) => (
+                        <Badge key={feat} variant="outline" className="text-[9px] font-bold border-purple-500/20 text-purple-700 dark:text-purple-400 dark:border-purple-900/30">
+                          {feat}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      setUpgradeReason("channels_limit")
+                      setUpgradeOpen(true)
+                    }}
+                    className="bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs px-5 rounded-lg uppercase tracking-wider shrink-0 self-start sm:self-auto"
+                  >
+                    Upgrade To Pro
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </Card>
+            </div>
           )}
 
           {/* NOTIFICATION SETTINGS */}
@@ -449,7 +572,7 @@ function SettingsContent() {
                       <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
                         Publish Success Alerts
                       </span>
-                      <p className="text-[10.5px] text-slate-400">
+                      <p className="text-[10.5px] text-slate-455">
                         Receive email alerts immediately when scheduled posts go live successfully.
                       </p>
                     </div>
@@ -470,7 +593,7 @@ function SettingsContent() {
                       <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
                         Publish Failure Alerts
                       </span>
-                      <p className="text-[10.5px] text-slate-400">
+                      <p className="text-[10.5px] text-slate-455">
                         Receive high-priority email warnings if any scheduled posts fail to deliver.
                       </p>
                     </div>
@@ -491,7 +614,7 @@ function SettingsContent() {
                       <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
                         Weekly Growth Summary
                       </span>
-                      <p className="text-[10.5px] text-slate-400">
+                      <p className="text-[10.5px] text-slate-455">
                         Receive a weekly email recap showing your organic reach and engagement stats.
                       </p>
                     </div>
@@ -568,10 +691,10 @@ function SettingsContent() {
                           <th className="p-3 text-center text-emerald-600">GrowWave Pro</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y font-medium text-slate-700 dark:text-slate-300">
+                      <tbody className="divide-y font-medium text-slate-700 dark:text-slate-350">
                         <tr>
                           <td className="p-3 font-bold">Social Channels</td>
-                          <td className="p-3 text-center">1 channel maximum</td>
+                          <td className="p-3 text-center">1 channel maximum (Facebook Page)</td>
                           <td className="p-3 text-center text-emerald-600 font-bold">Unlimited channels</td>
                         </tr>
                         <tr>
@@ -628,22 +751,22 @@ function SettingsContent() {
 
           {/* DELETE ACCOUNT */}
           {activeTab === "delete" && (
-            <Card className="rounded-xl border border-rose-500/20 bg-rose-50/5 dark:bg-rose-950/5 p-5 md:p-6 space-y-4">
+            <Card className="rounded-xl border border-rose-500/20 bg-rose-50/5 dark:bg-rose-955/5 p-5 md:p-6 space-y-4">
               <div className="flex items-start gap-3 border-b border-rose-500/10 pb-4">
                 <div className="p-2 rounded-lg bg-rose-500/15 text-rose-600 shrink-0">
                   <ShieldAlert className="size-6" />
                 </div>
                 <div>
                   <h3 className="text-sm font-extrabold text-rose-950 dark:text-rose-400">Danger Zone</h3>
-                  <p className="text-xs text-rose-600 dark:text-rose-500 mt-0.5 leading-normal">
+                  <p className="text-xs text-rose-650 dark:text-rose-500 mt-0.5 leading-normal">
                     This action is permanent. Deleting your workspace deletes all connected metrics, scheduled content, and historical generations log.
                   </p>
                 </div>
               </div>
 
               <div className="space-y-3">
-                <p className="text-xs text-slate-600 dark:text-slate-400 leading-normal font-semibold">
-                  To verify account deletion, please type <span className="font-black text-rose-600 select-all">delete my account</span> in the input below:
+                <p className="text-xs text-slate-650 dark:text-slate-400 leading-normal font-semibold">
+                  To verify account deletion, please type <span className="font-black text-rose-650 select-all">delete my account</span> in the input below:
                 </p>
                 <Input
                   placeholder="delete my account"
@@ -667,6 +790,83 @@ function SettingsContent() {
 
         </div>
       </div>
+
+      {/* Facebook Page Selector Modal */}
+      <Dialog open={fbPagesModalOpen} onOpenChange={setFbPagesModalOpen}>
+        <DialogContent className="max-w-md rounded-2xl p-5 border-border/60 shadow-xl bg-card">
+          <DialogHeader className="border-b border-border/40 pb-3">
+            <DialogTitle className="flex items-center gap-2 text-md font-bold">
+              <IconFacebook className="size-5 text-[#1877F2]" /> Select Facebook Page
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Select the managed Facebook Page you would like to set as your active publishing destination.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            {loadingFbPages ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-2">
+                <Loader2 className="size-6 animate-spin text-[#1877F2]" />
+                <p className="text-xs text-muted-foreground">Querying Meta Graph API Pages...</p>
+              </div>
+            ) : fbPages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
+                <XCircle className="size-7 text-rose-500" />
+                <p className="text-xs font-bold text-foreground">No Facebook Pages Found</p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Please create or manage a Facebook Page first.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                {fbPages.map((page) => (
+                  <button
+                    key={page.id}
+                    onClick={() => setSelectedFbPageId(page.id)}
+                    className={cn(
+                      "flex w-full items-center gap-3.5 rounded-xl border p-3 text-left transition-all hover:bg-muted/10 relative",
+                      selectedFbPageId === page.id
+                        ? "bg-[#1877F2]/5 border-[#1877F2]/40 shadow-sm"
+                        : "border-slate-200 dark:border-slate-800"
+                    )}
+                  >
+                    {page.picture ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={page.picture} alt={page.name} className="size-10 rounded-full object-cover border border-border" />
+                    ) : (
+                      <div className="size-10 rounded-full bg-[#1877F2]/10 text-[#1877F2] font-bold text-sm flex items-center justify-center">
+                        F
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-foreground leading-snug truncate">{page.name}</p>
+                      <p className="text-[10px] text-muted-foreground truncate mt-0.5">{page.category}</p>
+                      <div className="flex items-center gap-3 text-[9px] text-muted-foreground/80 mt-1 font-mono">
+                        <span>ID: {page.id}</span>
+                        <span>•</span>
+                        <span>{(page.followers || 0).toLocaleString()} followers</span>
+                      </div>
+                    </div>
+
+                    {selectedFbPageId === page.id && (
+                      <Check className="size-4.5 text-[#1877F2] shrink-0" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="border-t border-border/40 pt-4 flex gap-2">
+            <Button variant="outline" size="sm" className="rounded-lg text-xs" onClick={() => setFbPagesModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" className="rounded-lg text-xs bg-[#1877F2] text-white hover:bg-[#1877F2]/90" onClick={handleConnectFacebookPage} disabled={loadingFbPages || fbPages.length === 0}>
+              Connect & Save Page
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <UpgradeModal isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={upgradeReason} />
     </div>

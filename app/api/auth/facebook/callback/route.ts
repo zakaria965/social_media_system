@@ -11,16 +11,21 @@ export async function GET(request: NextRequest) {
       return new Response("Unauthorized", { status: 401 })
     }
 
+    const isFreePlan = session.user.plan === "FREE"
     const { searchParams, origin } = new URL(request.url)
     const code = searchParams.get("code")
     const error = searchParams.get("error")
 
+    const errorRedirectBase = isFreePlan
+      ? `${origin}/free-user/settings?tab=accounts`
+      : `${origin}/dashboard/channels`
+
     if (error) {
-      return NextResponse.redirect(`${origin}/dashboard/channels?error=${encodeURIComponent(error)}`)
+      return NextResponse.redirect(`${errorRedirectBase}&error=${encodeURIComponent(error)}`)
     }
 
     if (!code) {
-      return NextResponse.redirect(`${origin}/dashboard/channels?error=No+authorization+code+provided`)
+      return NextResponse.redirect(`${errorRedirectBase}&error=No+authorization+code+provided`)
     }
 
     const appId = process.env.FACEBOOK_APP_ID
@@ -35,20 +40,30 @@ export async function GET(request: NextRequest) {
 
     if (!tokenRes.ok || !tokenData.access_token) {
       console.error("Facebook OAuth exchange error:", tokenData)
-      return NextResponse.redirect(`${origin}/dashboard/channels?error=Failed+to+exchange+Facebook+auth+code`)
+      return NextResponse.redirect(`${errorRedirectBase}&error=Failed+to+exchange+Facebook+auth+code`)
     }
 
     const userAccessToken = tokenData.access_token
 
-    // Redirect to channels with selection trigger and token
-    return NextResponse.redirect(
-      `${origin}/dashboard/channels?select_facebook_page=true&token=${userAccessToken}`
-    )
+    // Redirect to settings / channels with selection trigger and token
+    const successRedirect = isFreePlan
+      ? `${origin}/free-user/settings?tab=accounts&select_facebook_page=true&token=${userAccessToken}`
+      : `${origin}/dashboard/channels?select_facebook_page=true&token=${userAccessToken}`
+
+    return NextResponse.redirect(successRedirect)
   } catch (err: unknown) {
     console.error("Facebook callback error:", err)
     const message = err instanceof Error ? err.message : "Unknown error"
+    
+    const session = await getServerSession(authOptions)
+    const isFreePlan = session?.user?.plan === "FREE"
+    const { origin } = new URL(request.url)
+    const errorRedirectBase = isFreePlan
+      ? `${origin}/free-user/settings?tab=accounts`
+      : `${origin}/dashboard/channels`
+
     return NextResponse.redirect(
-      `${new URL(request.url).origin}/dashboard/channels?error=${encodeURIComponent(message)}`
+      `${errorRedirectBase}?error=${encodeURIComponent(message)}`
     )
   }
 }

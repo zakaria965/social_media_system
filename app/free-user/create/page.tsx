@@ -297,23 +297,44 @@ function CreateContent() {
     }
 
     // Load channels
-    const savedChannels = localStorage.getItem("growwave-lite-channels")
-    if (savedChannels) {
-      const parsed = JSON.parse(savedChannels)
-      setChannels(parsed)
-      setConnectedCount(parsed.filter((c: any) => c.connected).length)
-    } else {
-      const defaultChannels = [
-        { id: "c-fb", name: "Facebook", platform: "facebook", username: "", connected: false, followers: 0, locked: false },
-        { id: "c-ig", name: "Instagram", platform: "instagram", username: "", connected: false, followers: 0, locked: false },
-        { id: "c-li", name: "LinkedIn", platform: "linkedin", username: "", connected: false, followers: 0, locked: false },
-        { id: "c-tw", name: "Twitter / X", platform: "twitter", username: "", connected: false, followers: 0, locked: false },
-        { id: "c-tk", name: "TikTok", platform: "tiktok", username: "", connected: false, followers: 0, locked: false }
-      ]
-      setChannels(defaultChannels)
-      setConnectedCount(0)
-      localStorage.setItem("growwave-lite-channels", JSON.stringify(defaultChannels))
-    }
+        // Fetch actual channels from MongoDB for Free users
+    fetch("/api/accounts")
+      .then(res => res.json())
+      .then(data => {
+        if (data.accounts) {
+          const fbAccount = data.accounts.find((a: any) => a.platform === "facebook" && a.status === "connected")
+          if (fbAccount) {
+            const fbChannel = {
+              id: "c-fb",
+              name: "Facebook Page",
+              platform: "facebook",
+              username: fbAccount.username || "Facebook Page",
+              connected: true,
+              followers: fbAccount.followers || 0,
+              locked: false
+            }
+            setChannels([fbChannel])
+            setConnectedCount(1)
+            localStorage.setItem("growwave-lite-channels", JSON.stringify([fbChannel]))
+          } else {
+            const fbChannel = {
+              id: "c-fb",
+              name: "Facebook Page",
+              platform: "facebook",
+              username: "",
+              connected: false,
+              followers: 0,
+              locked: false
+            }
+            setChannels([fbChannel])
+            setConnectedCount(0)
+            localStorage.setItem("growwave-lite-channels", JSON.stringify([fbChannel]))
+          }
+        }
+      })
+      .catch(err => {
+        console.error("Failed to load accounts in composer page:", err)
+      })
 
     fetchIdeas()
   }, [])
@@ -1569,45 +1590,16 @@ Each object must contain these keys:
                     </div>
                   )}
 
-                  {/* Platform Selector simple dropdown */}
+                  {/* Platform Selector (Facebook Only for Free Plan) */}
                   <div className="flex-1 space-y-1.5">
                     <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">
                       Target Channel
                     </span>
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setPlatformDropdownOpen(!platformDropdownOpen)}
-                        className="w-full flex items-center justify-between px-3.5 py-2 bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-850 rounded-xl text-xs font-bold text-[#111827] dark:text-white"
-                      >
-                        <div className="flex items-center gap-2">
-                          {renderToolbarPlatformIcon(newIdeaPlatform)}
-                          <span className="capitalize">{newIdeaPlatform === "twitter" ? "Twitter / X" : newIdeaPlatform}</span>
-                        </div>
-                        <ChevronDown className="size-4 text-slate-400 transition-transform" />
-                      </button>
-
-                      {platformDropdownOpen && (
-                        <>
-                          <div className="fixed inset-0 z-10" onClick={() => setPlatformDropdownOpen(false)} />
-                          <div className="absolute left-0 bottom-full mb-1.5 z-20 w-full rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-800 dark:bg-slate-900 animate-in fade-in slide-in-from-bottom-2 duration-150">
-                            {["Facebook", "Instagram", "LinkedIn", "Twitter", "TikTok"].map((plat) => (
-                              <button
-                                key={plat}
-                                type="button"
-                                onClick={() => {
-                                  setNewIdeaPlatform(plat.toLowerCase())
-                                  setPlatformDropdownOpen(false)
-                                }}
-                                className="w-full text-left text-xs font-semibold px-2.5 py-2 hover:bg-slate-55 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-700 dark:text-slate-300 flex items-center gap-2"
-                              >
-                                <span className="size-4 flex items-center justify-center">{renderToolbarPlatformIcon(plat.toLowerCase())}</span>
-                                <span>{plat === "Twitter" ? "Twitter / X" : plat}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </>
-                      )}
+                    <div className="w-full flex items-center justify-between px-3.5 py-2 bg-slate-50 border border-slate-200 dark:bg-slate-900 dark:border-slate-850 rounded-xl text-xs font-bold text-[#111827] dark:text-white">
+                      <div className="flex items-center gap-2">
+                        {renderToolbarPlatformIcon("facebook")}
+                        <span>Facebook Page</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1807,17 +1799,17 @@ Each object must contain these keys:
 
       <UpgradeModal isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={upgradeReason} />
 
-      {publishingIdea && (
+            {publishingIdea && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div onClick={() => setPublishingIdea(null)} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" />
           <div className="relative w-full max-w-sm rounded-2xl border border-slate-200 bg-background shadow-2xl p-6 dark:border-slate-800 dark:bg-slate-900 z-10 space-y-4">
             <h3 className="text-sm font-extrabold text-[#1F2937] dark:text-white">Publish Post</h3>
             {connectedCount === 0 ? (
               <div className="space-y-4 py-2">
-                <p className="text-xs text-[#6B7280]">Connect a channel before publishing.</p>
+                <p className="text-xs text-[#6B7280]">Connect a Facebook Page before publishing.</p>
                 <Button 
                   onClick={() => {
-                    router.push("/free-user/settings?tab=accounts&action=connect-facebook")
+                    router.push("/free-user/settings?tab=accounts")
                   }}
                   className="w-full bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs py-2 rounded-lg uppercase tracking-wider transition-all"
                 >
@@ -1826,13 +1818,13 @@ Each object must contain these keys:
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase">Publish To:</label>
-                  <select className="w-full text-xs font-bold text-[#1F2937] bg-[#FCFAF6] border border-slate-200 p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#30FC47] h-9 dark:bg-slate-800 dark:border-slate-700">
-                    {channels.filter(c => c.connected).map(c => (
-                      <option key={c.id} value={c.platform}>{c.name} ({c.username})</option>
-                    ))}
-                  </select>
+                <div className="space-y-2 text-xs font-semibold text-slate-655 dark:text-slate-400">
+                  <p>
+                    This post will be published immediately to your connected Facebook Page:
+                  </p>
+                  <p className="font-extrabold text-slate-850 dark:text-slate-200 border p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                    {channels.find(c => c.connected)?.username || "Your Connected Page"}
+                  </p>
                 </div>
                 <div className="flex gap-2 justify-end pt-2">
                   <Button 
@@ -1848,6 +1840,23 @@ Each object must contain these keys:
                       const targetPlatform = activeChannel ? activeChannel.platform : "facebook"
                       
                       try {
+                        const publishRes = await fetch("/api/publish", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            content: publishingIdea.content,
+                            platforms: [targetPlatform],
+                            media: publishingIdea.mediaFile ? [publishingIdea.mediaFile.url] : []
+                          })
+                        })
+                        const resData = await publishRes.json()
+                        if (!publishRes.ok || !resData.results?.[targetPlatform]?.success) {
+                          const err = resData.results?.[targetPlatform]?.error || resData.error || "Publishing failed"
+                          showToast(`⚠️ Facebook Publish Failed: ${err}`, "error")
+                          setPublishingIdea(null)
+                          return
+                        }
+
                         const res = await fetch("/api/ideas", {
                           method: "PUT",
                           headers: { "Content-Type": "application/json" },
@@ -1862,7 +1871,7 @@ Each object must contain these keys:
                           setPublishingIdea(null)
                           await fetchIdeas()
                         } else {
-                          showToast("⚠️ Failed to publish", "error")
+                          showToast("⚠️ Failed to update post status in workspace", "error")
                         }
                       } catch (err) {
                         console.error("Publish error", err)
@@ -1871,7 +1880,7 @@ Each object must contain these keys:
                     }}
                     className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-4 rounded-lg uppercase tracking-wider"
                   >
-                    Publish
+                    Publish Now
                   </Button>
                 </div>
               </div>

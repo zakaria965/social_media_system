@@ -66,24 +66,44 @@ export default function FreePublishPage() {
 
     setPosts(merged)
 
-    // Load channels
-    const savedChannels = localStorage.getItem("growwave-lite-channels")
-    if (savedChannels) {
-      const parsed = JSON.parse(savedChannels)
-      setChannels(parsed)
-      setConnectedCount(parsed.filter((c: any) => c.connected).length)
-    } else {
-      const defaultChannels = [
-        { id: "c-fb", name: "Facebook", platform: "facebook", username: "", connected: false, followers: 0, locked: false },
-        { id: "c-ig", name: "Instagram", platform: "instagram", username: "", connected: false, followers: 0, locked: false },
-        { id: "c-li", name: "LinkedIn", platform: "linkedin", username: "", connected: false, followers: 0, locked: false },
-        { id: "c-tw", name: "Twitter / X", platform: "twitter", username: "", connected: false, followers: 0, locked: false },
-        { id: "c-tk", name: "TikTok", platform: "tiktok", username: "", connected: false, followers: 0, locked: false }
-      ]
-      setChannels(defaultChannels)
-      setConnectedCount(0)
-      localStorage.setItem("growwave-lite-channels", JSON.stringify(defaultChannels))
-    }
+    // Fetch actual channels from MongoDB for Free users
+    fetch("/api/accounts")
+      .then(res => res.json())
+      .then(data => {
+        if (data.accounts) {
+          const fbAccount = data.accounts.find((a: any) => a.platform === "facebook" && a.status === "connected")
+          if (fbAccount) {
+            const fbChannel = {
+              id: "c-fb",
+              name: "Facebook Page",
+              platform: "facebook",
+              username: fbAccount.username || "Facebook Page",
+              connected: true,
+              followers: fbAccount.followers || 0,
+              locked: false
+            }
+            setChannels([fbChannel])
+            setConnectedCount(1)
+            localStorage.setItem("growwave-lite-channels", JSON.stringify([fbChannel]))
+          } else {
+            const fbChannel = {
+              id: "c-fb",
+              name: "Facebook Page",
+              platform: "facebook",
+              username: "",
+              connected: false,
+              followers: 0,
+              locked: false
+            }
+            setChannels([fbChannel])
+            setConnectedCount(0)
+            localStorage.setItem("growwave-lite-channels", JSON.stringify([fbChannel]))
+          }
+        }
+      })
+      .catch(err => {
+        console.error("Failed to load accounts in publish page:", err)
+      })
   }, [])
 
   // Save changes back
@@ -364,17 +384,17 @@ export default function FreePublishPage() {
         )}
       </div>
 
-      {publishingPost && (
+          {publishingPost && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div onClick={() => setPublishingPost(null)} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" />
           <div className="relative w-full max-w-sm rounded-2xl border border-slate-200 bg-white shadow-2xl p-6 dark:border-slate-800 dark:bg-slate-900 z-10 space-y-4">
             <h3 className="text-sm font-extrabold text-[#1F2937] dark:text-white">Publish Post</h3>
             {connectedCount === 0 ? (
               <div className="space-y-4 py-2">
-                <p className="text-xs text-[#6B7280]">Connect a channel before publishing.</p>
+                <p className="text-xs text-[#6B7280]">Connect a Facebook Page before publishing.</p>
                 <Button 
                   onClick={() => {
-                    router.push("/free-user/settings?tab=accounts&action=connect-facebook")
+                    router.push("/free-user/settings?tab=accounts")
                   }}
                   className="w-full bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs py-2 rounded-lg uppercase tracking-wider transition-all"
                 >
@@ -383,13 +403,13 @@ export default function FreePublishPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase">Publish To:</label>
-                  <select className="w-full text-xs font-bold text-[#1F2937] bg-[#FCFAF6] border border-slate-200 p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#30FC47] h-9 dark:bg-slate-800 dark:border-slate-700">
-                    {channels.filter(c => c.connected).map(c => (
-                      <option key={c.id} value={c.platform}>{c.name} ({c.username})</option>
-                    ))}
-                  </select>
+                <div className="space-y-2 text-xs font-semibold text-slate-655 dark:text-slate-400">
+                  <p>
+                    This post will be published immediately to your connected Facebook Page:
+                  </p>
+                  <p className="font-extrabold text-slate-850 dark:text-slate-200 border p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                    {channels.find(c => c.connected)?.username || "Your Connected Page"}
+                  </p>
                 </div>
                 <div className="flex gap-2 justify-end pt-2">
                   <Button 
@@ -404,24 +424,48 @@ export default function FreePublishPage() {
                       const activeChannel = channels.find(c => c.connected)
                       const targetPlatform = activeChannel ? activeChannel.platform : "facebook"
                       
-                      const updated = posts.map(p => {
-                        if (p.id === publishingPost.id) {
-                          return {
-                            ...p,
-                            status: "published" as const,
-                            platforms: [targetPlatform],
-                            publishedAt: new Date().toISOString()
-                          }
-                        }
-                        return p
+                      fetch("/api/publish", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          content: publishingPost.content,
+                          platforms: [targetPlatform],
+                          media: []
+                        })
                       })
-                      updatePostsInStorage(updated)
-                      setActiveTab("published")
-                      setPublishingPost(null)
+                      .then(async (publishRes) => {
+                        const resData = await publishRes.json()
+                        if (publishRes.ok && resData.results?.[targetPlatform]?.success) {
+                          const updated = posts.map(p => {
+                            if (p.id === publishingPost.id) {
+                              return {
+                                ...p,
+                                status: "published" as const,
+                                platforms: [targetPlatform],
+                                publishedAt: new Date().toISOString()
+                              }
+                            }
+                            return p
+                          })
+                          updatePostsInStorage(updated)
+                          setActiveTab("published")
+                          alert("Post published to Facebook successfully!")
+                        } else {
+                          const err = resData.results?.[targetPlatform]?.error || resData.error || "Publishing failed"
+                          alert(`Error publishing to Facebook: ${err}`)
+                        }
+                      })
+                      .catch(err => {
+                        console.error("Publishing error:", err)
+                        alert("Network error: failed to publish post.")
+                      })
+                      .finally(() => {
+                        setPublishingPost(null)
+                      })
                     }}
                     className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-4 rounded-lg uppercase tracking-wider"
                   >
-                    Publish
+                    Publish Now
                   </Button>
                 </div>
               </div>
