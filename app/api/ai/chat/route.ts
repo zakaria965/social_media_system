@@ -10,13 +10,17 @@ import { WorkspaceSettings } from "@/lib/models/workspace-settings"
 import { ActivityLog } from "@/lib/models/activity"
 import { AIConversation } from "@/lib/models/ai-conversation"
 import { getActiveWorkspaceId } from "@/lib/workspaces"
+import { User } from "@/lib/models/user"
+import { checkAIQuota, recordAIUsage } from "@/lib/ai-quota"
 import OpenAI from "openai"
 
 export const dynamic = "force-dynamic"
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now()
   let email = ""
   let workspaceId: any = null
+  let dbUser: any = null
 
   try {
     // 1. Authenticate user
@@ -71,7 +75,13 @@ export async function POST(request: NextRequest) {
     const aiLanguage = settings.aiLanguage || "English (US)"
 
     // Plan check
-    if (settings.aiUsageCount >= settings.aiUsageLimit) {
+    dbUser = await User.findOne({ email }).select("_id status")
+    if (!dbUser) {
+      return NextResponse.json({ error: "User record not found" }, { status: 401 })
+    }
+
+    const quotaCheck = await checkAIQuota(dbUser._id.toString())
+    if (!quotaCheck.allowed) {
       // Log failure internally
       try {
         await ActivityLog.create({
@@ -79,9 +89,9 @@ export async function POST(request: NextRequest) {
           workspaceId,
           action: "ai_chat_failure",
           details: JSON.stringify({
-            error: `AI usage limit reached (${settings.aiUsageCount}/${settings.aiUsageLimit}).`,
-            apiStatus: 403,
-            errorCode: "QUOTA_EXCEEDED",
+            error: quotaCheck.error || "AI Limit Reached",
+            apiStatus: quotaCheck.limitReached ? 429 : 403,
+            errorCode: quotaCheck.limitReached ? "QUOTA_EXCEEDED" : "UNAUTHORIZED",
             timestamp: new Date().toISOString()
           }),
           status: "failed",
@@ -91,8 +101,8 @@ export async function POST(request: NextRequest) {
       }
 
       return NextResponse.json(
-        { errorCode: "QUOTA_EXCEEDED", error: "Your AI usage limit has been reached." },
-        { status: 403 }
+        { errorCode: quotaCheck.limitReached ? "QUOTA_EXCEEDED" : "UNAUTHORIZED", error: quotaCheck.error || "Your AI usage limit has been reached." },
+        { status: quotaCheck.limitReached ? 429 : 403 }
       )
     }
 
@@ -378,9 +388,36 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
               status: "success",
             })
             
-            if (settings) {
-              settings.aiUsageCount += 1
-              await settings.save()
+            const promptText = messages.map((m: any) => m.content).join("\n")
+            const promptTokens = Math.ceil(promptText.length / 4)
+            const completionTokens = Math.ceil(assistantText.length / 4)
+            const responseTime = Date.now() - startTime
+
+            let feature = "AI Chat"
+            const cleanAction = (action || "").toLowerCase().trim()
+            if (cleanAction === "/growth" || cleanAction === "/strategy") {
+              feature = "Growth Strategy"
+            } else if (cleanAction === "/report") {
+              feature = "Analytics Reports"
+            } else if (cleanAction === "/calendar") {
+              feature = "Content Calendar"
+            } else if (cleanAction === "/caption") {
+              feature = "Caption Generator"
+            } else if (cleanAction === "/hashtags") {
+              feature = "Hashtag Generator"
+            }
+
+            if (dbUser) {
+              await recordAIUsage({
+                userId: dbUser._id.toString(),
+                workspaceId,
+                feature,
+                model: "gpt-4o-mini",
+                promptTokens,
+                completionTokens,
+                responseTime,
+                status: "success"
+              })
             }
             
             // Sync conversation directly from backend to avoid client sync loss
@@ -426,6 +463,19 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
           } catch (logErr) {
             console.error("Failed to log AI stream activity failure:", logErr)
           }
+
+          if (dbUser) {
+            await recordAIUsage({
+              userId: dbUser._id.toString(),
+              workspaceId,
+              feature: "AI Chat",
+              model: "gpt-4o-mini",
+              promptTokens: 0,
+              completionTokens: 0,
+              responseTime: Date.now() - startTime,
+              status: "failed"
+            })
+          }
         }
       },
     })
@@ -461,9 +511,22 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
       }
     }
 
+    if (dbUser) {
+      await recordAIUsage({
+        userId: dbUser._id.toString(),
+        workspaceId,
+        feature: "AI Chat",
+        model: "gpt-4o-mini",
+        promptTokens: 0,
+        completionTokens: 0,
+        responseTime: Date.now() - startTime,
+        status: "failed"
+      })
+    }
+
     return NextResponse.json(
       { errorCode: "SERVICE_UNAVAILABLE", error: "AI Assistant is temporarily unavailable. Please try again in a few moments." },
-      { status: 500 }
+      { status: 505 } // Change status slightly to avoid client-side cached checks or keep 500
     )
   }
 }

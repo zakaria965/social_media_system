@@ -149,6 +149,12 @@ export default function FreeAIAssistantPage() {
         })
       })
 
+      if (res.status === 429) {
+        setUpgradeReason("ai_quota")
+        setUpgradeOpen(true)
+        return
+      }
+
       if (res.ok) {
         const resultJson = await res.json()
         if (resultJson.result) {

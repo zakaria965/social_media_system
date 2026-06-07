@@ -3,8 +3,7 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth.config"
 import { connectDB } from "@/lib/db"
 import { User } from "@/lib/models/user"
-import { PlatformSettings } from "@/lib/models/platform-settings"
-import { AILog } from "@/lib/models/ai-log"
+import { checkAIQuota, recordAIUsage } from "@/lib/ai-quota"
 
 type Provider = "openai" | "gemini" | "anthropic" | "xai"
 
@@ -152,50 +151,12 @@ export async function POST(request: NextRequest) {
     
     userId = dbUser._id.toString()
 
-    // 1. Verify User status is active
-    if (dbUser.status === "SUSPENDED") {
-      return NextResponse.json({ error: "Your account has been suspended." }, { status: 403 })
-    }
-
-    // Load global settings
-    let settings = await PlatformSettings.findOne()
-    if (!settings) {
-      settings = await PlatformSettings.create({
-        openaiKey: process.env.OPENAI_API_KEY || "",
-        openaiModel: "gpt-4o-mini",
-        openaiTokenLimit: 500000,
-        openaiMonthlyBudget: 100.0,
-        openaiEmergencyShutdown: false,
-        openaiUsageAlerts: true
-      })
-    }
-
-    // 2. Verify AI emergency switch state
-    if (settings.openaiEmergencyShutdown) {
-      return NextResponse.json({ error: "AI services are temporarily disabled by the administrator." }, { status: 503 })
-    }
-
-    // 3. Verify user token monthly quota limits
-    const startOfMonth = new Date()
-    startOfMonth.setDate(1)
-    startOfMonth.setHours(0, 0, 0, 0)
-    
-    const userMonthLogs = await AILog.find({
-      userId,
-      createdAt: { $gte: startOfMonth }
-    })
-    const userMonthTokens = userMonthLogs.reduce((acc, l) => acc + (l.tokensUsed || 0), 0)
-    if (userMonthTokens >= settings.openaiTokenLimit) {
-      return NextResponse.json({ error: "You have exceeded your AI monthly token limit." }, { status: 429 })
-    }
-
-    // 4. Verify platform budget limit
-    const allMonthLogs = await AILog.find({
-      createdAt: { $gte: startOfMonth }
-    })
-    const globalMonthCost = allMonthLogs.reduce((acc, l) => acc + (l.cost || 0), 0)
-    if (globalMonthCost >= settings.openaiMonthlyBudget) {
-      return NextResponse.json({ error: "SaaS AI monthly budget exhausted." }, { status: 503 })
+    const quotaCheck = await checkAIQuota(userId)
+    if (!quotaCheck.allowed) {
+      return NextResponse.json(
+        { error: quotaCheck.error || "AI Limit Reached", errorCode: quotaCheck.limitReached ? "QUOTA_EXCEEDED" : undefined },
+        { status: quotaCheck.limitReached ? 429 : 403 }
+      )
     }
 
     const body = await request.json()
@@ -219,22 +180,32 @@ export async function POST(request: NextRequest) {
     const result = await caller(systemPrompt, prompt)
 
     const endTime = Date.now()
-    const responseTimeMs = endTime - startTime
+    const responseTime = endTime - startTime
 
-    // Calculate simulated tokens and cost
-    tokens = Math.ceil((prompt.length + result.length) / 4)
-    cost = (tokens / 1000) * 0.002
+    const promptTokens = Math.ceil(prompt.length / 4)
+    const completionTokens = Math.ceil(result.length / 4)
 
-    // Save AI Log in Database
-    await AILog.create({
+    let feature = "Caption Generator"
+    if (action === "generate-hashtags") {
+      feature = "Hashtag Generator"
+    } else if (action === "content-ideas") {
+      feature = "Content Calendar"
+    }
+
+    let model = "gpt-4o-mini"
+    if (provider === "gemini") model = "gemini-2.0-flash"
+    else if (provider === "anthropic") model = "claude-sonnet-4-20250514"
+    else if (provider === "xai") model = "grok-2-1212"
+
+    await recordAIUsage({
       userId,
-      provider,
-      action,
-      tokensUsed: tokens,
-      cost,
-      responseTimeMs,
-      status: "success",
-      createdAt: new Date()
+      workspaceId: null,
+      feature,
+      model,
+      promptTokens,
+      completionTokens,
+      responseTime,
+      status: "success"
     })
 
     return NextResponse.json({ result })
@@ -245,16 +216,16 @@ export async function POST(request: NextRequest) {
     
     if (userId !== "anonymous") {
       const endTime = Date.now()
-      const responseTimeMs = endTime - startTime
-      await AILog.create({
+      const responseTime = endTime - startTime
+      await recordAIUsage({
         userId,
-        provider: "openai",
-        action: "error",
-        tokensUsed: 0,
-        cost: 0,
-        responseTimeMs,
-        status: "failed",
-        createdAt: new Date()
+        workspaceId: null,
+        feature: "Caption Generator",
+        model: "gpt-4o-mini",
+        promptTokens: 0,
+        completionTokens: 0,
+        responseTime,
+        status: "failed"
       })
     }
 

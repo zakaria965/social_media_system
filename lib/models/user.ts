@@ -46,6 +46,14 @@ export interface IUser extends Document {
   subscriptionStatus?: "ACTIVE" | "CANCELLED" | "EXPIRED"
   role: "USER" | "ADMIN"
   status: "ACTIVE" | "SUSPENDED"
+  aiEnabled?: boolean
+  monthlyTokenLimit?: number
+  monthlyRequestLimit?: number
+  tokensUsed?: number
+  requestsUsed?: number
+  resetDate?: Date
+  bonusTokens?: number
+  bonusRequests?: number
   createdAt: Date
   updatedAt: Date
 }
@@ -97,6 +105,23 @@ const UserSchema = new Schema<IUser>(
     subscriptionStatus: { type: String, enum: ["ACTIVE", "CANCELLED", "EXPIRED"], default: "ACTIVE" },
     role: { type: String, enum: ["USER", "ADMIN"], default: "USER" },
     status: { type: String, enum: ["ACTIVE", "SUSPENDED"], default: "ACTIVE" },
+    aiEnabled: { type: Boolean, default: true },
+    monthlyTokenLimit: { type: Number, default: 50000 },
+    monthlyRequestLimit: { type: Number, default: 50 },
+    tokensUsed: { type: Number, default: 0 },
+    requestsUsed: { type: Number, default: 0 },
+    resetDate: {
+      type: Date,
+      default: () => {
+        const d = new Date()
+        d.setMonth(d.getMonth() + 1)
+        d.setDate(1)
+        d.setHours(0, 0, 0, 0)
+        return d
+      }
+    },
+    bonusTokens: { type: Number, default: 0 },
+    bonusRequests: { type: Number, default: 0 },
   },
   { timestamps: true }
 )

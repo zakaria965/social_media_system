@@ -477,6 +477,11 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
           tone: "friendly"
         })
       })
+      if (res.status === 429) {
+        setUpgradeReason("ai_quota")
+        setUpgradeOpen(true)
+        return
+      }
       if (res.ok) {
         const data = await res.json()
         if (data.result) {
@@ -804,6 +809,12 @@ Each object must contain these keys:
           provider: "openai"
         })
       })
+
+      if (res.status === 429) {
+        setUpgradeReason("ai_quota")
+        setUpgradeOpen(true)
+        return
+      }
 
       if (!res.ok) {
         throw new Error("AI API failed")

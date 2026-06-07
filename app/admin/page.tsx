@@ -167,9 +167,23 @@ export default function AdminDashboard() {
   const [payments, setPayments] = useState<PaymentItem[]>([])
   const [paymentSummary, setPaymentSummary] = useState({ totalSubscribers: 0, mrr: 0, arr: 0, churnRate: 0, conversionRate: 0 })
 
-  const [aiUsageSummary, setAiUsageSummary] = useState({ totalTokensUsed: 0, costToday: 0, costThisMonth: 0, failedRequests: 0, avgResponseTime: 0 })
-  const [aiLogs, setAiLogs] = useState<AiLogItem[]>([])
+  const [aiUsageSummary, setAiUsageSummary] = useState({ totalTokensUsed: 0, costToday: 0, costThisWeek: 0, costThisMonth: 0, costLifetime: 0, failedRequests: 0, avgResponseTime: 0 })
+  const [aiLogs, setAiLogs] = useState<any[]>([])
   const [topAiUsers, setTopAiUsers] = useState<any[]>([])
+  const [aiUsers, setAiUsers] = useState<any[]>([])
+  const [providerBreakdown, setProviderBreakdown] = useState<any[]>([])
+  const [featureUsage, setFeatureUsage] = useState<any[]>([])
+  const [aiLeaderboard, setAiLeaderboard] = useState<any>({ topUsers: [], topCostUsers: [], topWorkspaces: [] })
+  const [aiSettings, setAiSettings] = useState<any>({ openaiMonthlyBudget: 100, openaiEmergencyShutdown: false })
+  const [activeAiSubTab, setActiveAiSubTab] = useState<string>("overview")
+  const [selectedAiUserAnalytics, setSelectedAiUserAnalytics] = useState<any | null>(null)
+  const [adjustingAiUser, setAdjustingAiUser] = useState<any | null>(null)
+  const [bonusTokensVal, setBonusTokensVal] = useState<string>("0")
+  const [bonusRequestsVal, setBonusRequestsVal] = useState<string>("0")
+  const [tokenLimitVal, setTokenLimitVal] = useState<string>("50000")
+  const [requestLimitVal, setRequestLimitVal] = useState<string>("50")
+  const [customBudgetVal, setCustomBudgetVal] = useState<string>("100")
+  const [loadingUserAnalytics, setLoadingUserAnalytics] = useState<boolean>(false)
 
   const [channels, setChannels] = useState<any[]>([])
 
@@ -224,7 +238,13 @@ export default function AdminDashboard() {
         } else if (tabName === "ai-usage") {
           setAiLogs(data.logs)
           setAiUsageSummary(data.summary)
-          setTopAiUsers(data.topUsers)
+          setTopAiUsers(data.leaderboard?.topUsers || [])
+          setAiUsers(data.users || [])
+          setProviderBreakdown(data.providerBreakdown || [])
+          setFeatureUsage(data.featureUsage || [])
+          setAiLeaderboard(data.leaderboard || { topUsers: [], topCostUsers: [], topWorkspaces: [] })
+          setAiSettings(data.settings || { openaiMonthlyBudget: 100, openaiEmergencyShutdown: false })
+          setCustomBudgetVal((data.settings?.openaiMonthlyBudget || 100).toString())
         } else if (tabName === "channels") {
           setChannels(data.channels)
         } else if (tabName === "tickets") {
@@ -242,6 +262,26 @@ export default function AdminDashboard() {
       showToast("Network connection error", "error")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const [aiSearchQuery, setAiSearchQuery] = useState("")
+
+  const handleViewUserAnalytics = async (user: any) => {
+    setLoadingUserAnalytics(true)
+    setSelectedAiUserAnalytics({ user, loading: true })
+    try {
+      const res = await fetch(`/api/admin?action=user-ai-analytics&userId=${user.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setSelectedAiUserAnalytics({ user, ...data.analytics })
+      } else {
+        showToast("Failed to fetch user analytics", "error")
+      }
+    } catch (err) {
+      showToast("Error loading user analytics", "error")
+    } finally {
+      setLoadingUserAnalytics(false)
     }
   }
 
@@ -944,13 +984,21 @@ export default function AdminDashboard() {
               {/* TAB 6: AI USAGE CENTER */}
               {activeTab === "ai-usage" && (
                 <div className="space-y-6">
-                  {/* AI usage metrics */}
+                  {/* Global settings info (Shutdown Warning Alert) */}
+                  {aiSettings.openaiEmergencyShutdown && (
+                    <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-semibold text-red-800 flex items-center gap-2">
+                      <ShieldAlert className="size-4 animate-bounce text-red-600" />
+                      <span>Platform AI is currently suspended by the Emergency Kill Switch. No users (except Admins) can access AI features.</span>
+                    </div>
+                  )}
+
+                  {/* AI usage metrics row */}
                   <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                     {[
-                      { title: "Total Tokens Used", value: aiUsageSummary.totalTokensUsed.toLocaleString(), desc: "Aggregated tokens generated" },
-                      { title: "Cost This Month", value: `$${aiUsageSummary.costThisMonth.toFixed(4)}`, desc: "Calculated API invoice costs" },
-                      { title: "Cost Today", value: `$${aiUsageSummary.costToday.toFixed(4)}`, desc: "OpenAI costs today" },
-                      { title: "Avg Latency Speed", value: `${aiUsageSummary.avgResponseTime}ms`, desc: "OpenAI average response time" }
+                      { title: "Today Cost", value: `$${aiUsageSummary.costToday.toFixed(4)}`, desc: "Total OpenAI invoice costs today" },
+                      { title: "Week Cost", value: `$${aiUsageSummary.costThisWeek.toFixed(4)}`, desc: "Total OpenAI costs last 7 days" },
+                      { title: "Month Cost", value: `$${aiUsageSummary.costThisMonth.toFixed(4)}`, desc: `Limit: $${aiSettings.openaiMonthlyBudget.toFixed(2)}` },
+                      { title: "Lifetime Cost", value: `$${aiUsageSummary.costLifetime.toFixed(4)}`, desc: "All-time platform AI expenditure" }
                     ].map((card, idx) => (
                       <div key={idx} className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
                         <span className="text-sm font-semibold text-slate-400">{card.title}</span>
@@ -962,64 +1010,347 @@ export default function AdminDashboard() {
                     ))}
                   </div>
 
-                  {/* Top users & AI Logs */}
-                  <div className="grid gap-6 lg:grid-cols-3">
-                    {/* Top Users */}
-                    <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm lg:col-span-1">
-                      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Top AI Users By Token Consumption</h3>
-                      <div className="space-y-4">
-                        {topAiUsers.length === 0 ? (
-                          <p className="text-xs text-slate-400">No token logs.</p>
-                        ) : (
-                          topAiUsers.map((user, idx) => (
-                            <div key={idx} className="flex justify-between items-center pb-3 border-b border-slate-50 last:border-0 last:pb-0">
-                              <div>
-                                <p className="text-sm font-bold">{user.name}</p>
-                                <p className="text-[10px] text-slate-400">{user.email}</p>
+                  {/* Sub-Navigation Tabs */}
+                  <div className="flex border-b border-[#EAEAEA] gap-6 text-sm font-semibold">
+                    {[
+                      { id: "overview", label: "Overview & Analytics" },
+                      { id: "users", label: "User Limits & Access" },
+                      { id: "logs", label: "Request Logs" },
+                      { id: "settings", label: "Platform Budget & Switch" }
+                    ].map((subTab) => (
+                      <button
+                        key={subTab.id}
+                        onClick={() => setActiveAiSubTab(subTab.id)}
+                        className={`pb-3 border-b-2 px-1 transition-all ${
+                          activeAiSubTab === subTab.id
+                            ? "border-emerald-500 text-emerald-600"
+                            : "border-transparent text-slate-400 hover:text-slate-700"
+                        }`}
+                      >
+                        {subTab.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* SUBTAB 1: OVERVIEW & ANALYTICS */}
+                  {activeAiSubTab === "overview" && (
+                    <div className="space-y-6">
+                      <div className="grid gap-6 md:grid-cols-2">
+                        {/* Provider Breakdown */}
+                        <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Provider Expenditure Breakdown</h3>
+                          <div className="space-y-4">
+                            {providerBreakdown.map((p) => (
+                              <div key={p.name} className="space-y-1.5">
+                                <div className="flex justify-between text-xs font-semibold text-slate-700">
+                                  <span>{p.name}</span>
+                                  <span>${p.cost.toFixed(4)}</span>
+                                </div>
+                                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                  <div
+                                    className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                                    style={{ width: `${aiUsageSummary.costLifetime > 0 ? (p.cost / aiUsageSummary.costLifetime) * 100 : 0}%` }}
+                                  />
+                                </div>
                               </div>
-                              <div className="text-right">
-                                <p className="text-xs font-bold text-slate-800">{user.tokens.toLocaleString()} tkn</p>
-                                <p className="text-[10px] text-emerald-600 font-semibold">${user.cost.toFixed(4)}</p>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Feature Usage counts */}
+                        <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">AI Feature Usage Counts</h3>
+                          <div className="space-y-4">
+                            {featureUsage.map((f) => (
+                              <div key={f.name} className="space-y-1.5">
+                                <div className="flex justify-between text-xs font-semibold text-slate-700">
+                                  <span>{f.name}</span>
+                                  <span>{f.count} requests</span>
+                                </div>
+                                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                  <div
+                                    className="bg-sky-500 h-full rounded-full transition-all duration-500"
+                                    style={{
+                                      width: `${
+                                        Math.max(...featureUsage.map(x => x.count)) > 0
+                                          ? (f.count / Math.max(...featureUsage.map(x => x.count))) * 100
+                                          : 0
+                                      }%`
+                                    }}
+                                  />
+                                </div>
                               </div>
-                            </div>
-                          ))
-                        )}
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Leaderboards */}
+                      <div className="grid gap-6 md:grid-cols-3">
+                        {/* Top Users */}
+                        <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Top Users (Tokens)</h3>
+                          <div className="space-y-3">
+                            {aiLeaderboard.topUsers?.length === 0 ? (
+                              <p className="text-xs text-slate-400">No token logs recorded.</p>
+                            ) : (
+                              aiLeaderboard.topUsers?.map((user: any, idx: number) => (
+                                <div key={idx} className="flex justify-between items-center pb-2 border-b border-slate-50 last:border-0 last:pb-0">
+                                  <div className="truncate pr-2">
+                                    <p className="text-xs font-bold truncate">{user.name}</p>
+                                    <p className="text-[9px] text-slate-400 truncate">{user.email}</p>
+                                  </div>
+                                  <div className="text-right shrink-0">
+                                    <p className="text-xs font-bold text-slate-700">{user.tokens.toLocaleString()} tkn</p>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Top Cost Users */}
+                        <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Top Cost Generated</h3>
+                          <div className="space-y-3">
+                            {aiLeaderboard.topCostUsers?.length === 0 ? (
+                              <p className="text-xs text-slate-400">No logs recorded.</p>
+                            ) : (
+                              aiLeaderboard.topCostUsers?.map((user: any, idx: number) => (
+                                <div key={idx} className="flex justify-between items-center pb-2 border-b border-slate-50 last:border-0 last:pb-0">
+                                  <div className="truncate pr-2">
+                                    <p className="text-xs font-bold truncate">{user.name}</p>
+                                    <p className="text-[9px] text-slate-400 truncate">{user.email}</p>
+                                  </div>
+                                  <div className="text-right shrink-0">
+                                    <p className="text-xs font-bold text-emerald-600">${user.cost.toFixed(4)}</p>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Most Active Workspaces */}
+                        <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Active Workspaces</h3>
+                          <div className="space-y-3">
+                            {aiLeaderboard.topWorkspaces?.length === 0 ? (
+                              <p className="text-xs text-slate-400">No workspace logs.</p>
+                            ) : (
+                              aiLeaderboard.topWorkspaces?.map((ws: any, idx: number) => (
+                                <div key={idx} className="flex justify-between items-center pb-2 border-b border-slate-50 last:border-0 last:pb-0">
+                                  <div className="truncate pr-2">
+                                    <p className="text-xs font-bold truncate">{ws.name}</p>
+                                  </div>
+                                  <div className="text-right shrink-0">
+                                    <p className="text-xs font-bold text-slate-700">{ws.requests} reqs</p>
+                                    <p className="text-[9px] text-slate-400">${ws.cost.toFixed(4)}</p>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
+                  )}
 
-                    {/* AI Logs */}
-                    <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm lg:col-span-2">
-                      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">OpenAI / LLM Request Logs</h3>
-                      <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                  {/* SUBTAB 2: USER LIMITS & ACCESS */}
+                  {activeAiSubTab === "users" && (
+                    <div className="space-y-4">
+                      {/* Search & Stats */}
+                      <div className="flex items-center justify-between border-b border-[#EAEAEA] pb-4 gap-4">
+                        <div className="relative w-full max-w-sm">
+                          <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                          <input
+                            type="text"
+                            placeholder="Search users by name, email..."
+                            value={aiSearchQuery}
+                            onChange={(e) => setAiSearchQuery(e.target.value)}
+                            className="w-full rounded-xl border border-[#EAEAEA] bg-white pl-10 pr-4 py-2 text-sm outline-none focus:border-emerald-500 transition-colors"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Users table */}
+                      <div className="overflow-x-auto rounded-2xl border border-[#EAEAEA] bg-white shadow-sm">
+                        <table className="w-full border-collapse text-left text-sm">
+                          <thead className="bg-slate-50 border-b border-[#EAEAEA]">
+                            <tr>
+                              <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">User</th>
+                              <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Plan</th>
+                              <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Tokens Used</th>
+                              <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Requests Used</th>
+                              <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Status</th>
+                              <th className="px-6 py-4 font-bold text-slate-400 text-right uppercase text-xs">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#EAEAEA]">
+                            {aiUsers
+                              .filter(u => u.name.toLowerCase().includes(aiSearchQuery.toLowerCase()) || u.email.toLowerCase().includes(aiSearchQuery.toLowerCase()))
+                              .map((u) => {
+                                const tokenLimit = u.tokenLimit + (u.bonusTokens || 0)
+                                const requestLimit = u.requestLimit + (u.bonusRequests || 0)
+                                const tokenPct = tokenLimit > 0 ? (u.tokensUsed / tokenLimit) * 100 : 0
+                                const requestPct = requestLimit > 0 ? (u.requestsUsed / requestLimit) * 100 : 0
+
+                                return (
+                                  <tr key={u.id} className="hover:bg-slate-50/50 transition-colors">
+                                    <td className="px-6 py-4">
+                                      <div className="font-semibold text-slate-800">{u.name}</div>
+                                      <div className="text-xs text-slate-400">{u.email}</div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${u.plan === "PRO" ? "bg-emerald-50 text-emerald-800 border border-emerald-100" : "bg-slate-100 text-slate-800"}`}>
+                                        {u.plan}
+                                      </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                      <div className="space-y-1 w-44">
+                                        <div className="flex justify-between text-xs">
+                                          <span className="font-semibold">{u.tokensUsed.toLocaleString()}</span>
+                                          <span className="text-slate-400">/ {tokenLimit <= 0 || tokenLimit > 10000000 ? "∞" : tokenLimit.toLocaleString()}</span>
+                                        </div>
+                                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                          <div
+                                            className={`h-full rounded-full ${tokenPct >= 90 ? "bg-rose-500" : tokenPct >= 75 ? "bg-amber-500" : "bg-emerald-500"}`}
+                                            style={{ width: `${tokenLimit <= 0 || tokenLimit > 10000000 ? 0 : Math.min(tokenPct, 100)}%` }}
+                                          />
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                      <div className="space-y-1 w-44">
+                                        <div className="flex justify-between text-xs">
+                                          <span className="font-semibold">{u.requestsUsed}</span>
+                                          <span className="text-slate-400">/ {requestLimit === -1 ? "∞" : requestLimit}</span>
+                                        </div>
+                                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                          <div
+                                            className={`h-full rounded-full ${requestPct >= 90 ? "bg-rose-500" : requestPct >= 75 ? "bg-amber-500" : "bg-emerald-500"}`}
+                                            style={{ width: `${requestLimit === -1 ? 0 : Math.min(requestPct, 100)}%` }}
+                                          />
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                        u.status === "ACTIVE"
+                                          ? "bg-emerald-50 text-emerald-800"
+                                          : u.status === "LIMIT REACHED"
+                                          ? "bg-amber-50 text-amber-800"
+                                          : u.status === "DISABLED"
+                                          ? "bg-red-50 text-red-800"
+                                          : "bg-slate-100 text-slate-500"
+                                      }`}>
+                                        {u.status}
+                                      </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                      <div className="inline-flex gap-1.5 justify-end">
+                                        <button
+                                          title="View usage analytics"
+                                          onClick={() => handleViewUserAnalytics(u)}
+                                          className="rounded bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 px-2 py-1 text-xs font-semibold transition-colors"
+                                        >
+                                          Analytics
+                                        </button>
+                                        <button
+                                          title="Adjust quota limits"
+                                          onClick={() => {
+                                            setAdjustingAiUser(u)
+                                            setTokenLimitVal(u.tokenLimit.toString())
+                                            setRequestLimitVal(u.requestLimit.toString())
+                                            setBonusTokensVal(u.bonusTokens.toString())
+                                            setBonusRequestsVal(u.bonusRequests.toString())
+                                          }}
+                                          className="rounded bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 px-2 py-1 text-xs font-semibold transition-colors"
+                                        >
+                                          Adjust
+                                        </button>
+                                        {u.aiEnabled ? (
+                                          <button
+                                            title="Disable AI for user"
+                                            onClick={() => runAdminPostAction({ action: "toggle-user-ai", userId: u.id, enabled: false }, "AI suspended for user")}
+                                            className="rounded border border-red-250 bg-white hover:bg-red-55 text-red-600 px-2 py-1 text-xs font-semibold transition-colors"
+                                          >
+                                            Disable
+                                          </button>
+                                        ) : (
+                                          <button
+                                            title="Enable AI for user"
+                                            onClick={() => runAdminPostAction({ action: "toggle-user-ai", userId: u.id, enabled: true }, "AI enabled for user")}
+                                            className="rounded border border-emerald-250 bg-white hover:bg-emerald-55 text-emerald-600 px-2 py-1 text-xs font-semibold transition-colors"
+                                          >
+                                            Enable
+                                          </button>
+                                        )}
+                                        <button
+                                          title="Reset limits & quotas"
+                                          onClick={() => {
+                                            if (confirm(`Reset AI counters for user ${u.email}?`)) {
+                                              runAdminPostAction({ action: "reset-user-limits", userId: u.id }, "AI token quota reset")
+                                            }
+                                          }}
+                                          className="rounded bg-slate-105 hover:bg-slate-200 text-slate-705 p-1 transition-colors"
+                                        >
+                                          <RefreshCw className="size-3.5" />
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUBTAB 3: REQUEST LOGS */}
+                  {activeAiSubTab === "logs" && (
+                    <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 font-mono">OpenAI & Provider Request Logs</h3>
+                      <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
                         <table className="w-full border-collapse text-left text-xs">
                           <thead className="bg-slate-50 border-b border-[#EAEAEA] sticky top-0">
                             <tr>
-                              <th className="px-4 py-3 font-bold text-slate-400 uppercase">Provider</th>
-                              <th className="px-4 py-3 font-bold text-slate-400 uppercase">Action</th>
+                              <th className="px-4 py-3 font-bold text-slate-400 uppercase">Timestamp</th>
+                              <th className="px-4 py-3 font-bold text-slate-400 uppercase">User</th>
+                              <th className="px-4 py-3 font-bold text-slate-400 uppercase">Workspace</th>
+                              <th className="px-4 py-3 font-bold text-slate-400 uppercase">Feature</th>
+                              <th className="px-4 py-3 font-bold text-slate-400 uppercase">Model</th>
                               <th className="px-4 py-3 font-bold text-slate-400 uppercase">Tokens</th>
                               <th className="px-4 py-3 font-bold text-slate-400 uppercase">Cost</th>
                               <th className="px-4 py-3 font-bold text-slate-400 uppercase">Latency</th>
-                              <th className="px-4 py-3 font-bold text-slate-400 uppercase">Date</th>
                               <th className="px-4 py-3 font-bold text-slate-400 uppercase">Status</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-[#EAEAEA]">
                             {aiLogs.length === 0 ? (
                               <tr>
-                                <td colSpan={7} className="px-4 py-6 text-center text-slate-400">No request logs recorded yet.</td>
+                                <td colSpan={9} className="px-4 py-6 text-center text-slate-400">No request logs recorded in MongoDB yet.</td>
                               </tr>
                             ) : (
                               aiLogs.map((log) => (
-                                <tr key={log._id}>
-                                  <td className="px-4 py-3 uppercase font-semibold">{log.provider}</td>
-                                  <td className="px-4 py-3 font-mono">{log.action}</td>
-                                  <td className="px-4 py-3 font-bold">{log.tokensUsed.toLocaleString()}</td>
-                                  <td className="px-4 py-3 text-emerald-700 font-bold">${log.cost.toFixed(4)}</td>
-                                  <td className="px-4 py-3">{log.responseTimeMs}ms</td>
-                                  <td className="px-4 py-3 text-slate-500">{new Date(log.createdAt).toLocaleString()}</td>
+                                <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
+                                  <td className="px-4 py-3 text-slate-500 font-medium whitespace-nowrap">{new Date(log.timestamp).toLocaleString()}</td>
+                                  <td className="px-4 py-3 font-semibold text-slate-700 truncate max-w-[150px]" title={log.user}>{log.user}</td>
+                                  <td className="px-4 py-3 font-semibold text-slate-700 truncate max-w-[150px]" title={log.workspace}>{log.workspace}</td>
+                                  <td className="px-4 py-3 font-semibold text-slate-700">{log.feature}</td>
+                                  <td className="px-4 py-3 font-mono text-[10px] text-slate-500">{log.model}</td>
+                                  <td className="px-4 py-3 font-medium whitespace-nowrap">
+                                    <div className="flex flex-col">
+                                      <span className="font-bold text-slate-800">{log.totalTokens.toLocaleString()}</span>
+                                      <span className="text-[9px] text-slate-400">in: {log.promptTokens} | out: {log.completionTokens}</span>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 text-emerald-700 font-extrabold whitespace-nowrap">${log.cost.toFixed(4)}</td>
+                                  <td className="px-4 py-3 font-medium text-slate-600">{log.responseTime}ms</td>
                                   <td className="px-4 py-3">
-                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${log.status === "success" ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-[#EF4444]"}`}>
-                                      {log.status}
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${log.status === "success" ? "bg-emerald-50 text-emerald-800 border border-emerald-100" : "bg-red-50 text-red-800 border border-red-100"}`}>
+                                      {log.status.toUpperCase()}
                                     </span>
                                   </td>
                                 </tr>
@@ -1029,7 +1360,85 @@ export default function AdminDashboard() {
                         </table>
                       </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* SUBTAB 4: PLATFORM BUDGET & EMERGENCY KILL SWITCH */}
+                  {activeAiSubTab === "settings" && (
+                    <div className="grid gap-6 md:grid-cols-2">
+                      {/* Budget settings */}
+                      <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm space-y-4">
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Monthly Platform Budget</h3>
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                          Configure platform budget ceiling limits. Admins will receive warnings at 80% and critical block suspensions when 100% of limits are breached.
+                        </p>
+                        
+                        <div className="flex flex-wrap gap-2.5 pt-2">
+                          {[50, 100, 500].map((val) => (
+                            <button
+                              key={val}
+                              onClick={() => runAdminPostAction({ action: "save-ai-budget", monthlyBudget: val }, "Platform budget updated")}
+                              className={`px-4 py-2 text-xs font-bold rounded-xl border transition-all ${
+                                aiSettings.openaiMonthlyBudget === val
+                                  ? "bg-slate-900 text-white border-slate-900"
+                                  : "bg-white hover:bg-slate-50 border-slate-200 text-slate-700"
+                              }`}
+                            >
+                              ${val}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="space-y-1.5 pt-2">
+                          <label className="text-xs font-bold text-slate-600">Custom Budget (USD)</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="number"
+                              value={customBudgetVal}
+                              onChange={(e) => setCustomBudgetVal(e.target.value)}
+                              className="w-full max-w-[150px] rounded-xl border border-slate-200 px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-[#FCFAF6] font-semibold"
+                            />
+                            <button
+                              onClick={() => runAdminPostAction({ action: "save-ai-budget", monthlyBudget: customBudgetVal }, "Platform budget updated")}
+                              className="rounded-xl bg-slate-900 hover:bg-slate-950 text-white font-bold text-xs px-4 py-2"
+                            >
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Platform AI Kill switch */}
+                      <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm space-y-4">
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Emergency Platform Kill Switch</h3>
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                          Immediately disables all platform AI generation services (such as Caption, Hashtag, and Chat Strategist tools). Use in case of model degradation, billing leaks, or API outages.
+                        </p>
+                        
+                        <div className="pt-2">
+                          {aiSettings.openaiEmergencyShutdown ? (
+                            <button
+                              onClick={() => runAdminPostAction({ action: "toggle-platform-ai", shutdown: false }, "Platform AI services restored")}
+                              className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-5 py-3 uppercase tracking-wider transition-all shadow-sm"
+                            >
+                              Enable Platform AI
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                if (confirm("WARNING: Are you sure you want to shut down platform AI operations? All client generations will fail instantly.")) {
+                                  runAdminPostAction({ action: "toggle-platform-ai", shutdown: true }, "Platform AI emergency suspended")
+                                }
+                              }}
+                              className="rounded-xl bg-rose-650 hover:bg-rose-700 text-white font-extrabold text-xs px-5 py-3 uppercase tracking-wider transition-all shadow-sm"
+                            >
+                              Disable Platform AI
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               )}
 
@@ -1685,6 +2094,219 @@ export default function AdminDashboard() {
           )}
         </main>
       </div>
+
+      {/* AI Limits Adjustment Modal */}
+      {adjustingAiUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-6 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Adjust AI Quotas & Limits</h3>
+                <p className="text-xs text-slate-400">Configure custom parameters for {adjustingAiUser.name}</p>
+              </div>
+              <button
+                onClick={() => setAdjustingAiUser(null)}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <XCircle className="size-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 text-xs text-slate-600 flex justify-between items-center">
+                <div>
+                  <p className="font-bold text-slate-700">{adjustingAiUser.email}</p>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Plan: {adjustingAiUser.plan}</p>
+                </div>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                  adjustingAiUser.status === "ACTIVE"
+                    ? "bg-emerald-50 text-emerald-800"
+                    : adjustingAiUser.status === "LIMIT REACHED"
+                    ? "bg-amber-50 text-amber-800"
+                    : "bg-red-50 text-red-800"
+                }`}>
+                  {adjustingAiUser.status}
+                </span>
+              </div>
+
+              {/* Token Limit */}
+              <div className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold text-slate-500 uppercase">Monthly Token Limit</label>
+                  <span className="text-[10px] text-slate-400">Default: Free (50k) | Pro (5M)</span>
+                </div>
+                <input
+                  type="number"
+                  value={tokenLimitVal}
+                  onChange={(e) => setTokenLimitVal(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 bg-[#FCFAF6] font-semibold"
+                />
+              </div>
+
+              {/* Request Limit */}
+              <div className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold text-slate-500 uppercase">Monthly Request Limit</label>
+                  <span className="text-[10px] text-slate-400">Default: Free (50) | Pro (Unlimited: -1)</span>
+                </div>
+                <input
+                  type="number"
+                  value={requestLimitVal}
+                  onChange={(e) => setRequestLimitVal(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 bg-[#FCFAF6] font-semibold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Bonus Tokens */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-500 uppercase">Bonus Tokens</label>
+                  <input
+                    type="number"
+                    value={bonusTokensVal}
+                    onChange={(e) => setBonusTokensVal(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 bg-[#FCFAF6] font-semibold"
+                  />
+                </div>
+
+                {/* Bonus Requests */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-500 uppercase">Bonus Requests</label>
+                  <input
+                    type="number"
+                    value={bonusRequestsVal}
+                    onChange={(e) => setBonusRequestsVal(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 bg-[#FCFAF6] font-semibold"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end pt-2 border-t border-slate-100">
+              <button
+                onClick={() => setAdjustingAiUser(null)}
+                className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-5 py-2.5 text-xs font-bold text-slate-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  const userId = adjustingAiUser.id
+                  let ok = true
+                  if (tokenLimitVal !== adjustingAiUser.tokenLimit.toString()) {
+                    ok = await runAdminPostAction({ action: "adjust-user-tokens", userId, limit: Number(tokenLimitVal) }, "Token limit updated")
+                  }
+                  if (ok && requestLimitVal !== adjustingAiUser.requestLimit.toString()) {
+                    ok = await runAdminPostAction({ action: "adjust-user-requests", userId, limit: Number(requestLimitVal) }, "Request limit updated")
+                  }
+                  if (ok && (bonusTokensVal !== adjustingAiUser.bonusTokens.toString() || bonusRequestsVal !== adjustingAiUser.bonusRequests.toString())) {
+                    ok = await runAdminPostAction({ action: "adjust-user-bonus", userId, bonusTokens: Number(bonusTokensVal), bonusRequests: Number(bonusRequestsVal) }, "Bonus limits adjusted")
+                  }
+                  if (ok) {
+                    setAdjustingAiUser(null)
+                  }
+                }}
+                className="rounded-xl bg-[#30FC47] hover:bg-emerald-500 hover:text-white px-5 py-2.5 text-xs font-bold text-emerald-950 transition-colors shadow-sm"
+              >
+                Save Limits
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI User Analytics Modal */}
+      {selectedAiUserAnalytics && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-6 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">AI Quota Analytics</h3>
+                <p className="text-xs text-slate-400">Detailed usage statistics for user</p>
+              </div>
+              <button
+                onClick={() => setSelectedAiUserAnalytics(null)}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <XCircle className="size-6" />
+              </button>
+            </div>
+
+            {selectedAiUserAnalytics.loading ? (
+              <div className="flex h-48 flex-col items-center justify-center space-y-3">
+                <RefreshCw className="size-8 animate-spin text-emerald-500" />
+                <span className="text-xs text-slate-400">Fetching OpenAI audit logs...</span>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center bg-slate-50 border border-slate-100 p-4 rounded-xl">
+                  <div>
+                    <h4 className="font-bold text-slate-800 text-sm">{selectedAiUserAnalytics.user?.name}</h4>
+                    <p className="text-xs text-slate-400">{selectedAiUserAnalytics.user?.email}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-flex rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800 capitalize">
+                      {selectedAiUserAnalytics.user?.plan} Plan
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="border border-slate-100 rounded-xl p-4 bg-white shadow-sm space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tokens Used</span>
+                    <p className="text-2xl font-black text-slate-800">{(selectedAiUserAnalytics.tokensUsed || 0).toLocaleString()}</p>
+                    <p className="text-[10px] text-slate-400">
+                      Limit: {((selectedAiUserAnalytics.user?.tokenLimit || 0) + (selectedAiUserAnalytics.user?.bonusTokens || 0)).toLocaleString()}
+                    </p>
+                  </div>
+
+                  <div className="border border-slate-100 rounded-xl p-4 bg-white shadow-sm space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Requests</span>
+                    <p className="text-2xl font-black text-slate-800">{selectedAiUserAnalytics.requests || 0}</p>
+                    <p className="text-[10px] text-slate-400">
+                      Limit: {selectedAiUserAnalytics.user?.requestLimit === -1 ? "Unlimited" : (selectedAiUserAnalytics.user?.requestLimit || 0) + (selectedAiUserAnalytics.user?.bonusRequests || 0)}
+                    </p>
+                  </div>
+
+                  <div className="border border-slate-100 rounded-xl p-4 bg-white shadow-sm space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Estimated Cost</span>
+                    <p className="text-2xl font-black text-emerald-600">${(selectedAiUserAnalytics.costGenerated || 0).toFixed(4)}</p>
+                    <p className="text-[10px] text-slate-400">Calculated from pricing rates</p>
+                  </div>
+
+                  <div className="border border-slate-100 rounded-xl p-4 bg-white shadow-sm space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Avg Response Latency</span>
+                    <p className="text-2xl font-black text-slate-800">{selectedAiUserAnalytics.avgResponseTime || 0}ms</p>
+                    <p className="text-[10px] text-slate-400">OpenAI API connection time</p>
+                  </div>
+                </div>
+
+                <div className="border border-slate-100 rounded-xl p-4 bg-white shadow-sm space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Most Active Feature</span>
+                    <span className="font-semibold text-slate-700">{selectedAiUserAnalytics.mostUsedFeature}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs pt-2 border-t border-slate-50">
+                    <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Last Request Timestamp</span>
+                    <span className="font-semibold text-slate-700">
+                      {selectedAiUserAnalytics.lastRequest ? new Date(selectedAiUserAnalytics.lastRequest).toLocaleString() : "Never"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2 border-t border-slate-100">
+              <button
+                onClick={() => setSelectedAiUserAnalytics(null)}
+                className="rounded-xl bg-slate-900 hover:bg-slate-950 text-white font-bold text-xs px-5 py-2.5 transition-colors shadow-sm"
+              >
+                Close View
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

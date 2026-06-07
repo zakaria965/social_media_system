@@ -12,6 +12,7 @@ import { AuditLog } from "@/lib/models/audit-log"
 import { PlatformSettings } from "@/lib/models/platform-settings"
 import { Payment } from "@/lib/models/payment"
 import { AILog } from "@/lib/models/ai-log"
+import { AIUsage } from "@/lib/models/ai-usage"
 
 // Helper to log admin actions to AuditLog
 async function logAdminAction(actor: string, action: string, resource: string, details: string) {
@@ -178,53 +179,318 @@ export async function GET(request: NextRequest) {
     }
 
     if (action === "ai-usage") {
-      const logs = await AILog.find().sort({ createdAt: -1 }).limit(100)
-      
-      // Calculate token cost aggregated
-      const allLogs = await AILog.find()
-      const totalTokensUsed = allLogs.reduce((acc, log) => acc + (log.tokensUsed || 0), 0)
-      const costThisMonth = allLogs.reduce((acc, log) => acc + (log.cost || 0), 0)
+      let settings = await PlatformSettings.findOne()
+      if (!settings) {
+        settings = await PlatformSettings.create({
+          openaiKey: process.env.OPENAI_API_KEY || "",
+          openaiModel: "gpt-4o-mini",
+          openaiTokenLimit: 500000,
+          openaiMonthlyBudget: 100.0,
+          openaiEmergencyShutdown: false,
+          openaiUsageAlerts: true
+        })
+      }
+
+      const allLogs = await AIUsage.find().sort({ createdAt: -1 })
       
       const startOfToday = new Date()
       startOfToday.setHours(0, 0, 0, 0)
-      const todayLogs = allLogs.filter(l => l.createdAt >= startOfToday)
-      const costToday = todayLogs.reduce((acc, log) => acc + (log.cost || 0), 0)
+      
+      const startOfWeek = new Date()
+      startOfWeek.setDate(startOfWeek.getDate() - 7)
+      startOfWeek.setHours(0, 0, 0, 0)
+      
+      const startOfMonth = new Date()
+      startOfMonth.setDate(1)
+      startOfMonth.setHours(0, 0, 0, 0)
 
-      const failedRequests = allLogs.filter(l => l.status === "failed").length
-      const avgResponseTime = allLogs.length > 0 
-        ? Math.round(allLogs.reduce((acc, log) => acc + (log.responseTimeMs || 0), 0) / allLogs.length)
-        : 0
+      let costToday = 0
+      let costThisWeek = 0
+      let costThisMonth = 0
+      let costLifetime = 0
+      let totalTokensUsed = 0
+      let failedRequests = 0
+      let totalResponseTime = 0
+      let successRequestsCount = 0
 
-      // Top users by usage
-      const usageByUser: Record<string, { email: string, name: string, tokens: number, cost: number }> = {}
-      for (const log of allLogs) {
-        if (!usageByUser[log.userId]) {
-          const u = await User.findById(log.userId)
-          usageByUser[log.userId] = {
-            email: u?.email || "unknown@user.com",
-            name: u?.name || "Unknown",
-            tokens: 0,
-            cost: 0
-          }
-        }
-        usageByUser[log.userId].tokens += log.tokensUsed || 0
-        usageByUser[log.userId].cost += log.cost || 0
+      const providerCosts = {
+        openai: 0,
+        anthropic: 0,
+        gemini: 0,
+        deepseek: 0
       }
 
-      const topUsers = Object.values(usageByUser)
+      const featureUsage = {
+        "Caption Generator": 0,
+        "Hashtag Generator": 0,
+        "Content Calendar": 0,
+        "Growth Strategy": 0,
+        "Analytics Reports": 0,
+        "AI Chat": 0
+      }
+
+      const userUsageMap: Record<string, { userId: string; email: string; name: string; plan: string; tokens: number; requests: number; cost: number }> = {}
+      const workspaceUsageMap: Record<string, { name: string; requests: number; cost: number }> = {}
+
+      for (const log of allLogs) {
+        const time = new Date(log.createdAt).getTime()
+        const logCost = log.cost || 0
+        const tokens = log.totalTokens || 0
+
+        costLifetime += logCost
+        totalTokensUsed += tokens
+        if (log.status === "failed") {
+          failedRequests++
+        } else {
+          successRequestsCount++
+          totalResponseTime += log.responseTime || 0
+        }
+
+        if (time >= startOfToday.getTime()) {
+          costToday += logCost
+        }
+        if (time >= startOfWeek.getTime()) {
+          costThisWeek += logCost
+        }
+        if (time >= startOfMonth.getTime()) {
+          costThisMonth += logCost
+        }
+
+        const cleanModel = (log.model || "").toLowerCase()
+        const provider = cleanModel.includes("claude") ? "anthropic" :
+                         cleanModel.includes("gemini") ? "gemini" :
+                         cleanModel.includes("deepseek") ? "deepseek" : "openai"
+        if (provider in providerCosts) {
+          providerCosts[provider as keyof typeof providerCosts] += logCost
+        }
+
+        const feature = log.feature as keyof typeof featureUsage
+        if (feature in featureUsage) {
+          featureUsage[feature]++
+        }
+
+        if (log.userId) {
+          if (!userUsageMap[log.userId]) {
+            userUsageMap[log.userId] = {
+              userId: log.userId,
+              email: "unknown@user.com",
+              name: "Unknown User",
+              plan: "FREE",
+              tokens: 0,
+              requests: 0,
+              cost: 0
+            }
+          }
+          userUsageMap[log.userId].tokens += tokens
+          userUsageMap[log.userId].requests += 1
+          userUsageMap[log.userId].cost += logCost
+        }
+
+        if (log.workspaceId) {
+          if (!workspaceUsageMap[log.workspaceId]) {
+            workspaceUsageMap[log.workspaceId] = {
+              name: "Loading...",
+              requests: 0,
+              cost: 0
+            }
+          }
+          workspaceUsageMap[log.workspaceId].requests += 1
+          workspaceUsageMap[log.workspaceId].cost += logCost
+        }
+      }
+
+      const topUserIds = Object.keys(userUsageMap)
+      for (const id of topUserIds) {
+        const u = await User.findById(id)
+        if (u) {
+          userUsageMap[id].email = u.email
+          userUsageMap[id].name = u.name || u.email.split("@")[0]
+          userUsageMap[id].plan = u.plan || "FREE"
+        }
+      }
+
+      const topWsIds = Object.keys(workspaceUsageMap)
+      for (const id of topWsIds) {
+        const ws = await Workspace.findById(id)
+        if (ws) {
+          workspaceUsageMap[id].name = ws.name
+        } else {
+          workspaceUsageMap[id].name = `Workspace ${id.slice(-6)}`
+        }
+      }
+
+      const topUsers = Object.values(userUsageMap)
         .sort((a, b) => b.tokens - a.tokens)
         .slice(0, 5)
 
+      const topCostUsers = Object.values(userUsageMap)
+        .sort((a, b) => b.cost - a.cost)
+        .slice(0, 5)
+
+      const topWorkspaces = Object.values(workspaceUsageMap)
+        .sort((a, b) => b.requests - a.requests)
+        .slice(0, 5)
+
+      const avgResponseTime = successRequestsCount > 0
+        ? Math.round(totalResponseTime / successRequestsCount)
+        : 0
+
+      const dbUsers = await User.find().sort({ createdAt: -1 })
+      const mappedUsers = dbUsers.map(u => {
+        const monthlyTokenLimit = u.monthlyTokenLimit ?? (u.plan === "PRO" ? 5000000 : 50000)
+        const monthlyRequestLimit = u.monthlyRequestLimit ?? (u.plan === "PRO" ? -1 : 50)
+        const tokensUsed = u.tokensUsed ?? 0
+        const requestsUsed = u.requestsUsed ?? 0
+        const bonusTokens = u.bonusTokens ?? 0
+        const bonusRequests = u.bonusRequests ?? 0
+        const aiEnabled = u.aiEnabled !== false
+
+        let aiStatus = "ACTIVE"
+        if (u.status === "SUSPENDED") {
+          aiStatus = "SUSPENDED"
+        } else if (!aiEnabled) {
+          aiStatus = "DISABLED"
+        } else {
+          const effectiveTokenLimit = monthlyTokenLimit + bonusTokens
+          const effectiveRequestLimit = monthlyRequestLimit + bonusRequests
+          if (
+            (effectiveRequestLimit !== -1 && requestsUsed >= effectiveRequestLimit) ||
+            (effectiveTokenLimit !== -1 && tokensUsed >= effectiveTokenLimit)
+          ) {
+            aiStatus = "LIMIT REACHED"
+          }
+        }
+
+        return {
+          id: u._id.toString(),
+          name: u.name || u.email.split("@")[0],
+          email: u.email,
+          plan: u.plan || "FREE",
+          tokensUsed,
+          tokenLimit: monthlyTokenLimit,
+          requestsUsed,
+          requestLimit: monthlyRequestLimit,
+          bonusTokens,
+          bonusRequests,
+          aiEnabled,
+          status: aiStatus
+        }
+      })
+
+      const rawLogs = allLogs.slice(0, 200)
+      const mappedLogs = await Promise.all(rawLogs.map(async (log) => {
+        const u = userUsageMap[log.userId] || { email: "unknown@user.com" }
+        let workspaceName = "Personal"
+        if (log.workspaceId) {
+          const wsInfo = workspaceUsageMap[log.workspaceId]
+          if (wsInfo) {
+            workspaceName = wsInfo.name
+          } else {
+            const wsObj = await Workspace.findById(log.workspaceId)
+            workspaceName = wsObj ? wsObj.name : `Workspace ${log.workspaceId.slice(-6)}`
+          }
+        }
+
+        return {
+          id: log._id.toString(),
+          timestamp: log.createdAt,
+          user: u.email,
+          workspace: workspaceName,
+          feature: log.feature,
+          model: log.model,
+          promptTokens: log.promptTokens,
+          completionTokens: log.completionTokens,
+          totalTokens: log.totalTokens,
+          cost: log.cost,
+          responseTime: log.responseTime,
+          status: log.status
+        }
+      }))
+
       return NextResponse.json({
-        logs,
         summary: {
-          totalTokensUsed,
           costToday,
+          costThisWeek,
           costThisMonth,
+          costLifetime,
+          totalTokensUsed,
           failedRequests,
           avgResponseTime
         },
-        topUsers
+        providerBreakdown: [
+          { name: "OpenAI", cost: providerCosts.openai },
+          { name: "Anthropic", cost: providerCosts.anthropic },
+          { name: "Gemini", cost: providerCosts.gemini },
+          { name: "DeepSeek", cost: providerCosts.deepseek }
+        ],
+        featureUsage: Object.entries(featureUsage).map(([name, count]) => ({ name, count })),
+        leaderboard: {
+          topUsers,
+          topCostUsers,
+          topWorkspaces
+        },
+        users: mappedUsers,
+        logs: mappedLogs,
+        settings: {
+          openaiMonthlyBudget: settings.openaiMonthlyBudget,
+          openaiEmergencyShutdown: settings.openaiEmergencyShutdown
+        }
+      })
+    }
+
+    if (action === "user-ai-analytics") {
+      const targetUserId = searchParams.get("userId")
+      if (!targetUserId) {
+        return NextResponse.json({ error: "UserId is required" }, { status: 400 })
+      }
+
+      const user = await User.findById(targetUserId)
+      if (!user) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 })
+      }
+
+      const userLogs = await AIUsage.find({ userId: targetUserId })
+      
+      const tokensUsed = user.tokensUsed ?? 0
+      const requestsUsed = user.requestsUsed ?? 0
+      const costGenerated = userLogs.reduce((acc, log) => acc + (log.cost || 0), 0)
+
+      const featureUsage: Record<string, number> = {}
+      let totalResponseTime = 0
+      let successRequests = 0
+      let lastRequestDate = null
+
+      for (const log of userLogs) {
+        featureUsage[log.feature] = (featureUsage[log.feature] || 0) + 1
+        if (log.status === "success") {
+          totalResponseTime += log.responseTime || 0
+          successRequests++
+        }
+        if (!lastRequestDate || log.createdAt > lastRequestDate) {
+          lastRequestDate = log.createdAt
+        }
+      }
+
+      const avgResponseTime = successRequests > 0 ? Math.round(totalResponseTime / successRequests) : 0
+      
+      let mostUsedFeature = "None"
+      let maxCount = 0
+      Object.entries(featureUsage).forEach(([feature, count]) => {
+        if (count > maxCount) {
+          maxCount = count
+          mostUsedFeature = feature
+        }
+      })
+
+      return NextResponse.json({
+        analytics: {
+          tokensUsed,
+          requests: requestsUsed,
+          costGenerated,
+          mostUsedFeature,
+          lastRequest: lastRequestDate,
+          avgResponseTime
+        }
       })
     }
 
@@ -342,12 +608,78 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
+    if (action === "adjust-user-tokens") {
+      const { limit } = body
+      const user = await User.findById(userId)
+      if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+      user.monthlyTokenLimit = Number(limit)
+      await user.save()
+      await logAdminAction(adminEmail, "ADJUST_TOKENS", "User", `Set AI token limit for ${user.email} to ${limit}`)
+      return NextResponse.json({ success: true })
+    }
+
+    if (action === "adjust-user-requests") {
+      const { limit } = body
+      const user = await User.findById(userId)
+      if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+      user.monthlyRequestLimit = Number(limit)
+      await user.save()
+      await logAdminAction(adminEmail, "ADJUST_REQUESTS", "User", `Set AI request limit for ${user.email} to ${limit}`)
+      return NextResponse.json({ success: true })
+    }
+
+    if (action === "toggle-user-ai") {
+      const { enabled } = body
+      const user = await User.findById(userId)
+      if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+      user.aiEnabled = Boolean(enabled)
+      await user.save()
+      await logAdminAction(adminEmail, "TOGGLE_USER_AI", "User", `${enabled ? "Enabled" : "Disabled"} AI access for ${user.email}`)
+      return NextResponse.json({ success: true })
+    }
+
+    if (action === "adjust-user-bonus") {
+      const { bonusTokens, bonusRequests } = body
+      const user = await User.findById(userId)
+      if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+      user.bonusTokens = Number(bonusTokens)
+      user.bonusRequests = Number(bonusRequests)
+      await user.save()
+      await logAdminAction(adminEmail, "ADJUST_BONUS", "User", `Adjusted bonus credits for ${user.email}: +${bonusTokens} tokens, +${bonusRequests} requests`)
+      return NextResponse.json({ success: true })
+    }
+
     if (action === "reset-user-limits") {
       const user = await User.findById(userId)
       if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
-      // Delete user's AI Logs for this month to reset limits
-      await AILog.deleteMany({ userId: user._id.toString() })
-      await logAdminAction(adminEmail, "RESET_LIMITS", "User", `Reset AI quotas and limits for user: ${user.email}`)
+      user.tokensUsed = 0
+      user.requestsUsed = 0
+      await user.save()
+      await logAdminAction(adminEmail, "RESET_LIMITS", "User", `Reset AI quotas and counters for user: ${user.email}`)
+      return NextResponse.json({ success: true })
+    }
+
+    if (action === "save-ai-budget") {
+      const { monthlyBudget } = body
+      let settings = await PlatformSettings.findOne()
+      if (!settings) {
+        settings = new PlatformSettings()
+      }
+      settings.openaiMonthlyBudget = Number(monthlyBudget)
+      await settings.save()
+      await logAdminAction(adminEmail, "SAVE_BUDGET", "Settings", `Set platform AI monthly budget limit to $${monthlyBudget}`)
+      return NextResponse.json({ success: true })
+    }
+
+    if (action === "toggle-platform-ai") {
+      const { shutdown } = body
+      let settings = await PlatformSettings.findOne()
+      if (!settings) {
+        settings = new PlatformSettings()
+      }
+      settings.openaiEmergencyShutdown = Boolean(shutdown)
+      await settings.save()
+      await logAdminAction(adminEmail, "TOGGLE_PLATFORM_AI", "Settings", `${shutdown ? "Suspended" : "Restored"} global platform AI services`)
       return NextResponse.json({ success: true })
     }
 
@@ -387,6 +719,8 @@ export async function POST(request: NextRequest) {
       if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
       user.plan = "PRO"
       user.subscriptionStatus = "ACTIVE"
+      user.monthlyTokenLimit = 5000000
+      user.monthlyRequestLimit = -1
       await user.save()
 
       // Update or create subscription document
@@ -429,6 +763,8 @@ export async function POST(request: NextRequest) {
       if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
       user.plan = "FREE"
       user.subscriptionStatus = "ACTIVE"
+      user.monthlyTokenLimit = 50000
+      user.monthlyRequestLimit = 50
       await user.save()
 
       let sub = await Subscription.findOne({ userId: user._id })

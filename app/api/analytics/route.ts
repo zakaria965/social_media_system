@@ -5,6 +5,8 @@ import { connectDB } from "@/lib/db"
 import { SocialAccount } from "@/lib/models/account"
 import { Post } from "@/lib/models/post"
 import { ActivityLog } from "@/lib/models/activity"
+import { User } from "@/lib/models/user"
+import { checkAIQuota, recordAIUsage } from "@/lib/ai-quota"
 
 // Helper to call OpenAI GPT-4o-mini for Analytics Insights and Recommendations
 async function fetchOpenAIIntelligence(
@@ -679,7 +681,42 @@ Published Posts History Metrics:
 
     let aiIntelligence = getFallbackIntelligence()
     if (process.env.OPENAI_API_KEY) {
-      aiIntelligence = await fetchOpenAIIntelligence(statsContext, process.env.OPENAI_API_KEY)
+      const dbUser = await User.findOne({ email }).select("_id")
+      const userId = dbUser?._id.toString()
+      const quotaCheck = userId ? await checkAIQuota(userId) : { allowed: false }
+      
+      if (quotaCheck.allowed && userId) {
+        try {
+          const startTimeAI = Date.now()
+          aiIntelligence = await fetchOpenAIIntelligence(statsContext, process.env.OPENAI_API_KEY)
+          const responseTime = Date.now() - startTimeAI
+          const promptTokens = Math.ceil(statsContext.length / 4)
+          const completionTokens = Math.ceil(JSON.stringify(aiIntelligence).length / 4)
+          
+          await recordAIUsage({
+            userId,
+            workspaceId: null,
+            feature: "Analytics Reports",
+            model: "gpt-4o-mini",
+            promptTokens,
+            completionTokens,
+            responseTime,
+            status: "success"
+          })
+        } catch (aiErr) {
+          console.error("OpenAI call failed, falling back to local insights:", aiErr)
+          await recordAIUsage({
+            userId,
+            workspaceId: null,
+            feature: "Analytics Reports",
+            model: "gpt-4o-mini",
+            promptTokens: 0,
+            completionTokens: 0,
+            responseTime: 0,
+            status: "failed"
+          })
+        }
+      }
     }
 
     return NextResponse.json({
