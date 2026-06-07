@@ -56,6 +56,7 @@ interface ChatMessage {
   content: string
   timestamp: string
   pinnedInsight?: boolean
+  errorType?: "QUOTA_EXCEEDED" | "CONFIG_INCOMPLETE" | "SERVICE_UNAVAILABLE"
 }
 
 interface ChatSession {
@@ -82,12 +83,12 @@ const suggestedPrompts = [
 ]
 
 const quickActions = [
-  { label: "Generate Caption", prompt: "/caption Write a creative post caption about: " },
-  { label: "Analyze Analytics", prompt: "/analyze facebook" },
-  { label: "Create Calendar", prompt: "/calendar 30 days" },
-  { label: "Growth Strategy", prompt: "/strategy Analyze growth metrics and suggest improvements." },
-  { label: "Weekly Report", prompt: "/report today" },
-  { label: "Content Ideas", prompt: "Give me 10 content ideas for " }
+  { label: "Generate Caption", prompt: "Write a LinkedIn post about AI" },
+  { label: "Analyze Analytics", prompt: "Analyze my engagement this week" },
+  { label: "Create Calendar", prompt: "Create a 30-day content calendar" },
+  { label: "Growth Strategy", prompt: "How can I grow faster?" },
+  { label: "Weekly Report", prompt: "How is my workspace today?" },
+  { label: "Content Ideas", prompt: "What should I post tomorrow?" }
 ]
 
 const slashCommands = [
@@ -106,9 +107,8 @@ const slashCommands = [
 // Rotational thinking phase list
 const thinkingPhases = [
   "Thinking...",
-  "Analyzing Analytics...",
-  "Reviewing Channels...",
-  "Generating Strategy..."
+  "Analyzing workspace...",
+  "Generating content..."
 ]
 
 export default function AIAssistantPage() {
@@ -140,6 +140,7 @@ export default function AIAssistantPage() {
 
   // Thinking State Rotator
   const [thinkingIndex, setThinkingIndex] = useState(0)
+  const [generatingText, setGeneratingText] = useState("Analyzing workspace...")
 
   // Dynamic Workspace Status counters (synced from DB /api/analytics)
   const [channelsCount, setChannelsCount] = useState(0)
@@ -160,29 +161,74 @@ export default function AIAssistantPage() {
     return `Good Evening, ${name}`
   }
 
+  // DB Sync helpers
+  const saveChatToDB = async (chat: ChatSession) => {
+    try {
+      await fetch("/api/ai/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(chat)
+      })
+    } catch (e) {
+      console.error("Failed to sync chat to DB", e)
+    }
+  }
+
+  const deleteChatFromDB = async (id: string) => {
+    try {
+      await fetch(`/api/ai/conversations?id=${id}`, {
+        method: "DELETE"
+      })
+    } catch (e) {
+      console.error("Failed to delete chat from DB", e)
+    }
+  }
+
   // 1. Initial Local Storage & Workspace Status loader
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("growwave-ai-chats")
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved) as ChatSession[]
-          setChats(parsed)
-          if (parsed.length > 0) {
-            const sorted = [...parsed].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-            setActiveChatId(sorted[0].id)
-          }
-        } catch (e) {
-          console.error("Failed to parse chats", e)
-        }
-      }
-
       // Load pinned insights
       const savedInsights = localStorage.getItem("growwave-pinned-insights")
       if (savedInsights) {
         setPinnedInsights(JSON.parse(savedInsights))
       }
     }
+
+    async function loadChatsFromDB() {
+      try {
+        const res = await fetch("/api/ai/conversations")
+        if (res.ok) {
+          const data = await res.json()
+          if (data.conversations && Array.isArray(data.conversations) && data.conversations.length > 0) {
+            const sorted = [...data.conversations].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+            setChats(sorted)
+            setActiveChatId(sorted[0].id)
+            return
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load chats from DB", e)
+      }
+
+      // Fallback to localStorage if DB check is empty or fails
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("growwave-ai-chats")
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved) as ChatSession[]
+            setChats(parsed)
+            if (parsed.length > 0) {
+              const sorted = [...parsed].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+              setActiveChatId(sorted[0].id)
+            }
+          } catch (e) {
+            console.error("Failed to parse local chats", e)
+          }
+        }
+      }
+    }
+
+    loadChatsFromDB()
 
     // Load dynamic status parameters from /api/analytics
     async function loadWorkspaceStatus() {
@@ -258,6 +304,7 @@ export default function AIAssistantPage() {
     }
     const updated = [newSession, ...chats]
     saveChatsToStorage(updated)
+    saveChatToDB(newSession)
     setActiveChatId(newId)
     setLeftSidebarOpen(false)
     if (initialText) {
@@ -270,6 +317,7 @@ export default function AIAssistantPage() {
     e.stopPropagation()
     const updated = chats.filter((c) => c.id !== id)
     saveChatsToStorage(updated)
+    deleteChatFromDB(id)
     if (activeChatId === id) {
       if (updated.length > 0) {
         setActiveChatId(updated[0].id)
@@ -283,24 +331,36 @@ export default function AIAssistantPage() {
   // Toggle Pinned
   const handleTogglePin = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    const updated = chats.map((c) => (c.id === id ? { ...c, pinned: !c.pinned } : c))
+    const target = chats.find(c => c.id === id)
+    if (!target) return
+    const updatedChat = { ...target, pinned: !target.pinned, updatedAt: new Date().toISOString() }
+    const updated = chats.map((c) => (c.id === id ? updatedChat : c))
     saveChatsToStorage(updated)
+    saveChatToDB(updatedChat)
   }
 
   // Toggle Favorite
   const handleToggleFavorite = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    const updated = chats.map((c) => (c.id === id ? { ...c, favorite: !c.favorite } : c))
+    const target = chats.find(c => c.id === id)
+    if (!target) return
+    const updatedChat = { ...target, favorite: !target.favorite, updatedAt: new Date().toISOString() }
+    const updated = chats.map((c) => (c.id === id ? updatedChat : c))
     saveChatsToStorage(updated)
-    showToast(chats.find(c => c.id === id)?.favorite ? "Removed from Favorites" : "Added to Favorites", "success")
+    saveChatToDB(updatedChat)
+    showToast(target.favorite ? "Removed from Favorites" : "Added to Favorites", "success")
   }
 
   // Toggle Archive
   const handleToggleArchive = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    const updated = chats.map((c) => (c.id === id ? { ...c, archived: !c.archived } : c))
+    const target = chats.find(c => c.id === id)
+    if (!target) return
+    const updatedChat = { ...target, archived: !target.archived, updatedAt: new Date().toISOString() }
+    const updated = chats.map((c) => (c.id === id ? updatedChat : c))
     saveChatsToStorage(updated)
-    showToast(chats.find(c => c.id === id)?.archived ? "Unarchived chat" : "Archived chat", "success")
+    saveChatToDB(updatedChat)
+    showToast(target.archived ? "Unarchived chat" : "Archived chat", "success")
   }
 
   // Rename chat
@@ -312,8 +372,12 @@ export default function AIAssistantPage() {
 
   const handleSaveRename = (id: string) => {
     if (!editTitleVal.trim()) return
-    const updated = chats.map((c) => (c.id === id ? { ...c, title: editTitleVal.trim(), updatedAt: new Date().toISOString() } : c))
+    const target = chats.find(c => c.id === id)
+    if (!target) return
+    const updatedChat = { ...target, title: editTitleVal.trim(), updatedAt: new Date().toISOString() }
+    const updated = chats.map((c) => (c.id === id ? updatedChat : c))
     saveChatsToStorage(updated)
+    saveChatToDB(updatedChat)
     setEditingChatId(null)
   }
 
@@ -324,13 +388,15 @@ export default function AIAssistantPage() {
     if (!target) return
     if (target.tags.includes(tag)) return
     
+    const updatedChat = { ...target, tags: [...target.tags, tag], updatedAt: new Date().toISOString() }
     const updated = chats.map((c) => {
       if (c.id === activeChatId) {
-        return { ...c, tags: [...c.tags, tag], updatedAt: new Date().toISOString() }
+        return updatedChat
       }
       return c
     })
     saveChatsToStorage(updated)
+    saveChatToDB(updatedChat)
     showToast(`Added tag #${tag}`, "success")
   }
 
@@ -341,6 +407,20 @@ export default function AIAssistantPage() {
 
     setInputVal("")
     setShowCommands(false)
+
+    const isContentRequest = promptText.startsWith("/caption") ||
+                            promptText.startsWith("/calendar") ||
+                            promptText.toLowerCase().includes("write") ||
+                            promptText.toLowerCase().includes("create") ||
+                            promptText.toLowerCase().includes("generate") ||
+                            promptText.toLowerCase().includes("ideas") ||
+                            promptText.toLowerCase().includes("post")
+
+    if (isContentRequest) {
+      setGeneratingText("Generating content...")
+    } else {
+      setGeneratingText("Analyzing workspace...")
+    }
 
     let currentId = forcedId || activeChatId
     if (!currentId) {
@@ -397,18 +477,61 @@ export default function AIAssistantPage() {
     setCurrentResponse("")
 
     try {
-      const res = await fetch("/api/ai-chat", {
+      const res = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          chatId: currentId,
           messages: updatedHistory.map((m) => ({ role: m.role, content: m.content })),
           action: promptText.startsWith("/") ? promptText.split(" ")[0] : ""
         })
       })
 
       if (!res.ok) {
-        const errJson = await res.json()
-        throw new Error(errJson.error || "Failed to generate response")
+        let errCode: "QUOTA_EXCEEDED" | "CONFIG_INCOMPLETE" | "SERVICE_UNAVAILABLE" = "SERVICE_UNAVAILABLE"
+        let errMsg = "AI Assistant is temporarily unavailable. Please try again in a few moments."
+
+        try {
+          const errJson = await res.json()
+          errMsg = errJson.error || errMsg
+          if (errJson.errorCode === "QUOTA_EXCEEDED" || res.status === 429 || res.status === 403) {
+            errCode = "QUOTA_EXCEEDED"
+            errMsg = "Your AI usage limit has been reached."
+          } else if (errJson.errorCode === "CONFIG_INCOMPLETE" || res.status === 400) {
+            errCode = "CONFIG_INCOMPLETE"
+            errMsg = "AI service configuration is incomplete."
+          }
+        } catch (_) {
+          if (res.status === 429 || res.status === 403) {
+            errCode = "QUOTA_EXCEEDED"
+            errMsg = "Your AI usage limit has been reached."
+          }
+        }
+
+        const errorMsg: ChatMessage = {
+          role: "assistant",
+          content: errMsg,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          errorType: errCode
+        }
+
+        const errorChats = nextChats.map((c) => {
+          if (c.id === currentId) {
+            return {
+              ...c,
+              messages: [...updatedHistory, errorMsg],
+              updatedAt: new Date().toISOString()
+            }
+          }
+          return c
+        })
+        saveChatsToStorage(errorChats)
+        await saveChatToDB({
+          ...targetChat,
+          messages: [...updatedHistory, errorMsg],
+          updatedAt: new Date().toISOString()
+        })
+        return
       }
 
       const reader = res.body?.getReader()
@@ -438,26 +561,27 @@ export default function AIAssistantPage() {
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
       }
 
+      const finalChat = {
+        ...targetChat,
+        messages: [...updatedHistory, finalAssistantMsg],
+        updatedAt: new Date().toISOString()
+      }
+
       const finalChats = nextChats.map((c) => {
         if (c.id === currentId) {
-          return {
-            ...c,
-            messages: [...updatedHistory, finalAssistantMsg],
-            updatedAt: new Date().toISOString()
-          }
+          return finalChat
         }
         return c
       })
       saveChatsToStorage(finalChats)
+      await saveChatToDB(finalChat)
       setCurrentResponse("")
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error establishing stream"
-      showToast(msg, "error")
-
       const errorMsg: ChatMessage = {
         role: "assistant",
-        content: `⚠️ Error: ${msg}. Please ensure your API keys are valid.`,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        content: "AI Assistant is temporarily unavailable. Please try again in a few moments.",
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        errorType: "SERVICE_UNAVAILABLE"
       }
 
       const errorChats = nextChats.map((c) => {
@@ -471,6 +595,11 @@ export default function AIAssistantPage() {
         return c
       })
       saveChatsToStorage(errorChats)
+      await saveChatToDB({
+        ...targetChat,
+        messages: [...updatedHistory, errorMsg],
+        updatedAt: new Date().toISOString()
+      })
     } finally {
       setStreaming(false)
     }
@@ -1036,11 +1165,59 @@ export default function AIAssistantPage() {
                       </div>
                       
                       <div className="space-y-2.5">
-                        {renderMessageContent(msg.content)}
+                        {msg.errorType ? (
+                          <div className="p-4 rounded-xl border bg-destructive/5 border-destructive/20 text-foreground flex flex-col gap-3 w-full">
+                            <div className="flex items-start gap-2.5">
+                              <span className="text-destructive font-bold text-base mt-0.5">⚠️</span>
+                              <div>
+                                <h4 className="font-bold text-xs text-destructive">
+                                  {msg.errorType === "QUOTA_EXCEEDED" && "AI Limit Reached"}
+                                  {msg.errorType === "CONFIG_INCOMPLETE" && "Configuration Incomplete"}
+                                  {msg.errorType === "SERVICE_UNAVAILABLE" && "Service Unavailable"}
+                                </h4>
+                                <p className="text-xs text-muted-foreground mt-1 leading-normal font-medium">
+                                  {msg.content}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2 justify-end mt-1">
+                              {msg.errorType === "QUOTA_EXCEEDED" && (
+                                <Button
+                                  variant="outline"
+                                  size="xs"
+                                  className="h-7 text-[10.5px] border-primary/20 hover:border-primary/40 text-primary hover:bg-primary/5 font-semibold"
+                                  onClick={() => router.push("/dashboard/settings")}
+                                >
+                                  Upgrade Plan
+                                </Button>
+                              )}
+                              {msg.errorType === "SERVICE_UNAVAILABLE" && (
+                                <Button
+                                  variant="outline"
+                                  size="xs"
+                                  className="h-7 text-[10.5px] border-primary/20 hover:border-primary/40 text-primary hover:bg-primary/5 font-semibold"
+                                  onClick={() => {
+                                    const lastUserMsg = activeMessages
+                                      .slice(0, activeMessages.indexOf(msg))
+                                      .reverse()
+                                      .find((m) => m.role === "user")
+                                    if (lastUserMsg) {
+                                      handleSend(lastUserMsg.content)
+                                    }
+                                  }}
+                                >
+                                  Retry
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          renderMessageContent(msg.content)
+                        )}
                       </div>
 
                       {/* Dynamic Context-Aware Action Cards */}
-                      {msg.role === "assistant" && (
+                      {msg.role === "assistant" && !msg.errorType && (
                         <div className="pt-3 border-t border-border/25 mt-4 flex flex-wrap gap-2 items-center justify-between">
                           <div className="flex flex-wrap gap-1.5">
                             {getContextualActions(msg.content).map((act, aIdx) => (
@@ -1086,7 +1263,7 @@ export default function AIAssistantPage() {
                         <span className="uppercase tracking-wider">GrowWave Copilot</span>
                         <span className="flex items-center gap-1 font-semibold text-primary">
                           <span className="size-1 rounded-full bg-primary inline-block animate-ping" />
-                          {currentResponse ? "streaming..." : thinkingPhases[thinkingIndex]}
+                          {currentResponse ? "streaming..." : generatingText}
                         </span>
                       </div>
                       {currentResponse ? (
@@ -1111,12 +1288,14 @@ export default function AIAssistantPage() {
                   key={idx}
                   className="px-3 py-1 rounded-full border border-border/70 bg-card/75 hover:bg-muted/50 text-[10.5px] font-semibold text-muted-foreground hover:text-foreground shrink-0 transition-all hover:scale-102 hover:shadow-sm flex items-center gap-1.5"
                   onClick={() => {
+                    if (streaming) return
                     if (activeChatId) {
-                      setInputVal(pill.prompt)
+                      handleSend(pill.prompt)
                     } else {
                       handleNewChat(pill.prompt)
                     }
                   }}
+                  disabled={streaming}
                 >
                   <Sparkle className="size-3 text-primary/75" />
                   {pill.label}

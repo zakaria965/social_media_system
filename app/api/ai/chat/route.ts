@@ -8,12 +8,16 @@ import { Conversation } from "@/lib/models/conversation"
 import { WorkspaceMember } from "@/lib/models/workspace-member"
 import { WorkspaceSettings } from "@/lib/models/workspace-settings"
 import { ActivityLog } from "@/lib/models/activity"
+import { AIConversation } from "@/lib/models/ai-conversation"
 import { getActiveWorkspaceId } from "@/lib/workspaces"
 import OpenAI from "openai"
 
 export const dynamic = "force-dynamic"
 
 export async function POST(request: NextRequest) {
+  let email = ""
+  let workspaceId: any = null
+
   try {
     // 1. Authenticate user
     const session = await getServerSession(authOptions)
@@ -21,20 +25,76 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const email = session.user.email.toLowerCase().trim()
+    email = session.user.email.toLowerCase().trim()
+
+    // 2. Connect DB and resolve active workspace
+    await connectDB()
+    workspaceId = await getActiveWorkspaceId(email, request)
 
     // Check if OpenAI Key is configured
     const apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) {
+      console.error("AI service configuration is incomplete: OPENAI_API_KEY is not defined")
+      
+      // Log failure internally
+      try {
+        await ActivityLog.create({
+          userId: email,
+          workspaceId,
+          action: "ai_chat_failure",
+          details: JSON.stringify({
+            error: "AI service configuration is incomplete. OPENAI_API_KEY is missing.",
+            apiStatus: 400,
+            errorCode: "CONFIG_INCOMPLETE",
+            timestamp: new Date().toISOString()
+          }),
+          status: "failed",
+        })
+      } catch (logErr) {
+        console.error("Failed to log AI activity:", logErr)
+      }
+
       return NextResponse.json(
-        { error: "OpenAI API Key is not configured. Please define OPENAI_API_KEY in your environment variables." },
+        { errorCode: "CONFIG_INCOMPLETE", error: "AI service configuration is incomplete." },
         { status: 400 }
       )
     }
 
-    // 2. Connect DB and resolve active workspace
-    await connectDB()
-    const workspaceId = await getActiveWorkspaceId(email, request)
+    // F. AI Settings, Brand Voice & Plan Limit
+    let settings = await WorkspaceSettings.findOne({ workspaceId })
+    if (!settings) {
+      settings = await WorkspaceSettings.create({ workspaceId })
+    }
+
+    const brandVoice = settings.brandVoice || "No specific brand voice details provided. Default to professional and structured."
+    const contentTone = settings.contentTone || "professional"
+    const aiLanguage = settings.aiLanguage || "English (US)"
+
+    // Plan check
+    if (settings.aiUsageCount >= settings.aiUsageLimit) {
+      // Log failure internally
+      try {
+        await ActivityLog.create({
+          userId: email,
+          workspaceId,
+          action: "ai_chat_failure",
+          details: JSON.stringify({
+            error: `AI usage limit reached (${settings.aiUsageCount}/${settings.aiUsageLimit}).`,
+            apiStatus: 403,
+            errorCode: "QUOTA_EXCEEDED",
+            timestamp: new Date().toISOString()
+          }),
+          status: "failed",
+        })
+      } catch (logErr) {
+        console.error("Failed to log AI activity:", logErr)
+      }
+
+      return NextResponse.json(
+        { errorCode: "QUOTA_EXCEEDED", error: "Your AI usage limit has been reached." },
+        { status: 403 }
+      )
+    }
 
     // 3. Gather Workspace Context
     // A. Active channels
@@ -161,29 +221,16 @@ export async function POST(request: NextRequest) {
       mostActiveMemberName = activeMember ? activeMember.name || activeMember.email : mostActiveMemberEmail
     }
 
-    // F. AI Settings, Brand Voice & Plan Limit
-    let settings = await WorkspaceSettings.findOne({ workspaceId })
-    if (!settings) {
-      settings = await WorkspaceSettings.create({ workspaceId })
-    }
-
-    const brandVoice = settings.brandVoice || "No specific brand voice details provided. Default to professional and structured."
-    const contentTone = settings.contentTone || "professional"
-    const aiLanguage = settings.aiLanguage || "English (US)"
-
-    // Plan check
-    if (settings.aiUsageCount >= settings.aiUsageLimit) {
-      return NextResponse.json(
-        { error: `AI generation limit reached (${settings.aiUsageCount}/${settings.aiUsageLimit}). Please upgrade your workspace settings plan.` },
-        { status: 403 }
-      )
-    }
-
     // Parse incoming request parameters
     const body = await request.json()
-    const { messages = [], action = "" } = body as {
+    const { messages = [], action = "", chatId } = body as {
       messages: { role: "user" | "assistant" | "system"; content: string }[]
       action?: string
+      chatId?: string
+    }
+
+    if (!chatId) {
+      return NextResponse.json({ error: "chatId is required" }, { status: 400 })
     }
 
     // System prompt building
@@ -239,7 +286,7 @@ PERSONA DIRECTIVES:
 5. **Quick Tools Handler**:
    - If the user selects a quick action, format your answer specifically for that action:
      - Generate Caption (/caption): Provide 3 creative choices using the Tone/Voice.
-     - Analyze Performance (/analytics): Breakdown current engagement, reach, and click rate.
+     - Analyze Performance (/analyze): Breakdown current engagement, reach, and click rate.
      - Create Calendar (/calendar): Provide a neat markdown table with Date, Platform, Topic, Caption, Goal, Suggested Media.
      - Suggest Hashtags (/hashtags): Output a list of high-quality tags tailored to their content theme.
      - Generate Report (/report): Provide an executive summary of growth, reach, audience details, and platforms.
@@ -258,40 +305,127 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
 
     // Create OpenAI Stream
     const openai = new OpenAI({ apiKey })
-    const responseStream = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: formattedMessages as any,
-      stream: true,
-      max_tokens: 2048,
-    })
+    let responseStream
+    try {
+      responseStream = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: formattedMessages as any,
+        stream: true,
+        max_tokens: 2048,
+      })
+    } catch (err: any) {
+      console.error("OpenAI Completions Call Failed:", err)
+      
+      let errorCode = "SERVICE_UNAVAILABLE"
+      let errorMessage = "AI Assistant is temporarily unavailable. Please try again in a few moments."
+      let httpStatus = 500
+
+      const errMsgStr = err?.message?.toLowerCase() || ""
+      const status = err?.status || err?.statusCode
+
+      if (status === 429 || errMsgStr.includes("429") || errMsgStr.includes("quota") || errMsgStr.includes("limit_exceeded") || err?.code === "insufficient_quota") {
+        errorCode = "QUOTA_EXCEEDED"
+        errorMessage = "Your AI usage limit has been reached."
+        httpStatus = 429
+      } else if (status === 401 || errMsgStr.includes("api key") || errMsgStr.includes("auth") || errMsgStr.includes("invalid_api_key")) {
+        errorCode = "CONFIG_INCOMPLETE"
+        errorMessage = "AI service configuration is incomplete."
+        httpStatus = 400
+      }
+
+      // Log failure internally
+      try {
+        await ActivityLog.create({
+          userId: email,
+          workspaceId,
+          action: "ai_chat_failure",
+          details: JSON.stringify({
+            error: err instanceof Error ? err.message : String(err),
+            apiStatus: httpStatus,
+            errorCode,
+            timestamp: new Date().toISOString()
+          }),
+          status: "failed",
+        })
+      } catch (logErr) {
+        console.error("Failed to log AI activity failure:", logErr)
+      }
+
+      return NextResponse.json({ errorCode, error: errorMessage }, { status: httpStatus })
+    }
 
     const encoder = new TextEncoder()
     const stream = new ReadableStream({
       async start(controller) {
-        for await (const chunk of responseStream) {
-          const text = chunk.choices[0]?.delta?.content || ""
-          if (text) {
-            controller.enqueue(encoder.encode(text))
-          }
-        }
-        controller.close()
-
-        // 4. Log AI Generation in background
+        let assistantText = ""
         try {
-          await ActivityLog.create({
-            userId: email,
-            workspaceId,
-            action: "ai_chat",
-            details: `Interacted with GrowWave AI Copilot. Action: ${action || "General Chat"}.`,
-            status: "success",
-          })
-          
-          if (settings) {
-            settings.aiUsageCount += 1
-            await settings.save()
+          for await (const chunk of responseStream) {
+            const text = chunk.choices[0]?.delta?.content || ""
+            if (text) {
+              assistantText += text
+              controller.enqueue(encoder.encode(text))
+            }
           }
-        } catch (logErr) {
-          console.error("Failed to log AI activity:", logErr)
+          controller.close()
+
+          // Log AI Generation success in background
+          try {
+            await ActivityLog.create({
+              userId: email,
+              workspaceId,
+              action: "ai_chat",
+              details: `Interacted with GrowWave AI Copilot. Action: ${action || "General Chat"}.`,
+              status: "success",
+            })
+            
+            if (settings) {
+              settings.aiUsageCount += 1
+              await settings.save()
+            }
+            
+            // Sync conversation directly from backend to avoid client sync loss
+            const assistantMsg = {
+              role: "assistant",
+              content: assistantText,
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+            }
+            const updatedHistory = [...messages, assistantMsg]
+            await AIConversation.findOneAndUpdate(
+              { id: chatId, userId: email, workspaceId },
+              {
+                id: chatId,
+                userId: email,
+                workspaceId,
+                messages: updatedHistory,
+                updatedAt: new Date()
+              },
+              { upsert: true }
+            )
+
+          } catch (logErr) {
+            console.error("Failed to log AI activity on success stream end:", logErr)
+          }
+        } catch (streamErr) {
+          console.error("Error reading response stream:", streamErr)
+          controller.error(streamErr)
+
+          // Log failure
+          try {
+            await ActivityLog.create({
+              userId: email,
+              workspaceId,
+              action: "ai_chat_failure",
+              details: JSON.stringify({
+                error: streamErr instanceof Error ? streamErr.message : String(streamErr),
+                apiStatus: 500,
+                errorCode: "SERVICE_UNAVAILABLE",
+                timestamp: new Date().toISOString()
+              }),
+              status: "failed",
+            })
+          } catch (logErr) {
+            console.error("Failed to log AI stream activity failure:", logErr)
+          }
         }
       },
     })
@@ -306,6 +440,30 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
   } catch (err: unknown) {
     console.error("AI Chat API Route error:", err)
     const msg = err instanceof Error ? err.message : "Internal Server Error"
-    return NextResponse.json({ error: msg }, { status: 500 })
+    
+    // Log failure internally
+    if (email) {
+      try {
+        await ActivityLog.create({
+          userId: email,
+          workspaceId,
+          action: "ai_chat_failure",
+          details: JSON.stringify({
+            error: msg,
+            apiStatus: 500,
+            errorCode: "SERVICE_UNAVAILABLE",
+            timestamp: new Date().toISOString()
+          }),
+          status: "failed",
+        })
+      } catch (logErr) {
+        console.error("Failed to log AI final activity failure:", logErr)
+      }
+    }
+
+    return NextResponse.json(
+      { errorCode: "SERVICE_UNAVAILABLE", error: "AI Assistant is temporarily unavailable. Please try again in a few moments." },
+      { status: 500 }
+    )
   }
 }
