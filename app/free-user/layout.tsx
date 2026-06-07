@@ -22,8 +22,12 @@ export default function FreeUserLayout({
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login")
-    } else if (status === "authenticated" && session?.user?.plan === "PRO") {
-      router.push("/dashboard")
+    } else if (status === "authenticated") {
+      if (session?.user?.role === "ADMIN") {
+        router.push("/admin")
+      } else if (session?.user?.plan === "PRO") {
+        router.push("/dashboard")
+      }
     }
   }, [status, session, router])
 
@@ -65,7 +69,7 @@ export default function FreeUserLayout({
     )
   }
 
-  if (status === "unauthenticated" || session?.user?.plan !== "FREE") {
+  if (status === "unauthenticated" || session?.user?.role === "ADMIN" || session?.user?.plan !== "FREE") {
     return null
   }
 

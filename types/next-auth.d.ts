@@ -7,12 +7,16 @@ declare module "next-auth" {
       id?: string
       plan?: "FREE" | "PRO"
       subscriptionStatus?: "ACTIVE" | "CANCELLED" | "EXPIRED"
+      role?: "USER" | "ADMIN"
+      status?: "ACTIVE" | "SUSPENDED"
     } & DefaultSession["user"]
   }
 
   interface User extends DefaultUser {
     plan?: "FREE" | "PRO"
     subscriptionStatus?: "ACTIVE" | "CANCELLED" | "EXPIRED"
+    role?: "USER" | "ADMIN"
+    status?: "ACTIVE" | "SUSPENDED"
   }
 }
 
@@ -21,5 +25,7 @@ declare module "next-auth/jwt" {
     id?: string
     plan?: "FREE" | "PRO"
     subscriptionStatus?: "ACTIVE" | "CANCELLED" | "EXPIRED"
+    role?: "USER" | "ADMIN"
+    status?: "ACTIVE" | "SUSPENDED"
   }
 }

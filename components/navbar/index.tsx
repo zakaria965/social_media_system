@@ -69,6 +69,14 @@ export function Navbar() {
     ? session.user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "U"
 
+  const dashboardHref = session?.user
+    ? session.user.role === "ADMIN"
+      ? "/admin"
+      : session.user.plan === "PRO"
+      ? "/dashboard"
+      : "/dashboard-lite"
+    : "/dashboard"
+
   return (
     <header
       ref={rootRef}
@@ -179,7 +187,7 @@ export function Navbar() {
             {session?.user ? (
               <>
                 <Button variant="ghost" size="sm" className="rounded-full gap-2" asChild>
-                  <Link href="/dashboard">
+                  <Link href={dashboardHref}>
                     <LayoutDashboard className="size-4" />
                     Dashboard
                   </Link>
@@ -290,7 +298,7 @@ export function Navbar() {
                   {session?.user ? (
                     <>
                       <Button className="w-full rounded-xl gap-2" asChild>
-                        <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
+                        <Link href={dashboardHref} onClick={() => setMobileOpen(false)}>
                           <LayoutDashboard className="size-4" />
                           Dashboard
                         </Link>

@@ -22,8 +22,12 @@ export default function DashboardLayout({
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login")
-    } else if (status === "authenticated" && session?.user?.plan !== "PRO") {
-      router.push("/free-user/create")
+    } else if (status === "authenticated") {
+      if (session?.user?.role === "ADMIN") {
+        router.push("/admin")
+      } else if (session?.user?.plan !== "PRO") {
+        router.push("/dashboard-lite")
+      }
     }
   }, [status, session, router])
 

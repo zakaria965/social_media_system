@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 export const passwordField = z
-  .string({ required_error: "Password is required" })
+  .string({ message: "Password is required" })
   .min(8, "Use at least 8 characters")
   .regex(/[A-Z]/, "Include at least one uppercase letter")
   .regex(/[a-z]/, "Include at least one lowercase letter")

@@ -44,6 +44,8 @@ export interface IUser extends Document {
   loginHistory: ILoginHistory[]
   plan?: "FREE" | "PRO"
   subscriptionStatus?: "ACTIVE" | "CANCELLED" | "EXPIRED"
+  role: "USER" | "ADMIN"
+  status: "ACTIVE" | "SUSPENDED"
   createdAt: Date
   updatedAt: Date
 }
@@ -93,6 +95,8 @@ const UserSchema = new Schema<IUser>(
     loginHistory: [LoginHistorySchema],
     plan: { type: String, enum: ["FREE", "PRO"], default: "FREE" },
     subscriptionStatus: { type: String, enum: ["ACTIVE", "CANCELLED", "EXPIRED"], default: "ACTIVE" },
+    role: { type: String, enum: ["USER", "ADMIN"], default: "USER" },
+    status: { type: String, enum: ["ACTIVE", "SUSPENDED"], default: "ACTIVE" },
   },
   { timestamps: true }
 )

@@ -1,4 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth.config"
+import { connectDB } from "@/lib/db"
+import { User } from "@/lib/models/user"
+import { PlatformSettings } from "@/lib/models/platform-settings"
+import { AILog } from "@/lib/models/ai-log"
 
 type Provider = "openai" | "gemini" | "anthropic" | "xai"
 
@@ -123,7 +129,75 @@ function getSystemPrompt(action: Action, tone?: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now()
+  let userId = "anonymous"
+  let logStatus: "success" | "failed" = "success"
+  let tokens = 0
+  let cost = 0
+
   try {
+    await connectDB()
+    const session = await getServerSession(authOptions)
+    
+    // Verify login
+    if (!session || !session.user || !session.user.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const email = session.user.email.toLowerCase()
+    const dbUser = await User.findOne({ email }).select("_id status")
+    if (!dbUser) {
+      return NextResponse.json({ error: "User record not found" }, { status: 401 })
+    }
+    
+    userId = dbUser._id.toString()
+
+    // 1. Verify User status is active
+    if (dbUser.status === "SUSPENDED") {
+      return NextResponse.json({ error: "Your account has been suspended." }, { status: 403 })
+    }
+
+    // Load global settings
+    let settings = await PlatformSettings.findOne()
+    if (!settings) {
+      settings = await PlatformSettings.create({
+        openaiKey: process.env.OPENAI_API_KEY || "",
+        openaiModel: "gpt-4o-mini",
+        openaiTokenLimit: 500000,
+        openaiMonthlyBudget: 100.0,
+        openaiEmergencyShutdown: false,
+        openaiUsageAlerts: true
+      })
+    }
+
+    // 2. Verify AI emergency switch state
+    if (settings.openaiEmergencyShutdown) {
+      return NextResponse.json({ error: "AI services are temporarily disabled by the administrator." }, { status: 503 })
+    }
+
+    // 3. Verify user token monthly quota limits
+    const startOfMonth = new Date()
+    startOfMonth.setDate(1)
+    startOfMonth.setHours(0, 0, 0, 0)
+    
+    const userMonthLogs = await AILog.find({
+      userId,
+      createdAt: { $gte: startOfMonth }
+    })
+    const userMonthTokens = userMonthLogs.reduce((acc, l) => acc + (l.tokensUsed || 0), 0)
+    if (userMonthTokens >= settings.openaiTokenLimit) {
+      return NextResponse.json({ error: "You have exceeded your AI monthly token limit." }, { status: 429 })
+    }
+
+    // 4. Verify platform budget limit
+    const allMonthLogs = await AILog.find({
+      createdAt: { $gte: startOfMonth }
+    })
+    const globalMonthCost = allMonthLogs.reduce((acc, l) => acc + (l.cost || 0), 0)
+    if (globalMonthCost >= settings.openaiMonthlyBudget) {
+      return NextResponse.json({ error: "SaaS AI monthly budget exhausted." }, { status: 503 })
+    }
+
     const body = await request.json()
     const { action, prompt, tone, provider = "openai" } = body as {
       action: Action
@@ -144,10 +218,46 @@ export async function POST(request: NextRequest) {
     const systemPrompt = getSystemPrompt(action, tone)
     const result = await caller(systemPrompt, prompt)
 
+    const endTime = Date.now()
+    const responseTimeMs = endTime - startTime
+
+    // Calculate simulated tokens and cost
+    tokens = Math.ceil((prompt.length + result.length) / 4)
+    cost = (tokens / 1000) * 0.002
+
+    // Save AI Log in Database
+    await AILog.create({
+      userId,
+      provider,
+      action,
+      tokensUsed: tokens,
+      cost,
+      responseTimeMs,
+      status: "success",
+      createdAt: new Date()
+    })
+
     return NextResponse.json({ result })
   } catch (err: unknown) {
     console.error("Generate API error:", err)
+    logStatus = "failed"
     const message = err instanceof Error ? err.message : "Internal server error"
+    
+    if (userId !== "anonymous") {
+      const endTime = Date.now()
+      const responseTimeMs = endTime - startTime
+      await AILog.create({
+        userId,
+        provider: "openai",
+        action: "error",
+        tokensUsed: 0,
+        cost: 0,
+        responseTimeMs,
+        status: "failed",
+        createdAt: new Date()
+      })
+    }
+
     return NextResponse.json(
       { error: message },
       { status: 500 }

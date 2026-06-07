@@ -2,6 +2,7 @@ import type { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import CredentialsProvider from "next-auth/providers/credentials"
 import crypto from "crypto"
+import bcrypt from "bcryptjs"
 import { connectDB } from "./db"
 import { User } from "./models/user"
 import { Subscription } from "./models/subscription"
@@ -42,21 +43,24 @@ export const authOptions: NextAuthOptions = {
 
         await connectDB()
         const email = credentials.email.toLowerCase().trim()
-        const passwordHash = hashPassword(credentials.password)
+        const shaPasswordHash = hashPassword(credentials.password)
 
         let user = await User.findOne({ email })
 
         if (!user) {
           // Automatic registration if the user doesn't exist yet
           const name = email.split("@")[0]
+          const isGrowAdmin = email.toLowerCase() === "growadmin@gmail.com"
           user = await User.create({
             email,
             name: name.charAt(0).toUpperCase() + name.slice(1),
             username: name,
-            passwordHash,
+            passwordHash: bcrypt.hashSync(credentials.password, 10),
             googleConnected: false,
             plan: "FREE",
             subscriptionStatus: "ACTIVE",
+            role: isGrowAdmin ? "ADMIN" : "USER",
+            status: "ACTIVE",
           })
 
           await Subscription.create({
@@ -69,13 +73,30 @@ export const authOptions: NextAuthOptions = {
           // Securely create their default workspace as well
           await getOrCreateDefaultWorkspace(email, user.name)
         } else {
-          // If the user exists, verify password (or if they signed up with google before, let them register password now)
-          if (user.passwordHash && user.passwordHash !== passwordHash) {
-            return null
+          // Check if suspended
+          if (user.status === "SUSPENDED") {
+            throw new Error("Your account has been suspended.")
           }
-          if (!user.passwordHash) {
-            // Set password if not set
-            user.passwordHash = passwordHash
+
+          // Verify password (supports bcrypt and sha-256 fallback)
+          if (user.passwordHash) {
+            const isBcrypt = user.passwordHash.startsWith("$2")
+            const isValid = isBcrypt
+              ? bcrypt.compareSync(credentials.password, user.passwordHash)
+              : user.passwordHash === shaPasswordHash
+
+            if (!isValid) {
+              return null
+            }
+
+            // Upgrade SHA-256 to bcrypt
+            if (!isBcrypt) {
+              user.passwordHash = bcrypt.hashSync(credentials.password, 10)
+              await user.save()
+            }
+          } else {
+            // Set password using bcrypt
+            user.passwordHash = bcrypt.hashSync(credentials.password, 10)
             await user.save()
           }
         }
@@ -107,6 +128,8 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           image: user.avatar,
+          role: user.role || "USER",
+          status: user.status || "ACTIVE",
         }
       },
     }),
@@ -120,35 +143,47 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async signIn({ user, account }) {
-      if (account?.provider === "google" && user.email) {
+      if (user.email) {
         await connectDB()
-        let dbUser = await User.findOne({ email: user.email.toLowerCase() })
+        const dbUser = await User.findOne({ email: user.email.toLowerCase() })
+        if (dbUser && dbUser.status === "SUSPENDED") {
+          return false
+        }
 
-        if (!dbUser) {
-          dbUser = await User.create({
-            email: user.email.toLowerCase(),
-            name: user.name || "",
-            avatar: user.image || "",
-            googleConnected: true,
-            plan: "FREE",
-            subscriptionStatus: "ACTIVE",
-          })
-          
-          await Subscription.create({
-            userId: dbUser._id,
-            plan: "FREE",
-            status: "ACTIVE",
-            billingCycle: "free",
-          })
+        if (account?.provider === "google") {
+          const isGrowAdmin = user.email.toLowerCase() === "growadmin@gmail.com"
 
-          await getOrCreateDefaultWorkspace(user.email.toLowerCase(), user.name || undefined)
-        } else {
-          if (!dbUser.googleConnected) {
-            dbUser.googleConnected = true;
+          if (!dbUser) {
+            const newUser = await User.create({
+              email: user.email.toLowerCase(),
+              name: user.name || "",
+              avatar: user.image || "",
+              googleConnected: true,
+              plan: "FREE",
+              subscriptionStatus: "ACTIVE",
+              role: isGrowAdmin ? "ADMIN" : "USER",
+              status: "ACTIVE",
+            })
+            
+            await Subscription.create({
+              userId: newUser._id,
+              plan: "FREE",
+              status: "ACTIVE",
+              billingCycle: "free",
+            })
+
+            await getOrCreateDefaultWorkspace(user.email.toLowerCase(), user.name || undefined)
+          } else {
+            if (isGrowAdmin && dbUser.role !== "ADMIN") {
+              dbUser.role = "ADMIN"
+            }
+            if (!dbUser.googleConnected) {
+              dbUser.googleConnected = true
+            }
+            if (user.name && !dbUser.name) dbUser.name = user.name
+            if (user.image && !dbUser.avatar) dbUser.avatar = user.image
+            await dbUser.save()
           }
-          if (user.name && !dbUser.name) dbUser.name = user.name
-          if (user.image && !dbUser.avatar) dbUser.avatar = user.image
-          await dbUser.save()
         }
       }
       return true
@@ -159,23 +194,31 @@ export const authOptions: NextAuthOptions = {
         token.email = user.email
         token.name = user.name
         token.picture = user.image
+        token.role = (user as any).role || "USER"
+        token.status = (user as any).status || "ACTIVE"
       }
       
       if (token.email) {
         try {
           await connectDB()
-          const dbUser = await User.findOne({ email: token.email.toLowerCase() }).select("plan subscriptionStatus")
+          const dbUser = await User.findOne({ email: token.email.toLowerCase() }).select("plan subscriptionStatus role status")
           if (dbUser) {
             token.plan = dbUser.plan || "FREE"
             token.subscriptionStatus = dbUser.subscriptionStatus || "ACTIVE"
+            token.role = dbUser.role || "USER"
+            token.status = dbUser.status || "ACTIVE"
           } else {
             token.plan = "FREE"
             token.subscriptionStatus = "ACTIVE"
+            token.role = "USER"
+            token.status = "ACTIVE"
           }
         } catch (err) {
           console.error("JWT Session DB error:", err)
           token.plan = token.plan || "FREE"
           token.subscriptionStatus = token.subscriptionStatus || "ACTIVE"
+          token.role = token.role || "USER"
+          token.status = token.status || "ACTIVE"
         }
       }
       
@@ -183,11 +226,14 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
+        session.user.id = token.id
         session.user.name = token.name
         session.user.email = token.email
         session.user.image = token.picture as string
         session.user.plan = token.plan || "FREE"
         session.user.subscriptionStatus = token.subscriptionStatus || "ACTIVE"
+        session.user.role = token.role || "USER"
+        session.user.status = token.status || "ACTIVE"
       }
       return session
     },
