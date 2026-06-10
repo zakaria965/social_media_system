@@ -22,8 +22,7 @@ export async function GET(request: NextRequest) {
     }
 
     const items = await AIGeneration.find({ userId: dbUser._id.toString() })
-      .sort({ timestamp: -1 })
-      .limit(20)
+      .sort({ createdAt: 1 }) // Chronological order
       .lean()
 
     return NextResponse.json({ generations: items })

@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
       await AIGeneration.create({
         userId,
         prompt,
-        result: result.text,
+        response: result.text,
       })
     }
 

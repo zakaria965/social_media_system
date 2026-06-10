@@ -51,6 +51,8 @@ export interface IUser extends Document {
   monthlyRequestLimit?: number
   tokensUsed?: number
   requestsUsed?: number
+  aiCreditsRemaining?: number
+  aiCreditsUsed?: number
   resetDate?: Date
   bonusTokens?: number
   bonusRequests?: number
@@ -110,6 +112,8 @@ const UserSchema = new Schema<IUser>(
     monthlyRequestLimit: { type: Number, default: 5 },
     tokensUsed: { type: Number, default: 0 },
     requestsUsed: { type: Number, default: 0 },
+    aiCreditsRemaining: { type: Number, default: 5 },
+    aiCreditsUsed: { type: Number, default: 0 },
     resetDate: {
       type: Date,
       default: () => {

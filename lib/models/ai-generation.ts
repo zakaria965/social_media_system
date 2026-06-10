@@ -1,18 +1,20 @@
 import mongoose, { Schema, Document, Model } from "mongoose"
 
-export interface IAIGeneration extends Document {
+export interface IAIGeneration extends Omit<Document, "model"> {
   userId: string
   prompt: string
-  result: string
-  timestamp: Date
+  response: string
+  model: string
+  createdAt: Date
 }
 
 const AIGenerationSchema = new Schema<IAIGeneration>(
   {
     userId: { type: String, required: true, index: true },
     prompt: { type: String, required: true },
-    result: { type: String, required: true },
-    timestamp: { type: Date, default: Date.now, index: true },
+    response: { type: String, required: true },
+    model: { type: String, default: "gemini" },
+    createdAt: { type: Date, default: Date.now, index: true },
   }
 )
 
