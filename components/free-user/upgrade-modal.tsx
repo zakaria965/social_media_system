@@ -120,7 +120,7 @@ export function UpgradeModal({ isOpen, onClose, reason = "" }: UpgradeModalProps
       case "ai_quota":
         return {
           title: "AI Quota Exceeded",
-          description: "You've used all 50 AI requests for this month. Upgrade to Pro for unlimited AI Strategist credits.",
+          description: "You've used all 5 free AI generations. Upgrade to Pro for unlimited AI generation.",
           icon: Sparkles,
         }
       case "channels_limit":
@@ -201,7 +201,7 @@ export function UpgradeModal({ isOpen, onClose, reason = "" }: UpgradeModalProps
           className="relative w-full max-w-2xl overflow-hidden rounded-[20px] border border-slate-200 bg-background shadow-2xl dark:border-slate-800 dark:bg-slate-900 z-10"
         >
           {/* Header Graphic */}
-          <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#30FC47]" />
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-[var(--brand-primary)]" />
 
           {!(step === "checkout" && isUpgrading) && (
             <button
@@ -217,7 +217,7 @@ export function UpgradeModal({ isOpen, onClose, reason = "" }: UpgradeModalProps
               <>
                 {/* Contextual Warning Header */}
                 <div className="flex items-start gap-4 border-b border-slate-100 pb-6 dark:border-slate-800">
-                  <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#30FC47]/10 text-emerald-600 dark:text-emerald-400">
+                  <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-primary)]/10 text-emerald-600 dark:text-emerald-400">
                     <DetailIcon className="size-6" />
                   </div>
                   <div>
@@ -243,7 +243,7 @@ export function UpgradeModal({ isOpen, onClose, reason = "" }: UpgradeModalProps
                     <ul className="grid gap-3">
                       {proFeatures.map((f, i) => (
                         <li key={i} className="flex gap-2.5 items-start">
-                          <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#30FC47]/20 text-emerald-600 dark:text-emerald-400 mt-0.5">
+                          <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--brand-primary)]/20 text-emerald-600 dark:text-emerald-400 mt-0.5">
                             <Check className="size-3.5" />
                           </div>
                           <div>
@@ -312,7 +312,7 @@ export function UpgradeModal({ isOpen, onClose, reason = "" }: UpgradeModalProps
                     <div className="mt-6 space-y-2.5">
                       <button
                         onClick={() => setStep("checkout")}
-                        className="w-full bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs py-3 rounded-lg flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/10 active:scale-95 transition-all uppercase tracking-wider"
+                        className="w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs py-3 rounded-lg flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/10 active:scale-95 transition-all uppercase tracking-wider"
                       >
                         <Zap className="size-4 fill-current" />
                         Upgrade Now
@@ -368,7 +368,7 @@ export function UpgradeModal({ isOpen, onClose, reason = "" }: UpgradeModalProps
                       disabled={isUpgrading}
                       value={cardName}
                       onChange={(e) => setCardName(e.target.value)}
-                      className="w-full h-10 rounded-lg border border-slate-200 bg-background px-3 text-xs font-bold outline-hidden focus:border-[#30FC47] focus:ring-2 focus:ring-[#30FC47]/20 disabled:opacity-50 dark:border-slate-800"
+                      className="w-full h-10 rounded-lg border border-slate-200 bg-background px-3 text-xs font-bold outline-hidden focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 disabled:opacity-50 dark:border-slate-800"
                     />
                   </div>
 
@@ -388,7 +388,7 @@ export function UpgradeModal({ isOpen, onClose, reason = "" }: UpgradeModalProps
                           const val = e.target.value.replace(/\D/g, "").replace(/(.{4})/g, "$1 ").trim()
                           setCardNumber(val)
                         }}
-                        className="w-full h-10 rounded-lg border border-slate-200 bg-background pl-10 pr-3 text-xs font-bold outline-hidden focus:border-[#30FC47] focus:ring-2 focus:ring-[#30FC47]/20 disabled:opacity-50 dark:border-slate-800"
+                        className="w-full h-10 rounded-lg border border-slate-200 bg-background pl-10 pr-3 text-xs font-bold outline-hidden focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 disabled:opacity-50 dark:border-slate-800"
                       />
                       <CreditCard className="absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-slate-400" />
                     </div>
@@ -413,7 +413,7 @@ export function UpgradeModal({ isOpen, onClose, reason = "" }: UpgradeModalProps
                           }
                           setCardExpiry(val)
                         }}
-                        className="w-full h-10 rounded-lg border border-slate-200 bg-background px-3 text-xs font-bold text-center outline-hidden focus:border-[#30FC47] focus:ring-2 focus:ring-[#30FC47]/20 disabled:opacity-50 dark:border-slate-800"
+                        className="w-full h-10 rounded-lg border border-slate-200 bg-background px-3 text-xs font-bold text-center outline-hidden focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 disabled:opacity-50 dark:border-slate-800"
                       />
                     </div>
                     <div className="col-span-1">
@@ -428,7 +428,7 @@ export function UpgradeModal({ isOpen, onClose, reason = "" }: UpgradeModalProps
                         disabled={isUpgrading}
                         value={cardCvc}
                         onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, ""))}
-                        className="w-full h-10 rounded-lg border border-slate-200 bg-background px-3 text-xs font-bold text-center outline-hidden focus:border-[#30FC47] focus:ring-2 focus:ring-[#30FC47]/20 disabled:opacity-50 dark:border-slate-800"
+                        className="w-full h-10 rounded-lg border border-slate-200 bg-background px-3 text-xs font-bold text-center outline-hidden focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 disabled:opacity-50 dark:border-slate-800"
                       />
                     </div>
                     <div className="col-span-1">
@@ -443,7 +443,7 @@ export function UpgradeModal({ isOpen, onClose, reason = "" }: UpgradeModalProps
                         disabled={isUpgrading}
                         value={cardZip}
                         onChange={(e) => setCardZip(e.target.value)}
-                        className="w-full h-10 rounded-lg border border-slate-200 bg-background px-3 text-xs font-bold text-center outline-hidden focus:border-[#30FC47] focus:ring-2 focus:ring-[#30FC47]/20 disabled:opacity-50 dark:border-slate-800"
+                        className="w-full h-10 rounded-lg border border-slate-200 bg-background px-3 text-xs font-bold text-center outline-hidden focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 disabled:opacity-50 dark:border-slate-800"
                       />
                     </div>
                   </div>
@@ -458,7 +458,7 @@ export function UpgradeModal({ isOpen, onClose, reason = "" }: UpgradeModalProps
                   <button
                     type="submit"
                     disabled={isUpgrading}
-                    className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-6 py-2.5 rounded-lg flex items-center gap-2 uppercase tracking-wider shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs px-6 py-2.5 rounded-lg flex items-center gap-2 uppercase tracking-wider shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {isUpgrading ? (
                       <>
@@ -480,14 +480,14 @@ export function UpgradeModal({ isOpen, onClose, reason = "" }: UpgradeModalProps
               <div className="flex flex-col items-center justify-center text-center py-6 space-y-6">
                 {/* Success Indicator Animation */}
                 <div className="relative flex items-center justify-center">
-                  <div className="absolute inset-0 size-20 rounded-full bg-[#30FC47]/10 animate-ping" />
-                  <div className="size-20 rounded-full bg-[#30FC47] text-white flex items-center justify-center shadow-lg">
+                  <div className="absolute inset-0 size-20 rounded-full bg-[var(--brand-primary)]/10 animate-ping" />
+                  <div className="size-20 rounded-full bg-[var(--brand-primary)] text-white flex items-center justify-center shadow-lg">
                     <Check className="size-10 stroke-[3]" />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-[#30FC47] tracking-widest">
+                  <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-[var(--brand-primary)] tracking-widest">
                     Checkout Completed
                   </span>
                   <h3 className="text-2xl font-black text-slate-900 dark:text-white">

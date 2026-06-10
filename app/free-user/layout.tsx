@@ -63,7 +63,7 @@ export default function FreeUserLayout({
 
   if (status === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50/30 dark:bg-slate-950">
+      <div className="flex min-h-screen items-center justify-center bg-[#FCFAF6]">
         <p className="text-sm text-muted-foreground animate-pulse">Loading workspace...</p>
       </div>
     )
@@ -74,7 +74,7 @@ export default function FreeUserLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-background dark:bg-slate-950">
+    <div className="flex min-h-screen bg-[#FCFAF6]">
       <Sidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}

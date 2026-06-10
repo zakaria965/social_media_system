@@ -257,7 +257,7 @@ export default function FreeCalendarPage() {
       {/* Header controls */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
         <div className="flex items-center gap-3">
-          <Calendar className="size-6 text-emerald-600 dark:text-[#30FC47]" />
+          <Calendar className="size-6 text-emerald-600 dark:text-[var(--brand-primary)]" />
           <div>
             <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
               Visual Calendar
@@ -287,7 +287,7 @@ export default function FreeCalendarPage() {
           </div>
 
           <Link href="/free-user/create?action=schedule">
-            <Button className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs rounded-lg uppercase tracking-wider flex items-center gap-1">
+            <Button className="bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs rounded-xl uppercase tracking-wider flex items-center gap-1">
               <Plus className="size-3.5" />
               Schedule Post
             </Button>
@@ -296,7 +296,7 @@ export default function FreeCalendarPage() {
       </div>
 
       {/* Date navigation and Platform filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-background p-3 rounded-xl border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border-0 shadow-card">
         
         {/* Navigation arrow buttons */}
         <div className="flex items-center gap-3">
@@ -319,7 +319,7 @@ export default function FreeCalendarPage() {
           <select
             value={platformFilter}
             onChange={(e) => setPlatformFilter(e.target.value)}
-            className="text-xs font-bold text-slate-600 bg-slate-50 border border-slate-250 p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#30FC47] h-8 dark:bg-slate-800 dark:border-slate-700"
+            className="text-xs font-bold text-slate-600 bg-slate-50 border border-slate-250 p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] h-8 dark:bg-slate-800 dark:border-slate-700"
           >
             <option value="all">All Channels</option>
             <option value="facebook">Facebook</option>
@@ -332,16 +332,16 @@ export default function FreeCalendarPage() {
       {/* Calendar Grid rendering */}
       {viewMode === "month" ? (
         /* ================= MONTH VIEW ================= */
-        <Card className="rounded-xl border border-slate-200 bg-background overflow-hidden shadow-sm dark:bg-slate-900 dark:border-slate-800">
-          <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850/50">
+        <Card className="rounded-2xl border-0 bg-white overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300">
+          <div className="grid grid-cols-7 border-b border-[#EEF2F7] bg-transparent">
             {dayNames.map((d) => (
-              <span key={d} className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-center py-2 border-r border-slate-200/50 dark:border-slate-800">
+              <span key={d} className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-center py-2 border-r border-[#EEF2F7]/30">
                 {d}
               </span>
             ))}
           </div>
 
-          <div className="grid grid-cols-7 grid-rows-6 divide-x divide-y divide-slate-100 dark:divide-slate-800 border-l border-t border-slate-100 dark:border-slate-800">
+          <div className="grid grid-cols-7 grid-rows-6 divide-x divide-y divide-[#EEF2F7]/30 border-l border-t border-[#EEF2F7]/30">
             {getMonthDays().map((cell, idx) => {
               const cellPosts = getPostsForDay(cell.day, cell.month, cell.year)
               const isToday =
@@ -360,7 +360,7 @@ export default function FreeCalendarPage() {
                 >
                   {/* Date digit */}
                   <span className={`text-[11px] font-bold self-start px-1.5 py-0.5 rounded-full ${
-                    isToday ? "bg-[#30FC47] text-slate-950 font-black" : "text-slate-500 dark:text-slate-400"
+                    isToday ? "bg-[var(--brand-primary)] text-slate-950 font-black" : "text-slate-500 dark:text-slate-400"
                   }`}>
                     {cell.day}
                   </span>
@@ -385,7 +385,7 @@ export default function FreeCalendarPage() {
         </Card>
       ) : viewMode === "week" ? (
         /* ================= WEEK VIEW ================= */
-        <Card className="rounded-xl border border-slate-200 bg-background p-4 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+        <Card className="rounded-2xl border-0 bg-white p-6 shadow-card hover:shadow-card-hover transition-all">
           <div className="grid grid-cols-7 gap-3">
             {Array.from({ length: 7 }).map((_, idx) => {
               const dayDate = new Date(currentDate)
@@ -399,13 +399,13 @@ export default function FreeCalendarPage() {
               return (
                 <div
                   key={idx}
-                  className={`rounded-xl border p-3 min-h-[200px] flex flex-col gap-3 transition-colors ${
-                    isToday ? "border-[#30FC47] bg-[#30FC47]/5" : "border-slate-100 dark:border-slate-800"
+                  className={`rounded-xl border-0 p-3 min-h-[200px] flex flex-col gap-3 transition-colors ${
+                    isToday ? "bg-[var(--brand-primary)]/5" : "bg-[#FCFAF6]/60"
                   }`}
                 >
                   <div className="text-center pb-2 border-b border-slate-100 dark:border-slate-800">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">{dayNames[idx]}</span>
-                    <span className={`text-sm font-black mt-1 inline-block px-1.5 py-0.5 rounded-full ${isToday ? "bg-[#30FC47] text-slate-950" : "text-slate-700 dark:text-slate-300"}`}>
+                    <span className={`text-sm font-black mt-1 inline-block px-1.5 py-0.5 rounded-full ${isToday ? "bg-[var(--brand-primary)] text-slate-950" : "text-slate-700 dark:text-slate-300"}`}>
                       {dayDate.getDate()}
                     </span>
                   </div>
@@ -437,7 +437,7 @@ export default function FreeCalendarPage() {
         </Card>
       ) : (
         /* ================= DAY VIEW ================= */
-        <Card className="rounded-xl border border-slate-200 bg-background p-4 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+        <Card className="rounded-2xl border-0 bg-white p-6 shadow-card hover:shadow-card-hover transition-all">
           <div className="space-y-3">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block border-b pb-2">
               Scheduled for today ({currentDate.toLocaleDateString()})
@@ -487,7 +487,7 @@ export default function FreeCalendarPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div onClick={() => setSelectedPost(null)} className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" />
           
-          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-background shadow-2xl p-6 dark:border-slate-800 dark:bg-slate-900 z-10 space-y-4">
+          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border-0 bg-white shadow-modal p-6 z-10 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider dark:text-white">
                 Reschedule Post
@@ -554,13 +554,13 @@ export default function FreeCalendarPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setSelectedPost(null)}
-                  className="text-xs font-bold rounded-lg uppercase tracking-wider"
+                  className="text-xs font-bold rounded-xl uppercase tracking-wider"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleSaveEdit}
-                  className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-4 rounded-lg uppercase tracking-wider"
+                  className="bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs px-4 rounded-xl uppercase tracking-wider"
                 >
                   Save Edits
                 </Button>

@@ -7,6 +7,7 @@ export interface IPlatformSettings extends Document {
   openaiMonthlyBudget: number
   openaiEmergencyShutdown: boolean
   openaiUsageAlerts: boolean
+  aiProvider: string
   fbAppId: string
   fbAppSecret: string
   fbGraphVersion: string
@@ -32,6 +33,7 @@ const PlatformSettingsSchema = new Schema<IPlatformSettings>(
     openaiMonthlyBudget: { type: Number, default: 50.0 }, // Monthly maximum OpenAI budget in USD
     openaiEmergencyShutdown: { type: Boolean, default: false },
     openaiUsageAlerts: { type: Boolean, default: true },
+    aiProvider: { type: String, enum: ["openai", "gemini", "auto"], default: "gemini" },
     
     fbAppId: { type: String, default: "" },
     fbAppSecret: { type: String, default: "" },

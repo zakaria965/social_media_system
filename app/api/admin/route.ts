@@ -187,7 +187,8 @@ export async function GET(request: NextRequest) {
           openaiTokenLimit: 500000,
           openaiMonthlyBudget: 100.0,
           openaiEmergencyShutdown: false,
-          openaiUsageAlerts: true
+          openaiUsageAlerts: true,
+          aiProvider: "gemini"
         })
       }
 
@@ -213,11 +214,11 @@ export async function GET(request: NextRequest) {
       let totalResponseTime = 0
       let successRequestsCount = 0
 
-      const providerCosts = {
-        openai: 0,
-        anthropic: 0,
-        gemini: 0,
-        deepseek: 0
+      const providerStats = {
+        openai: { cost: 0, requests: 0, tokens: 0, errors: 0, totalResponseTime: 0, successRequests: 0 },
+        anthropic: { cost: 0, requests: 0, tokens: 0, errors: 0, totalResponseTime: 0, successRequests: 0 },
+        gemini: { cost: 0, requests: 0, tokens: 0, errors: 0, totalResponseTime: 0, successRequests: 0 },
+        deepseek: { cost: 0, requests: 0, tokens: 0, errors: 0, totalResponseTime: 0, successRequests: 0 }
       }
 
       const featureUsage = {
@@ -257,11 +258,23 @@ export async function GET(request: NextRequest) {
         }
 
         const cleanModel = (log.model || "").toLowerCase()
-        const provider = cleanModel.includes("claude") ? "anthropic" :
-                         cleanModel.includes("gemini") ? "gemini" :
-                         cleanModel.includes("deepseek") ? "deepseek" : "openai"
-        if (provider in providerCosts) {
-          providerCosts[provider as keyof typeof providerCosts] += logCost
+        const providerName = log.provider ? log.provider.toLowerCase() :
+                             (cleanModel.includes("claude") ? "anthropic" :
+                              cleanModel.includes("gemini") ? "gemini" :
+                              cleanModel.includes("deepseek") ? "deepseek" : "openai")
+        
+        const pKey = providerName === "anthropic" ? "anthropic" :
+                     providerName === "gemini" ? "gemini" :
+                     providerName === "deepseek" ? "deepseek" : "openai"
+
+        providerStats[pKey].cost += logCost
+        providerStats[pKey].requests += 1
+        providerStats[pKey].tokens += tokens
+        if (log.status === "failed") {
+          providerStats[pKey].errors += 1
+        } else {
+          providerStats[pKey].totalResponseTime += log.responseTime || 0
+          providerStats[pKey].successRequests += 1
         }
 
         const feature = log.feature as keyof typeof featureUsage
@@ -397,6 +410,7 @@ export async function GET(request: NextRequest) {
           user: u.email,
           workspace: workspaceName,
           feature: log.feature,
+          provider: log.provider || (log.model.toLowerCase().includes("gemini") ? "GEMINI" : "OPENAI"),
           model: log.model,
           promptTokens: log.promptTokens,
           completionTokens: log.completionTokens,
@@ -417,12 +431,16 @@ export async function GET(request: NextRequest) {
           failedRequests,
           avgResponseTime
         },
-        providerBreakdown: [
-          { name: "OpenAI", cost: providerCosts.openai },
-          { name: "Anthropic", cost: providerCosts.anthropic },
-          { name: "Gemini", cost: providerCosts.gemini },
-          { name: "DeepSeek", cost: providerCosts.deepseek }
-        ],
+        providerBreakdown: Object.entries(providerStats).map(([name, stats]) => ({
+          name: name === "openai" ? "OpenAI" :
+                name === "gemini" ? "Gemini" :
+                name === "anthropic" ? "Anthropic" : "DeepSeek",
+          cost: stats.cost,
+          requests: stats.requests,
+          tokens: stats.tokens,
+          errors: stats.errors,
+          avgResponseTime: stats.successRequests > 0 ? Math.round(stats.totalResponseTime / stats.successRequests) : 0
+        })),
         featureUsage: Object.entries(featureUsage).map(([name, count]) => ({ name, count })),
         leaderboard: {
           topUsers,
@@ -433,7 +451,8 @@ export async function GET(request: NextRequest) {
         logs: mappedLogs,
         settings: {
           openaiMonthlyBudget: settings.openaiMonthlyBudget,
-          openaiEmergencyShutdown: settings.openaiEmergencyShutdown
+          openaiEmergencyShutdown: settings.openaiEmergencyShutdown,
+          aiProvider: settings.aiProvider || "gemini"
         }
       })
     }
@@ -534,6 +553,7 @@ export async function GET(request: NextRequest) {
           openaiMonthlyBudget: 100,
           openaiEmergencyShutdown: false,
           openaiUsageAlerts: true,
+          aiProvider: "gemini",
           fbAppId: process.env.FACEBOOK_APP_ID || "",
           fbAppSecret: process.env.FACEBOOK_APP_SECRET || "",
           fbGraphVersion: "v20.0"
@@ -889,6 +909,9 @@ export async function POST(request: NextRequest) {
       settings.fbAppSecret = settingsData.fbAppSecret
       settings.fbGraphVersion = settingsData.fbGraphVersion
       settings.maintenanceMode = settingsData.maintenanceMode
+      if (settingsData.aiProvider) {
+        settings.aiProvider = settingsData.aiProvider
+      }
       
       await settings.save()
       await logAdminAction(adminEmail, "UPDATE_SETTINGS", "Settings", "Saved platform configuration settings")

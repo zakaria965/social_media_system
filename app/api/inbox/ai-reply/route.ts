@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth.config"
-
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+import { connectDB } from "@/lib/db"
+import { User } from "@/lib/models/user"
+import { executeAIOperation } from "@/lib/ai/manager"
 
 // Helper for local keyword-based NLP fallback when OpenAI key is missing or calls fail
 function getLocalFallbackReply(text: string, tone: string, length: string): string {
@@ -146,6 +147,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    await connectDB()
+    const email = session.user.email
+    const dbUser = await User.findOne({ email }).select("_id")
+    const userId = dbUser?._id.toString() || "unknown"
+
     const body = await request.json()
     const { text, tone = "professional", length = "short", originalReply } = body as {
       text: string
@@ -160,9 +166,8 @@ export async function POST(request: NextRequest) {
 
     const activeText = originalReply ? `Rewrite this reply: "${originalReply}" to fit this customer query: "${text}"` : text
 
-    if (OPENAI_API_KEY) {
-      try {
-        const systemPrompt = `You are GrowWave's social media reply assistant. Generate a high-converting, professional, and friendly response.
+    try {
+      const systemPrompt = `You are GrowWave's social media reply assistant. Generate a high-converting, professional, and friendly response.
 Tone parameters:
 - Tone: ${tone} (make it sound naturally ${tone})
 - Length: ${length} (short = 1 brief sentence, detailed = 2-3 detailed sentences)
@@ -171,33 +176,15 @@ Additional constraints:
 - Speak directly as a friendly support agent from the GrowWave team.
 - Return ONLY the drafted message response.`
 
-        const res = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${OPENAI_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: "gpt-4o-mini",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: activeText },
-            ],
-            max_tokens: 500,
-            temperature: 0.7,
-          }),
-        })
-
-        if (res.ok) {
-          const data = await res.json()
-          const result = data.choices?.[0]?.message?.content?.trim()
-          if (result) {
-            return NextResponse.json({ result })
-          }
-        }
-      } catch (err) {
-        console.error("OpenAI call in ai-reply failed, using fallback:", err)
+      const aiResult = await executeAIOperation(
+        async (provider) => provider.generateText(activeText, systemPrompt),
+        { userId, workspaceId: null, feature: "Caption Generator" }
+      )
+      if (aiResult.text) {
+        return NextResponse.json({ result: aiResult.text })
       }
+    } catch (err) {
+      console.error("AI call in ai-reply failed, using fallback:", err)
     }
 
     // Return fallback NLP suggestion if OpenAI key is missing or request fails

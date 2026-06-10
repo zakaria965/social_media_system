@@ -83,7 +83,7 @@ export function Navbar() {
       className="fixed top-0 z-50 w-full"
       onMouseLeave={scheduleClose}
     >
-      <div className="border-b border-border/70 bg-white/85 backdrop-blur-xl">
+      <div className="border-b border-[#EEF2F7] bg-[#FCFAF6]/85 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 md:h-[4.25rem] md:px-6">
           <Link
             href="/"

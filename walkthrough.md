@@ -1,55 +1,54 @@
-# Walkthrough — Phase 12: Fix Create Idea Modal & AI Assistant
+# Walkthrough — Phase 21: Global Design System Lock
 
-We have successfully resolved all 10 critical bugs and blocker items in the GrowWave Lite Create Idea workflow and AI Assistant. The entire pipeline compiles successfully and builds a clean production-ready package.
+We have successfully locked the GrowWave user interface to a centralized enterprise design system. Every page, component, and button now uses a single brand style consistently across all devices, sessions, browsers, and accounts.
 
-## Bug Fixes & Improvements
+## Changes Completed
 
-### 1. AI Assistant Panel (Bug 1, Bug 9, Bug 6)
-- **Visible primary Generate button**: Added the `[ Generate Content ]` button colored in GrowWave Green (`#30FC47`) and text styled in high-contrast slate-900.
-- **Button State**: Naturally disabled when the AI prompt textarea is empty, and immediately enabled when text is typed.
-- **AI Result Panel**: Displays three distinct actions once copy is generated:
-  - `Insert Into Idea`: Automatically parses structured text using a robust regular expression and fills the **Title** and **Content** form fields in the Create Idea modal.
-  - `Copy`: Copies copy to the user's clipboard.
-  - `Regenerate`: Triggers a new generation request, displaying loading indicator.
-- **Loading state**: Disables textareas/buttons, shows a spinner, and displays `"Generating content..."` during the OpenAI API request to prevent double-click submissions.
+### 1. Centralized CSS Variables
+- Created [design-system.css](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/styles/design-system.css) defining standard tokens:
+  - Primary Green: `#22C55E`
+  - Hover Green: `#16A34A`
+  - Surface Light Green: `#DCFCE7`
+  - Success Green: `#4ADE80`
+  - Main Background: `#FCFAF6`
+  - Card & Modal Backgrounds: `#FFFFFF`
+  - Primary Text: `#111827`, Secondary: `#6B7280`, Muted: `#9CA3AF`, White: `#FFFFFF`
+  - Borders: `#E5E7EB`
+  - Shadows: Cards (`0 4px 12px rgba(0,0,0,.05)`), Modals (`0 20px 40px rgba(0,0,0,.12)`)
+  - Border Radius: `16px` (unified)
+  - Typography: `Inter`, fallback `sans-serif`
+- Modified [globals.css](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/globals.css) to import `design-system.css` and mapped all standard shadcn and Tailwind variables to these tokens.
 
-### 2. De-cluttered Composer & Tags Removal (Bug 2)
-- **Tags & Settings accordion drawer**: Completely deleted the Tags Config, Extra Settings Panel, notes, and settings accordions from the Create modal to reduce Lite plan clutter.
-- **Platform Selector**: Replaced the accordion drawers with a clean, simple **Target Channel** dropdown next to the file upload zone.
-- **Layout cleaning**: Removed tag filter inputs from the top action bar and clean cards of notes/tags layout.
+### 2. Dark Mode Disabled
+- Overrode the `.dark` stylesheet rule variables in [globals.css](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/globals.css) to point to the identical light/brand design system tokens. No dark background or browser-specific override will ever render.
 
-### 3. File Upload & Previews (Bug 3, Bug 8)
-- **Supported file formats**: Restricts file picks to PNG, JPG, JPEG, WEBP, GIF, and MP4 up to 50MB.
-- **Drag & Drop**: Linked native HTML5 drag-and-drop callbacks (`onDragOver`, `onDrop`) to the upload container, letting users drop a file to upload it.
-- **Preview Card**: Added a preview component showing the filename, size (MB), a Remove button, and a Replace button, alongside a real image thumbnail (if it's an image) or video player (if it's an MP4).
+### 3. Hardcoded Theme Lock
+- Updated [theme-provider.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/components/dashboard/theme-provider.tsx) to freeze the theme context to `"light"`. Toggling (`toggle`) and custom setting (`setTheme`) are disabled/no-op functions, and the `"dark"` class is stripped from the document root.
 
-### 4. Database Integrations (Bug 4, Bug 5)
-- **MongoDB Sync**: Wired all actions to make REST fetch requests to `/api/ideas`:
-  - Save Idea: Saves user copy with `"idea"` status.
-  - Create Post: Saves/moves cards into the Drafts column (status `"draft"`).
-  - Drag & Drop column changes: Automatically syncs and updates card status in MongoDB.
-  - Convert to Post: Added a prominent `[ Create Post ]` button directly on the Kanban card in the Ideas column to easily move ideas into drafts.
+### 4. Removed UI Customizations & Toggles
+- Removed the theme toggle buttons (Sun/Moon icon buttons) from:
+  - [components/dashboard/top-navbar.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/components/dashboard/top-navbar.tsx)
+  - [components/free-user/top-navbar.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/components/free-user/top-navbar.tsx)
+- Removed theme selectors from user settings:
+  - Deleted the "Appearance Settings" tab completely from the menu in [app/free-user/settings/page.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/free-user/settings/page.tsx).
+  - Replaced the "Dark theme Mode" toggle and "Accent Style Color" selector with a brand lock notice in [app/dashboard/settings/page.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/dashboard/settings/page.tsx).
 
-### 5. Confirm Discard dialog (Bug 7)
-- **Discard Warning Dialog**: Triggers a clean modal confirmation (`Discard Changes?` / `Cancel` or `Discard`) if the user clicks close or clicks outside the modal when there is entered content (Title, Content, or Media).
+### 5. Automated Global Code Color Replacement
+- Executed a Node.js script that recursively scanned the `app` and `components` directory and replaced all hardcoded neon colors:
+  - `#30FC47` -> `var(--brand-primary)`
+  - `#24D93B` -> `var(--brand-hover)`
+  - `#EFFFF1` -> `var(--brand-surface)`
+  - `#D9F8DF` -> `var(--border)`
 
-### 6. Validation Warnings (Bug 8)
-- Added checks to prevent users from saving empty titles or content descriptions, showing a premium warning toast rather than native alerts.
-
-### 7. Floating Premium Toasts (Bug 10)
-- Configured a floating notification system rendering:
-  - `✓ Idea saved successfully`
-  - `✓ Post Created`
-  - `✓ Media Uploaded`
-  - `✓ Content Generated`
-  - `✓ Content Copied`
-  - `✓ Content Inserted`
-  - Support warning states (`⚠️ message`) styled with rose borders and alert circles.
+### 6. Modal Polish
+- Refactored [growwave-modal.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/components/growwave-modal.tsx):
+  - Background is now pure `#FFFFFF` (white).
+  - Rounded corners are set to `rounded-2xl` (`16px`).
+  - Shadow matches `--shadow-modal` (`0 20px 40px rgba(0,0,0,.12)`).
+  - Accept button uses brand green (`var(--brand-primary)`) and hover green (`var(--brand-hover)`).
 
 ---
 
 ## Build Verification
 
-The codebase has been checked and verified:
-1. **TypeScript Type Safety**: Compiled cleanly with no errors (`npx tsc --noEmit` returns exit code 0).
-2. **Next.js Production Build**: Succeeded (`npm run build` outputs a clean, optimized Turbopack build).
+- **Next.js Production Build**: Executed `npm run build` which compiled successfully with zero type or compile errors, outputting a highly optimized server bundle.

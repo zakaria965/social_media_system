@@ -7,6 +7,7 @@ import { Post } from "@/lib/models/post"
 import { ActivityLog } from "@/lib/models/activity"
 import { User } from "@/lib/models/user"
 import { checkAIQuota, recordAIUsage } from "@/lib/ai-quota"
+import { executeAIOperation } from "@/lib/ai/manager"
 
 // Helper to call OpenAI GPT-4o-mini for Analytics Insights and Recommendations
 async function fetchOpenAIIntelligence(
@@ -680,41 +681,53 @@ Published Posts History Metrics:
 - Worst Day: ${worstDayLabel}`
 
     let aiIntelligence = getFallbackIntelligence()
-    if (process.env.OPENAI_API_KEY) {
-      const dbUser = await User.findOne({ email }).select("_id")
-      const userId = dbUser?._id.toString()
-      const quotaCheck = userId ? await checkAIQuota(userId) : { allowed: false }
-      
-      if (quotaCheck.allowed && userId) {
+    const dbUser = await User.findOne({ email }).select("_id")
+    const userId = dbUser?._id.toString()
+
+    if (userId) {
+      const quotaCheck = await checkAIQuota(userId)
+      if (quotaCheck.allowed) {
         try {
-          const startTimeAI = Date.now()
-          aiIntelligence = await fetchOpenAIIntelligence(statsContext, process.env.OPENAI_API_KEY)
-          const responseTime = Date.now() - startTimeAI
-          const promptTokens = Math.ceil(statsContext.length / 4)
-          const completionTokens = Math.ceil(JSON.stringify(aiIntelligence).length / 4)
-          
-          await recordAIUsage({
-            userId,
-            workspaceId: null,
-            feature: "Analytics Reports",
-            model: "gpt-4o-mini",
-            promptTokens,
-            completionTokens,
-            responseTime,
-            status: "success"
-          })
+          const systemPrompt = `You are GrowWave's Senior AI Social Media Data Strategist. Analyze the user's social media performance and output a valid JSON object. Do not include markdown wraps or backticks in the response. Return strictly the raw JSON matching this structure:
+{
+  "insights": [
+    "1-sentence metric observation with percentage change derived from context",
+    "1-sentence media type comparison observation",
+    "1-sentence posting day trend observation",
+    "1-sentence platform performance observation",
+    "1-sentence general metric trend observation"
+  ],
+  "recommendations": [
+    { "title": "Recommendation Title", "desc": "Actionable description based on data context", "type": "time" },
+    { "title": "Recommendation Title", "desc": "Actionable description based on data context", "type": "type" },
+    { "title": "Recommendation Title", "desc": "Actionable description based on data context", "type": "platform" },
+    { "title": "Recommendation Title", "desc": "Actionable description based on data context", "type": "topic" },
+    { "title": "Recommendation Title", "desc": "Actionable description based on data context", "type": "gap" }
+  ]
+}
+Ensure all descriptions are highly specific, professional, and directly reference the platform data provided in the prompt. Do not use generic placeholders.`
+
+          const userPrompt = `Here is the current aggregated social media data context for the active user workspace:\n\n${statsContext}`
+
+          const aiResult = await executeAIOperation(
+            async (providerInstance) => {
+              return providerInstance.generateText(userPrompt, systemPrompt)
+            },
+            {
+              userId,
+              workspaceId: null,
+              feature: "Analytics Reports"
+            }
+          )
+
+          const content = aiResult.text.trim()
+          const cleanJson = content.replace(/^```json/, "").replace(/```$/, "").trim()
+          const parsed = JSON.parse(cleanJson)
+          if (Array.isArray(parsed.insights) && Array.isArray(parsed.recommendations)) {
+            aiIntelligence = parsed
+          }
         } catch (aiErr) {
-          console.error("OpenAI call failed, falling back to local insights:", aiErr)
-          await recordAIUsage({
-            userId,
-            workspaceId: null,
-            feature: "Analytics Reports",
-            model: "gpt-4o-mini",
-            promptTokens: 0,
-            completionTokens: 0,
-            responseTime: 0,
-            status: "failed"
-          })
+          console.error("AI call failed, falling back to local insights:", aiErr)
         }
       }
     }

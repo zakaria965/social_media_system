@@ -38,14 +38,14 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/60 bg-background/95 px-4 backdrop-blur-xl md:px-6">
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-[#EEF2F7] bg-[#FCFAF6] px-4 md:px-6">
         <Button variant="ghost" size="icon" className="lg:hidden text-slate-600 dark:text-slate-400" onClick={onMenuClick}>
           <Menu className="size-5" />
         </Button>
 
         <div className="hidden items-center gap-2 md:flex">
           <Link href="/free-user/create" className="flex items-center gap-2 lg:hidden">
-            <div className="flex size-7 items-center justify-center rounded-md bg-[#30FC47] text-xs font-bold text-slate-900">
+            <div className="flex size-7 items-center justify-center rounded-md bg-[var(--brand-primary)] text-xs font-bold text-slate-900">
               GW
             </div>
             <span className="font-display text-base font-semibold text-foreground">
@@ -59,7 +59,7 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search ideas, posts..."
-            className="h-9 rounded-full border-border/60 bg-muted/50 pl-9 text-sm placeholder:text-muted-foreground/60 focus-visible:ring-[#30FC47]"
+            className="h-9 rounded-full border-0 bg-[#F8FAFC] pl-9 text-sm placeholder:text-muted-foreground/60 shadow-xs focus-visible:ring-1 focus-visible:ring-[#22C55E]/40"
           />
         </div>
 
@@ -67,20 +67,16 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
           {/* Quick Upgrade Button on Navbar */}
           <button
             onClick={() => setUpgradeModalOpen(true)}
-            className="hidden sm:flex items-center gap-1 bg-[#30FC47]/10 hover:bg-[#30FC47]/20 border border-[#30FC47]/30 text-emerald-700 dark:text-emerald-400 px-3 py-1.5 rounded-full text-xs font-extrabold transition-all uppercase tracking-wider scale-95"
+            className="hidden sm:flex items-center gap-1 bg-[var(--brand-primary)]/10 hover:bg-[var(--brand-primary)]/20 border border-[var(--brand-primary)]/30 text-emerald-700 dark:text-emerald-400 px-3 py-1.5 rounded-full text-xs font-extrabold transition-all uppercase tracking-wider scale-95"
           >
-            <Zap className="size-3.5 fill-[#30FC47]" />
+            <Zap className="size-3.5 fill-[var(--brand-primary)]" />
             Upgrade
           </button>
-
-          <Button variant="ghost" size="icon" onClick={toggle} className="text-muted-foreground">
-            {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-          </Button>
 
           {/* Profile Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2 px-2 hover:bg-[#EFFFF1] dark:hover:bg-slate-800 rounded-lg">
+              <Button variant="ghost" className="gap-2 px-2 hover:bg-[var(--brand-surface)] dark:hover:bg-slate-800 rounded-lg">
                 <Avatar className="size-7">
                   {session?.user?.image ? (
                     <AvatarImage src={session.user.image} alt={session.user.name ?? ""} />

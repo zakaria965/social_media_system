@@ -3,36 +3,8 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth.config"
 import { connectDB } from "@/lib/db"
 import { SocialActivity } from "@/lib/models/social-activity"
-
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY
-
-async function callOpenAIEngine(systemPrompt: string, userPrompt: string): Promise<string> {
-  try {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        max_tokens: 800,
-        temperature: 0.6,
-      }),
-    })
-    if (res.ok) {
-      const data = await res.json()
-      return data.choices?.[0]?.message?.content?.trim() || ""
-    }
-  } catch (err) {
-    console.error("OpenAI call in ai-insights failed:", err)
-  }
-  return ""
-}
+import { User } from "@/lib/models/user"
+import { executeAIOperation } from "@/lib/ai/manager"
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,6 +15,9 @@ export async function POST(request: NextRequest) {
 
     const email = session.user.email
     await connectDB()
+
+    const dbUser = await User.findOne({ email }).select("_id")
+    const userId = dbUser?._id.toString() || "unknown"
 
     const body = await request.json()
     const { action, postId, platform, activityId, tone = "professional" } = body as {
@@ -85,8 +60,14 @@ export async function POST(request: NextRequest) {
       const userPrompt = `Post Title/Id: ${postId}\nComments context:\n${commentsText}`
 
       let summary = ""
-      if (OPENAI_API_KEY) {
-        summary = await callOpenAIEngine(systemPrompt, userPrompt)
+      try {
+        const aiResult = await executeAIOperation(
+          async (provider) => provider.generateText(userPrompt, systemPrompt),
+          { userId, workspaceId: null, feature: "Caption Generator" }
+        )
+        summary = aiResult.text
+      } catch (aiErr) {
+        console.error("AI summarization failed, falling back:", aiErr)
       }
 
       if (!summary) {
@@ -120,17 +101,21 @@ export async function POST(request: NextRequest) {
         ...platformFilter,
       }
       const comments = await SocialActivity.find(commentsQuery).select("text").lean()
-
       const commentsText = comments.map(c => c.text).join("\n")
 
       if (action === "faq") {
-        if (OPENAI_API_KEY && comments.length > 0) {
-          const sys = "You are an AI analyst. Review these social media comments and identify up to 3 Frequently Asked Questions (FAQs). Output strictly a valid JSON array of objects: [ { \"q\": \"Question?\", \"a\": \"Contextual Answer from brand standpoint\" } ]. Do not wrap in markdown tags."
-          const res = await callOpenAIEngine(sys, commentsText)
+        if (comments.length > 0) {
           try {
-            const parsed = JSON.parse(res.replace(/^```json/, "").replace(/```$/, "").trim())
+            const sys = "You are an AI analyst. Review these social media comments and identify up to 3 Frequently Asked Questions (FAQs). Output strictly a valid JSON array of objects: [ { \"q\": \"Question?\", \"a\": \"Contextual Answer from brand standpoint\" } ]. Do not wrap in markdown tags."
+            const aiResult = await executeAIOperation(
+              async (provider) => provider.generateText(commentsText, sys),
+              { userId, workspaceId: null, feature: "Caption Generator" }
+            )
+            const parsed = JSON.parse(aiResult.text.replace(/^```json/, "").replace(/```$/, "").trim())
             return NextResponse.json({ faqs: parsed })
-          } catch { /* ignore */ }
+          } catch (err) {
+            console.error("AI FAQ failed, falling back:", err)
+          }
         }
 
         // Local robust FAQ matching based on platform activity
@@ -143,13 +128,18 @@ export async function POST(request: NextRequest) {
       }
 
       if (action === "trends") {
-        if (OPENAI_API_KEY && comments.length > 0) {
-          const sys = "Analyze these comments and output strictly a JSON array of up to 4 keyword trend topics that are highly discussed, with a percentage weight: [ { \"topic\": \"Topic Name\", \"percentage\": 45 } ]. Do not wrap in markdown."
-          const res = await callOpenAIEngine(sys, commentsText)
+        if (comments.length > 0) {
           try {
-            const parsed = JSON.parse(res.replace(/^```json/, "").replace(/```$/, "").trim())
+            const sys = "Analyze these comments and output strictly a JSON array of up to 4 keyword trend topics that are highly discussed, with a percentage weight: [ { \"topic\": \"Topic Name\", \"percentage\": 45 } ]. Do not wrap in markdown."
+            const aiResult = await executeAIOperation(
+              async (provider) => provider.generateText(commentsText, sys),
+              { userId, workspaceId: null, feature: "Caption Generator" }
+            )
+            const parsed = JSON.parse(aiResult.text.replace(/^```json/, "").replace(/```$/, "").trim())
             return NextResponse.json({ trends: parsed })
-          } catch { /* ignore */ }
+          } catch (err) {
+            console.error("AI trends failed, falling back:", err)
+          }
         }
 
         const defaultTrends = [
@@ -178,16 +168,21 @@ export async function POST(request: NextRequest) {
 
       const commentText = activity.text
 
-      if (OPENAI_API_KEY) {
+      try {
         const sys = `You are a social media copywriter. Generate a polite response.
 Tone parameters:
 - Tone: ${tone} (natural ${tone} tone)
 - Length: Max 2 brief sentences.
 Constraint: Return ONLY the response text. Do not wrap in quotes or add emojis unless appropriate.`
-        const suggestion = await callOpenAIEngine(sys, `Query: "${commentText}" on post "${activity.postTitle}"`)
-        if (suggestion) {
-          return NextResponse.json({ result: suggestion })
+        const aiResult = await executeAIOperation(
+          async (provider) => provider.generateText(`Query: "${commentText}" on post "${activity.postTitle}"`, sys),
+          { userId, workspaceId: null, feature: "Caption Generator" }
+        )
+        if (aiResult.text) {
+          return NextResponse.json({ result: aiResult.text })
         }
+      } catch (err) {
+        console.error("AI suggest reply failed, falling back:", err)
       }
 
       // Local keyword fallbacks

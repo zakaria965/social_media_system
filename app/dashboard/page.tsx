@@ -23,7 +23,8 @@ import {
   Clock,
   ExternalLink,
   ChevronRight,
-  Info
+  Info,
+  MessageSquare
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -200,39 +201,61 @@ export default function DashboardPage() {
   return (
     <PageTransition>
       <div className="space-y-6">
-        {/* SECTION 1: Personalized Welcome Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+        {/* Personalized Welcome Header */}
+        <div className="flex flex-wrap items-center justify-between gap-4 bg-[#FFFFFF] rounded-2xl px-5 py-3.5 shadow-card">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-[#111827]">
               Welcome back, {data.user.name.split(" ")[0]} 🚀
-            </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {currentDateStr} • Active Workspace: <span className="font-semibold text-foreground">Personal Workspace</span> • {accounts.filter((a: any) => a.status === "connected").length} connected accounts
-            </p>
+            </span>
           </div>
-          <Button onClick={fetchSummary} variant="outline" size="sm" className="gap-1.5 self-start md:self-auto rounded-lg text-xs font-semibold">
-            <RefreshCw className="size-3.5" />
+          <div className="flex flex-wrap items-center gap-6 text-xs text-[#64748B]">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-[#22C55E]" />
+              <span>Workspace Status: <strong className="text-[#111827] font-semibold">Active</strong></span>
+            </div>
+            <div className="h-4 w-px bg-[#EEF2F7]" />
+            <div>
+              Connected Channels: <strong className="text-[#111827] font-semibold">{accounts.filter((a: any) => a.status === "connected").length} Connected</strong>
+            </div>
+            <div className="h-4 w-px bg-[#EEF2F7]" />
+            <div>
+              Current Plan: <strong className="text-[#111827] font-semibold">GrowWave Pro</strong>
+            </div>
+          </div>
+          <Button onClick={fetchSummary} variant="outline" size="sm" className="h-8 gap-1.5 rounded-lg text-xs font-semibold px-2.5 border-[#EEF2F7] hover:bg-[#FCFAF6]">
+            <RefreshCw className="size-3" />
             Sync Dashboard
           </Button>
         </div>
 
-        {/* Dynamic AI Summary Greeting strategist card */}
-        <div className="relative overflow-hidden rounded-xl border border-emerald-500/15 bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-blue-500/5 p-4 shadow-sm shadow-emerald-500/5">
-          <div className="flex items-start gap-3">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-              <Brain className="size-4.5 animate-pulse" />
+        {/* Small AI Insight Strip */}
+        <div className="flex h-[72px] items-center justify-between rounded-2xl bg-[#FFFFFF] px-4 py-2 shadow-card">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#22C55E] shrink-0">
+              <Sparkles className="size-4" />
             </div>
-            <div>
-              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">AI Workspace Insights</span>
-              <p className="text-sm text-foreground/90 font-medium leading-snug mt-0.5">{aiGreeting}</p>
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold text-[#22C55E] uppercase tracking-wider block leading-none">AI Insight</span>
+              <p className="text-xs text-[#111827] font-medium truncate mt-1">
+                {aiGreeting || "Facebook engagement increased 12% this week."}
+              </p>
             </div>
           </div>
+          <Button
+            onClick={() => router.push("/dashboard/analytics")}
+            variant="ghost"
+            size="sm"
+            className="text-xs font-semibold text-[#22C55E] hover:text-[#4ADE80] hover:bg-[#F0FDF4] shrink-0 h-8 px-3 rounded-lg"
+          >
+            View Analysis
+            <ChevronRight className="size-3 ml-0.5" />
+          </Button>
         </div>
 
-        {/* SECTION 2: Performance Overview Cards */}
+        {/* Performance Overview KPI Cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <StatsCard
-            title="Total Published"
+            title="Posts Published"
             value={stats.published.value}
             change={stats.published.change}
             trend={stats.published.trend}
@@ -248,7 +271,7 @@ export default function DashboardPage() {
             sparkline={stats.scheduled.sparkline}
           />
           <StatsCard
-            title="Total Reach"
+            title="Reach"
             value={stats.reach.value}
             change={stats.reach.change}
             trend={stats.reach.trend}
@@ -256,7 +279,7 @@ export default function DashboardPage() {
             sparkline={stats.reach.sparkline}
           />
           <StatsCard
-            title="Engagement Rate"
+            title="Engagement"
             value={stats.engagement.value}
             change={stats.engagement.change}
             trend={stats.engagement.trend}
@@ -264,7 +287,7 @@ export default function DashboardPage() {
             sparkline={stats.engagement.sparkline}
           />
           <StatsCard
-            title="Followers Growth"
+            title="Followers"
             value={stats.followers.value}
             change={stats.followers.change}
             trend={stats.followers.trend}
@@ -272,7 +295,7 @@ export default function DashboardPage() {
             sparkline={stats.followers.sparkline}
           />
           <StatsCard
-            title="AI Generated"
+            title="AI Generations"
             value={stats.aiGenerated.value}
             change={stats.aiGenerated.change}
             trend={stats.aiGenerated.trend}
@@ -282,23 +305,20 @@ export default function DashboardPage() {
         </div>
 
         {/* MAIN LAYOUT GRID */}
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-10">
           
-          {/* LEFT & CENTER LARGE AREA: Analytics, Connected Platforms, Activities */}
-          <div className="lg:col-span-2 space-y-6">
-            
-            {/* SECTION 3: Performance Analytics Chart */}
+          <div className="lg:col-span-7 space-y-6">
             <PerformanceChart timeseries={timeseries} />
 
-            {/* SECTION 6: Connected Platforms Cards */}
-            <Card className="rounded-xl border border-border/50 bg-card/45 backdrop-blur-md">
+            {/* Connected Platforms Section */}
+            <Card className="rounded-2xl border-none bg-[#FFFFFF] shadow-card hover:shadow-card-hover transition-all duration-200">
               <CardHeader className="pb-3 flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="text-base font-semibold text-foreground">Connected Platforms</CardTitle>
-                  <p className="text-xs text-muted-foreground mt-0.5">Control platform synchronization and status badges.</p>
+                  <CardTitle className="text-sm font-semibold text-[#111827]">Connected Platforms</CardTitle>
+                  <p className="text-xs text-[#64748B] mt-0.5">Control platform synchronization and status badges.</p>
                 </div>
                 <Link href="/dashboard/settings">
-                  <Button variant="ghost" size="sm" className="text-xs font-semibold hover:bg-muted/80 rounded-lg">
+                  <Button variant="ghost" size="sm" className="text-xs font-semibold hover:bg-muted/80 rounded-lg h-8 px-3">
                     Manage Accounts
                   </Button>
                 </Link>
@@ -313,55 +333,52 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={plat}
-                      className={cn(
-                        "group relative flex flex-col justify-between p-3.5 rounded-xl border border-border/50 bg-gradient-to-b bg-card/30 backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md",
-                        brand.bg
-                      )}
+                      className="group relative flex flex-col justify-between p-3.5 rounded-2xl border border-[#EEF2F7] bg-[#FFFFFF] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover/20"
                     >
                       <div className="flex items-start justify-between">
-                        <div className={cn("size-8 rounded-lg flex items-center justify-center bg-card shadow-sm border border-border/40 transition-transform duration-300 group-hover:scale-105", brand.text)}>
-                          <BrandIcon className="size-4.5" />
+                        <div className={cn("size-8 rounded-lg flex items-center justify-center bg-[#FCFAF6] border border-[#EEF2F7] transition-transform duration-200 group-hover:scale-105", brand.text)}>
+                          <BrandIcon className="size-4" />
                         </div>
                         <Badge
                           variant={account ? "outline" : "secondary"}
                           className={cn(
-                            "text-[9px] font-bold tracking-wider uppercase px-1.5 py-0.5 shrink-0 select-none",
+                            "text-[9px] font-semibold tracking-wider uppercase px-1.5 py-0.5 shrink-0 select-none rounded-md",
                             account
                               ? account.status === "connected"
-                                ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                                : "bg-rose-500/10 text-rose-600 border-rose-500/20"
-                              : "bg-muted text-muted-foreground"
+                                ? "bg-[#DCFCE7] text-[#22C55E] border-[#DCFCE7]"
+                                : "bg-rose-50 text-rose-600 border-rose-100"
+                              : "bg-gray-100 text-gray-500 border-gray-200"
                           )}
                         >
                           {account ? account.status : "Offline"}
                         </Badge>
                       </div>
 
-                      <div className="mt-4 space-y-1">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{brand.label}</p>
-                        <p className="text-xs font-bold text-foreground truncate max-w-full">
+                      <div className="mt-4 space-y-0.5">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-[#64748B]">{brand.label}</p>
+                        <p className="text-xs font-semibold text-[#111827] truncate max-w-full">
                           {account ? account.username : "Unconnected"}
                         </p>
-                        <p className="text-[10px] text-muted-foreground">
+                        <p className="text-[10px] text-[#64748B]">
                           {account ? `${account.followers.toLocaleString()} followers` : "0 followers"}
                         </p>
                       </div>
 
-                      <div className="mt-3.5 pt-3.5 border-t border-border/40 flex items-center justify-between">
-                        <span className="text-[9px] text-muted-foreground">
+                      <div className="mt-3.5 pt-3.5 border-t border-[#EEF2F7] flex items-center justify-between">
+                        <span className="text-[10px] text-[#64748B]">
                           {account ? "Sync active" : "Available"}
                         </span>
                         {account ? (
                           <button
                             onClick={() => handleSyncPlatform(plat)}
                             disabled={syncingPlatform === plat}
-                            className="text-[9px] font-bold text-primary hover:underline flex items-center gap-0.5"
+                            className="text-[10px] font-semibold text-[#22C55E] hover:text-[#4ADE80] flex items-center gap-0.5 cursor-pointer bg-transparent border-0"
                           >
                             <RefreshCw className={cn("size-2.5 shrink-0", syncingPlatform === plat && "animate-spin")} />
                             Sync
                           </button>
                         ) : (
-                          <Link href="/dashboard/settings" className="text-[9px] font-bold text-primary hover:underline flex items-center gap-0.5">
+                          <Link href="/dashboard/settings" className="text-[10px] font-semibold text-[#22C55E] hover:text-[#4ADE80] flex items-center gap-0.5">
                             Connect
                             <ChevronRight className="size-2.5" />
                           </Link>
@@ -373,15 +390,15 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* SECTION 7: Recent Activity Feed (Real activities only) */}
-            <Card className="rounded-xl border border-border/50 bg-card/45 backdrop-blur-md">
+            {/* Recent Activity Feed */}
+            <Card className="rounded-2xl border-none bg-[#FFFFFF] shadow-card hover:shadow-card-hover transition-all duration-200">
               <CardHeader className="pb-3 flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="text-base font-semibold text-foreground">Recent Activities</CardTitle>
-                  <p className="text-xs text-muted-foreground mt-0.5">Audit log of system processes and recent interactions.</p>
+                  <CardTitle className="text-sm font-semibold text-[#111827]">Recent Activities</CardTitle>
+                  <p className="text-xs text-[#64748B] mt-0.5">Audit log of system processes and recent interactions.</p>
                 </div>
                 <Link href="/dashboard/scheduled">
-                  <Button variant="ghost" size="sm" className="text-xs font-semibold hover:bg-muted/80 rounded-lg">
+                  <Button variant="ghost" size="sm" className="text-xs font-semibold hover:bg-muted/80 rounded-lg h-8 px-3">
                     History log
                   </Button>
                 </Link>
@@ -389,13 +406,13 @@ export default function DashboardPage() {
               
               <CardContent className="p-0">
                 {activities.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center p-8 text-center bg-card/10">
-                    <Activity className="size-8 text-muted-foreground/50 mb-2" />
-                    <p className="text-xs font-semibold text-muted-foreground">No recent activity detected.</p>
-                    <p className="text-[10px] text-muted-foreground/80 max-w-[200px] mt-1">Activities are generated when you schedule or publish content.</p>
+                  <div className="flex flex-col items-center justify-center p-8 text-center bg-[#FCFAF6] rounded-b-2xl">
+                    <Activity className="size-8 text-[#64748B]/50 mb-2" />
+                    <p className="text-xs font-semibold text-[#64748B]">No recent activity detected.</p>
+                    <p className="text-[10px] text-[#64748B]/80 max-w-[200px] mt-1">Activities are generated when you schedule or publish content.</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-border/40">
+                  <div className="divide-y divide-[#EEF2F7]">
                     {activities.map((act: any) => {
                       const brand = act.platform ? platformBranding[act.platform] : null
                       const timeAgo = new Date(act.time).toLocaleTimeString("en-US", {
@@ -406,33 +423,33 @@ export default function DashboardPage() {
                       })
 
                       return (
-                        <div key={act.id} className="flex items-center gap-3.5 px-4.5 py-3 transition-colors duration-200 hover:bg-muted/30">
+                        <div key={act.id} className="flex items-center gap-3.5 px-4.5 py-3 transition-colors duration-200 hover:bg-[#FCFAF6]/60">
                           <div className={cn(
                             "flex size-8 shrink-0 items-center justify-center rounded-full border shadow-sm",
-                            act.status === "success" && "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400",
-                            act.status === "failed" && "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400",
-                            act.status === "info" && "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400"
+                            act.status === "success" && "bg-[#DCFCE7] border-[#DCFCE7] text-[#22C55E]",
+                            act.status === "failed" && "bg-rose-50 border-rose-100 text-rose-600",
+                            act.status === "info" && "bg-blue-50 border-blue-100 text-blue-600"
                           )}>
                             {act.status === "success" ? <CheckCircle className="size-4" /> : act.status === "failed" ? <XCircle className="size-4" /> : <Info className="size-4" />}
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs text-foreground font-medium truncate">
+                            <p className="text-xs text-[#111827] font-medium truncate">
                               {act.details}
                             </p>
                             <div className="flex items-center gap-2 mt-0.5">
                               {brand && (
-                                <Badge variant="outline" className="text-[8px] tracking-wider font-semibold uppercase px-1 py-0 border-border/60 text-muted-foreground flex items-center gap-0.5">
+                                <Badge variant="outline" className="text-[8px] tracking-wider font-semibold uppercase px-1 py-0 border-[#EEF2F7] text-[#64748B] flex items-center gap-0.5 rounded-sm">
                                   {brand.label}
                                 </Badge>
                               )}
-                              <span className="text-[10px] text-muted-foreground font-semibold uppercase shrink-0">
+                              <span className="text-[9px] text-[#64748B] font-semibold uppercase shrink-0">
                                 {act.action.replace("_", " ")}
                               </span>
                             </div>
                           </div>
 
-                          <span className="shrink-0 text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1">
+                          <span className="shrink-0 text-[10px] font-semibold text-[#64748B] uppercase flex items-center gap-1">
                             <Clock className="size-3" />
                             {timeAgo}
                           </span>
@@ -446,61 +463,77 @@ export default function DashboardPage() {
 
           </div>
 
-          {/* RIGHT SIDE COLUMN: Calendar, AI Command, Workspace Health, Quick Actions */}
-          <div className="space-y-6">
+          {/* RIGHT COLUMN */}
+          <div className="lg:col-span-3 space-y-6">
             
-            {/* SECTION 8: Quick Actions */}
-            <Card className="rounded-xl border border-border/50 bg-card/45 backdrop-blur-md">
+            {/* Quick Actions Card */}
+            <Card className="rounded-2xl border-none bg-[#FFFFFF] shadow-card hover:shadow-card-hover transition-all duration-200">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base font-semibold text-foreground flex items-center gap-1.5">
-                  <PenSquare className="size-4.5 text-primary" />
-                  Quick Tools
+                <CardTitle className="text-sm font-semibold text-[#111827] flex items-center gap-1.5">
+                  <PenSquare className="size-4 text-[#22C55E]" />
+                  Quick Actions
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-2 p-4 pt-0">
-                <Link href="/dashboard/create" className="group flex flex-col justify-between p-3.5 rounded-lg border border-border/50 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-300">
-                  <div className="size-7 rounded-md bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                <Link href="/dashboard/create" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] bg-[#FFFFFF] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
+                  <div className="size-7 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                     <PenSquare className="size-4" />
                   </div>
-                  <span className="text-xs font-bold text-foreground mt-4 block">New Post</span>
-                  <span className="text-[10px] text-muted-foreground mt-0.5 block truncate">Design & share</span>
+                  <span className="text-xs font-bold text-[#111827] mt-3.5 block">Create Post</span>
+                  <span className="text-[10px] text-[#64748B] mt-0.5 block truncate">Design & share</span>
                 </Link>
 
-                <Link href="/dashboard/ai-assistant" className="group flex flex-col justify-between p-3.5 rounded-lg border border-border/50 bg-gradient-to-br from-pink-500/5 to-rose-500/5 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-300">
-                  <div className="size-7 rounded-md bg-pink-500/10 text-pink-500 dark:text-pink-400 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                <Link href="/dashboard/bulk" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] bg-[#FFFFFF] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
+                  <div className="size-7 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+                    <Clock className="size-4" />
+                  </div>
+                  <span className="text-xs font-bold text-[#111827] mt-3.5 block">Schedule Content</span>
+                  <span className="text-[10px] text-[#64748B] mt-0.5 block truncate">Queue posts</span>
+                </Link>
+
+                <Link href="/dashboard/ai-assistant" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] bg-[#FFFFFF] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
+                  <div className="size-7 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                     <Sparkles className="size-4" />
                   </div>
-                  <span className="text-xs font-bold text-foreground mt-4 block">AI Writer</span>
-                  <span className="text-[10px] text-muted-foreground mt-0.5 block truncate">Generate copy</span>
+                  <span className="text-xs font-bold text-[#111827] mt-3.5 block">AI Writer</span>
+                  <span className="text-[10px] text-[#64748B] mt-0.5 block truncate">Generate copy</span>
                 </Link>
 
-                <Link href="/dashboard/media" className="group flex flex-col justify-between p-3.5 rounded-lg border border-border/50 bg-gradient-to-br from-emerald-500/5 to-teal-500/5 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-300">
-                  <div className="size-7 rounded-md bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-                    <ImageIcon className="size-4" />
-                  </div>
-                  <span className="text-xs font-bold text-foreground mt-4 block">Media Lib</span>
-                  <span className="text-[10px] text-muted-foreground mt-0.5 block truncate">Upload assets</span>
-                </Link>
-
-                <Link href="/dashboard/analytics" className="group flex flex-col justify-between p-3.5 rounded-lg border border-border/50 bg-gradient-to-br from-amber-500/5 to-orange-500/5 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-300">
-                  <div className="size-7 rounded-md bg-amber-500/10 text-amber-500 dark:text-amber-400 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                <Link href="/dashboard/analytics" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] bg-[#FFFFFF] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
+                  <div className="size-7 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                     <BarChart3 className="size-4" />
                   </div>
-                  <span className="text-xs font-bold text-foreground mt-4 block">Analytics</span>
-                  <span className="text-[10px] text-muted-foreground mt-0.5 block truncate">Deep insights</span>
+                  <span className="text-xs font-bold text-[#111827] mt-3.5 block">Analytics</span>
+                  <span className="text-[10px] text-[#64748B] mt-0.5 block truncate">Deep insights</span>
+                </Link>
+
+                <Link href="/dashboard/media" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] bg-[#FFFFFF] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
+                  <div className="size-7 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+                    <ImageIcon className="size-4" />
+                  </div>
+                  <span className="text-xs font-bold text-[#111827] mt-3.5 block">Media Library</span>
+                  <span className="text-[10px] text-[#64748B] mt-0.5 block truncate">Upload assets</span>
+                </Link>
+
+                <Link href="/dashboard/inbox" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] bg-[#FFFFFF] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
+                  <div className="size-7 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+                    <MessageSquare className="size-4" />
+                  </div>
+                  <span className="text-xs font-bold text-[#111827] mt-3.5 block">Inbox</span>
+                  <span className="text-[10px] text-[#64748B] mt-0.5 block truncate">View messages</span>
                 </Link>
               </CardContent>
             </Card>
 
-            {/* SECTION 4: Upcoming Content Calendar */}
-            <Card className="rounded-xl border border-border/50 bg-card/45 backdrop-blur-md">
+            {/* Upcoming Content Calendar */}
+            <Card className="rounded-2xl border-none bg-[#FFFFFF] shadow-card hover:shadow-card-hover transition-all duration-200">
               <CardHeader className="pb-3 flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="text-base font-semibold text-foreground">Content Planning</CardTitle>
-                  <p className="text-xs text-muted-foreground mt-0.5 font-medium uppercase tracking-wider">Queue status</p>
+                  <CardTitle className="text-sm font-semibold text-[#111827]">Content Planning</CardTitle>
+                  <p className="text-xs text-[#64748B] mt-0.5 font-medium uppercase tracking-wider">Queue status</p>
                 </div>
                 <Link href="/dashboard/calendar">
-                  <Button variant="ghost" size="sm" className="text-xs font-semibold hover:bg-muted/80 rounded-lg">
+                  <Button variant="ghost" size="sm" className="text-xs font-semibold hover:bg-muted/80 rounded-lg h-8 px-3">
                     Calendar
                   </Button>
                 </Link>
@@ -508,13 +541,13 @@ export default function DashboardPage() {
               
               <CardContent className="space-y-4 p-4 pt-0">
                 {today.length === 0 && tomorrow.length === 0 && thisWeek.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center p-6 text-center border border-dashed border-border/60 rounded-xl bg-card/10">
-                    <CalendarCheck className="size-7 text-muted-foreground/50 mb-2" />
-                    <p className="text-xs font-semibold text-muted-foreground">Planning queue empty</p>
-                    <p className="text-[10px] text-muted-foreground/80 mt-1 mb-3">No scheduled posts scheduled for this week.</p>
+                  <div className="flex flex-col items-center justify-center p-6 text-center border border-dashed border-[#EEF2F7] rounded-2xl bg-[#FCFAF6]">
+                    <CalendarCheck className="size-7 text-[#64748B]/55 mb-2" />
+                    <p className="text-xs font-semibold text-[#111827]">Planning queue empty</p>
+                    <p className="text-[10px] text-[#64748B] mt-1 mb-3">No scheduled posts scheduled for this week.</p>
                     <Link href="/dashboard/create">
-                      <Button size="xs" className="rounded-lg gap-1 font-semibold text-xs">
-                        <Plus className="size-3" />
+                      <Button size="sm" className="rounded-lg gap-1 font-semibold text-xs bg-[#22C55E] hover:bg-[#4ADE80] text-[#FFFFFF] border-0 h-8 px-3 cursor-pointer shadow-[0_4px_14px_rgba(34,197,94,0.18)]">
+                        <Plus className="size-3.5" />
                         Create Post
                       </Button>
                     </Link>
@@ -524,12 +557,12 @@ export default function DashboardPage() {
                     {/* TODAY SECTION */}
                     {today.length > 0 && (
                       <div className="space-y-2">
-                        <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Today</span>
+                        <span className="text-[10px] font-bold text-[#22C55E] uppercase tracking-wider">Today</span>
                         <div className="space-y-2">
                           {today.map((post: any) => (
-                            <div key={post.id} className="rounded-lg border border-border/60 bg-card/10 p-3 flex flex-col justify-between hover:bg-card/30 transition-all">
-                              <p className="text-xs font-bold text-foreground leading-normal line-clamp-2">{post.title || post.content}</p>
-                              <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-2 text-[10px] text-muted-foreground">
+                            <div key={post.id} className="rounded-xl border border-[#EEF2F7] bg-[#FCFAF6]/40 p-3 flex flex-col justify-between hover:bg-[#FCFAF6]/80 transition-all duration-200">
+                              <p className="text-xs font-bold text-[#111827] leading-normal line-clamp-2">{post.title || post.content}</p>
+                              <div className="mt-3 flex items-center justify-between border-t border-[#EEF2F7] pt-2 text-[10px] text-[#64748B]">
                                 <span className="font-semibold uppercase tracking-wider">{post.platforms.join(" • ")}</span>
                                 <span className="flex items-center gap-1 font-semibold">
                                   <Clock className="size-3" />
@@ -545,12 +578,12 @@ export default function DashboardPage() {
                     {/* TOMORROW SECTION */}
                     {tomorrow.length > 0 && (
                       <div className="space-y-2">
-                        <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">Tomorrow</span>
+                        <span className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">Tomorrow</span>
                         <div className="space-y-2">
                           {tomorrow.map((post: any) => (
-                            <div key={post.id} className="rounded-lg border border-border/60 bg-card/10 p-3 flex flex-col justify-between hover:bg-card/30 transition-all">
-                              <p className="text-xs font-bold text-foreground leading-normal line-clamp-2">{post.title || post.content}</p>
-                              <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-2 text-[10px] text-muted-foreground">
+                            <div key={post.id} className="rounded-xl border border-[#EEF2F7] bg-[#FCFAF6]/40 p-3 flex flex-col justify-between hover:bg-[#FCFAF6]/80 transition-all duration-200">
+                              <p className="text-xs font-bold text-[#111827] leading-normal line-clamp-2">{post.title || post.content}</p>
+                              <div className="mt-3 flex items-center justify-between border-t border-[#EEF2F7] pt-2 text-[10px] text-[#64748B]">
                                 <span className="font-semibold uppercase tracking-wider">{post.platforms.join(" • ")}</span>
                                 <span className="flex items-center gap-1 font-semibold">
                                   <Clock className="size-3" />
@@ -566,12 +599,12 @@ export default function DashboardPage() {
                     {/* THIS WEEK SECTION */}
                     {thisWeek.length > 0 && (
                       <div className="space-y-2">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Later This Week</span>
+                        <span className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">Later This Week</span>
                         <div className="space-y-2">
                           {thisWeek.map((post: any) => (
-                            <div key={post.id} className="rounded-lg border border-border/60 bg-card/10 p-3 flex flex-col justify-between hover:bg-card/30 transition-all">
-                              <p className="text-xs font-bold text-foreground leading-normal line-clamp-2">{post.title || post.content}</p>
-                              <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-2 text-[10px] text-muted-foreground">
+                            <div key={post.id} className="rounded-xl border border-[#EEF2F7] bg-[#FCFAF6]/40 p-3 flex flex-col justify-between hover:bg-[#FCFAF6]/80 transition-all duration-200">
+                              <p className="text-xs font-bold text-[#111827] leading-normal line-clamp-2">{post.title || post.content}</p>
+                              <div className="mt-3 flex items-center justify-between border-t border-[#EEF2F7] pt-2 text-[10px] text-[#64748B]">
                                 <span className="font-semibold uppercase tracking-wider">{post.platforms.join(" • ")}</span>
                                 <span className="flex items-center gap-1 font-semibold">
                                   <Clock className="size-3" />
@@ -588,47 +621,47 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* SECTION 5: AI Command Center (Strategist Widget) */}
-            <Card className="rounded-xl border border-border/50 bg-card/45 backdrop-blur-md">
+            {/* AI Strategist Command Center */}
+            <Card className="rounded-2xl border-none bg-[#FFFFFF] shadow-card hover:shadow-card-hover transition-all duration-200">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base font-semibold text-foreground flex items-center gap-1.5">
-                  <Sparkles className="size-4.5 text-primary animate-pulse" />
+                <CardTitle className="text-sm font-semibold text-[#111827] flex items-center gap-1.5">
+                  <Sparkles className="size-4 text-[#22C55E]" />
                   AI Strategist Command
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 p-4 pt-0">
-                <div className="rounded-lg border border-primary/10 bg-primary/5 p-3 text-xs leading-relaxed">
-                  <span className="font-bold text-primary flex items-center gap-1 mb-1">
+                <div className="rounded-xl border border-[#EEF2F7] bg-[#FCFAF6] p-3 text-xs leading-relaxed">
+                  <span className="font-bold text-[#22C55E] flex items-center gap-1 mb-1">
                     <Brain className="size-3.5" />
                     Posting Time Opportunity
                   </span>
-                  Audience retention analytics indicate that <span className="font-semibold text-foreground">educational content</span> performs best on <span className="font-semibold text-foreground">Tuesdays at 11:30 AM</span>. Consider scheduling your next thread.
+                  Audience retention analytics indicate that <span className="font-semibold text-[#111827]">educational content</span> performs best on <span className="font-semibold text-[#111827]">Tuesdays at 11:30 AM</span>. Consider scheduling your next thread.
                 </div>
 
-                <div className="rounded-lg border border-border/60 bg-card/15 p-3 text-xs flex flex-col justify-between gap-2.5">
+                <div className="rounded-xl border border-[#EEF2F7] bg-[#FFFFFF] p-3 text-xs flex flex-col justify-between gap-2.5">
                   <div>
-                    <span className="font-bold text-foreground block">Weekly Performance Spike</span>
-                    Your LinkedIn engagement rate peaked up <span className="font-semibold text-primary">18%</span> compared to the average. Maintain momentum by posting another visual industry insight.
+                    <span className="font-bold text-[#111827] block">Weekly Performance Spike</span>
+                    Your LinkedIn engagement rate peaked up <span className="font-semibold text-[#22C55E]">18%</span> compared to the average. Maintain momentum by posting another visual industry insight.
                   </div>
                   <Button
                     onClick={() => router.push("/dashboard/create")}
                     variant="outline"
-                    size="xs"
-                    className="w-full text-[10px] font-bold rounded-md bg-background py-1 flex items-center justify-center gap-1"
+                    size="sm"
+                    className="w-full text-[10px] font-bold rounded-lg bg-[#FFFFFF] border border-[#EEF2F7] py-1 h-7 flex items-center justify-center gap-1 hover:bg-[#FCFAF6] text-[#111827]"
                   >
                     Draft Visual Post
                     <ChevronRight className="size-3" />
                   </Button>
                 </div>
 
-                <div className="rounded-lg border border-border/60 bg-card/15 p-3 text-xs flex flex-col justify-between gap-2.5">
+                <div className="rounded-xl border border-[#EEF2F7] bg-[#FFFFFF] p-3 text-xs flex flex-col justify-between gap-2.5">
                   <div>
-                    <span className="font-bold text-foreground block">Generate Content Opportunities</span>
+                    <span className="font-bold text-[#111827] block">Generate Content Opportunities</span>
                     Would you like to build 5 high-converting post ideas derived from your best performing post?
                   </div>
                   <Button
                     onClick={() => router.push("/dashboard/ai-assistant")}
-                    className="w-full text-[10px] font-bold rounded-md py-1 flex items-center justify-center gap-1"
+                    className="w-full text-[10px] font-bold rounded-lg py-1 h-7 flex items-center justify-center gap-1 bg-[#22C55E] hover:bg-[#4ADE80] text-[#FFFFFF] border-0 cursor-pointer shadow-[0_4px_14px_rgba(34,197,94,0.18)]"
                   >
                     Generate Post Ideas
                     <Sparkles className="size-3" />
@@ -637,11 +670,11 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* SECTION 9: Workspace Health Indicator */}
-            <Card className="rounded-xl border border-border/50 bg-card/45 backdrop-blur-md">
+            {/* Workspace Health Indicator */}
+            <Card className="rounded-2xl border-none bg-[#FFFFFF] shadow-card hover:shadow-card-hover transition-all duration-200">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base font-semibold text-foreground flex items-center gap-1.5">
-                  <Activity className="size-4.5 text-primary" />
+                <CardTitle className="text-sm font-semibold text-[#111827] flex items-center gap-1.5">
+                  <Activity className="size-4 text-[#22C55E]" />
                   Workspace Health
                 </CardTitle>
               </CardHeader>
@@ -649,8 +682,8 @@ export default function DashboardPage() {
                 {/* Connected Accounts limit */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-medium">
-                    <span className="text-muted-foreground">Connected Accounts</span>
-                    <span className="text-foreground font-semibold">
+                    <span className="text-[#64748B]">Connected Accounts</span>
+                    <span className="text-[#111827] font-semibold">
                       {workspaceHealth.connectedAccounts} / {workspaceHealth.maxAccounts}
                     </span>
                   </div>
@@ -660,8 +693,8 @@ export default function DashboardPage() {
                 {/* Monthly post quota */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-medium">
-                    <span className="text-muted-foreground">Monthly Post Count</span>
-                    <span className="text-foreground font-semibold">
+                    <span className="text-[#64748B]">Monthly Post Count</span>
+                    <span className="text-[#111827] font-semibold">
                       {workspaceHealth.postsThisMonth} / {workspaceHealth.maxPostsMonth}
                     </span>
                   </div>
@@ -671,23 +704,23 @@ export default function DashboardPage() {
                 {/* Media storage */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-medium">
-                    <span className="text-muted-foreground flex items-center gap-1">
-                      <HardDrive className="size-3.5 text-muted-foreground" />
+                    <span className="text-[#64748B] flex items-center gap-1">
+                      <HardDrive className="size-3.5 text-[#64748B]" />
                       Media Storage Space
                     </span>
-                    <span className="text-foreground font-semibold">
+                    <span className="text-[#111827] font-semibold">
                       {workspaceHealth.mediaStorageUsed} / {workspaceHealth.mediaStorageLimit} MB
                     </span>
                   </div>
                   <Progress value={(workspaceHealth.mediaStorageUsed / workspaceHealth.mediaStorageLimit) * 100} className="h-1.5 rounded-full" />
                 </div>
 
-                <div className="pt-2 flex items-center justify-between text-xs font-medium border-t border-border/40 text-muted-foreground">
+                <div className="pt-3 flex items-center justify-between text-xs font-medium border-t border-[#EEF2F7] text-[#64748B]">
                   <div className="flex flex-col">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground">Team Quota</span>
-                    <span className="text-xs text-foreground font-semibold mt-0.5">{workspaceHealth.teamMembers} Members active</span>
+                    <span className="text-[9px] uppercase font-bold text-[#64748B]">Team Quota</span>
+                    <span className="text-xs text-[#111827] font-semibold mt-0.5">{workspaceHealth.teamMembers} Members active</span>
                   </div>
-                  <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider border-emerald-500/20 text-emerald-600 bg-emerald-500/10 px-2 py-0.5 select-none">
+                  <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider border-[#DCFCE7] text-[#22C55E] bg-[#DCFCE7] px-2 py-0.5 select-none rounded-md">
                     Pro Workspace
                   </Badge>
                 </div>

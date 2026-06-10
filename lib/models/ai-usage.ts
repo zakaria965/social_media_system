@@ -4,6 +4,7 @@ export interface IAIUsage extends Omit<Document, "model"> {
   userId: string
   workspaceId: string | null
   feature: string
+  provider: string
   model: string
   promptTokens: number
   completionTokens: number
@@ -19,6 +20,7 @@ const AIUsageSchema = new Schema<IAIUsage>(
     userId: { type: String, required: true, index: true },
     workspaceId: { type: String, default: null, index: true },
     feature: { type: String, required: true, index: true },
+    provider: { type: String, required: true, default: "OPENAI", index: true },
     model: { type: String, required: true },
     promptTokens: { type: Number, default: 0 },
     completionTokens: { type: Number, default: 0 },

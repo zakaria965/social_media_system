@@ -75,22 +75,23 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
 
       {/* Sidebar Container */}
       <aside
+        style={{ backgroundColor: '#FCFAF6', borderRight: '1px solid #EEF2F7' }}
         className={cn(
-          "fixed top-0 bottom-0 left-0 z-40 flex flex-col border-r border-slate-200/50 bg-background transition-[width] duration-300 ease-in-out dark:border-slate-850 dark:bg-slate-950",
+          "fixed top-0 bottom-0 left-0 z-40 flex flex-col transition-[width] duration-300 ease-in-out",
           isCollapsed ? "w-20" : "w-64",
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         {/* Brand Header */}
-        <div className="flex h-16 items-center justify-between px-4 border-b border-slate-200/50 dark:border-slate-850">
+        <div className="flex h-16 items-center justify-between px-4">
           <Link href="/free-user/create" className="flex items-center gap-2">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-[#30FC47] shadow-xs select-none">
+            <div className="flex size-9 items-center justify-center rounded-xl bg-[var(--brand-primary)] shadow-xs select-none">
               <span className="text-sm font-black text-white">GW</span>
             </div>
             {!isCollapsed && (
               <div className="flex flex-col">
-                <span className="text-sm font-black text-[#1F2937] dark:text-white tracking-tight">
-                  GrowWave <span className="text-emerald-600 dark:text-[#30FC47] font-bold">Lite</span>
+                <span className="text-sm font-black text-[#1F2937] tracking-tight">
+                  GrowWave <span className="text-emerald-600 font-bold">Lite</span>
                 </span>
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">
                   Free Plan
@@ -102,7 +103,7 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
           {/* Desktop Toggle Button */}
           <button
             onClick={onToggleCollapse}
-            className="hidden lg:flex size-6 items-center justify-center rounded-md border border-slate-200 bg-background text-slate-500 hover:text-[#30FC47] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 hover:scale-105 active:scale-95 transition-all"
+            className="hidden lg:flex size-6 items-center justify-center rounded-md border border-[#EEF2F7] bg-white text-slate-500 hover:text-[var(--brand-primary)] hover:scale-105 active:scale-95 transition-all"
           >
             {isCollapsed ? <ChevronRight className="size-3.5" /> : <ChevronLeft className="size-3.5" />}
           </button>
@@ -126,20 +127,20 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-xs font-bold transition-all group relative",
                     isActive
-                      ? "bg-[#EFFFF1] text-[#30FC47] dark:bg-emerald-950/30 dark:text-[#30FC47] font-extrabold"
-                      : "text-[#6B7280] hover:bg-[#EFFFF1] hover:text-[#30FC47] dark:text-slate-400 dark:hover:bg-slate-900/60 dark:hover:text-[#30FC47]"
+                      ? "bg-[#F0FDF4] text-[var(--brand-primary)] font-extrabold"
+                      : "text-[#6B7280] hover:bg-[#F0FDF4]/50 hover:text-[var(--brand-primary)]"
                   )}
                 >
                   <Icon
                     className={cn(
                       "size-4.5 transition-transform duration-300 group-hover:scale-105 shrink-0",
-                      isActive ? "text-[#30FC47]" : "text-slate-400 group-hover:text-[#30FC47] dark:group-hover:text-[#30FC47]"
+                      isActive ? "text-[var(--brand-primary)]" : "text-slate-400 group-hover:text-[var(--brand-primary)]"
                     )}
                   />
                   {!isCollapsed && <span>{item.name}</span>}
 
                   {isActive && isCollapsed && (
-                    <div className="absolute right-2 size-1.5 rounded-full bg-[#30FC47]" />
+                    <div className="absolute right-2 size-1.5 rounded-full bg-[var(--brand-primary)]" />
                   )}
                 </Link>
               )
@@ -148,7 +149,7 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
         </div>
 
         {/* User Profile Section with Dropdown */}
-        <div className="p-3 border-t border-slate-200/50 dark:border-slate-850">
+        <div className="p-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-slate-100 dark:hover:bg-slate-900 transition-all focus:outline-hidden">
@@ -178,7 +179,7 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
             >
               <div className="px-2.5 py-2 flex flex-col">
                 <span className="text-xs font-bold text-[#1F2937] dark:text-white">{session?.user?.name ?? "GrowWave User"}</span>
-                <span className="text-[9px] font-semibold text-[#30FC47] uppercase tracking-wider mt-0.5">Free Account</span>
+                <span className="text-[9px] font-semibold text-[var(--brand-primary)] uppercase tracking-wider mt-0.5">Free Account</span>
               </div>
               <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
               

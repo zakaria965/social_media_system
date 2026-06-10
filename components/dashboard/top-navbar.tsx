@@ -77,7 +77,7 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
     : "U"
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/60 bg-background/95 px-4 backdrop-blur-xl md:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-[#EEF2F7] bg-[#FCFAF6] px-4 md:px-6">
       <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick}>
         <Menu className="size-5" />
       </Button>
@@ -97,15 +97,11 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Search posts, accounts..."
-          className="h-9 rounded-full border-border/60 bg-muted/50 pl-9 text-sm placeholder:text-muted-foreground/60"
+          className="h-9 rounded-full border-0 bg-[#F8FAFC] pl-9 text-sm placeholder:text-muted-foreground/60 shadow-xs focus-visible:ring-1 focus-visible:ring-[#22C55E]/40"
         />
       </div>
 
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={toggle} className="text-muted-foreground">
-          {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-        </Button>
-
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative text-muted-foreground">

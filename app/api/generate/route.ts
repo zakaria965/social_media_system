@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth.config"
 import { connectDB } from "@/lib/db"
 import { User } from "@/lib/models/user"
 import { checkAIQuota, recordAIUsage } from "@/lib/ai-quota"
+import { AIGeneration } from "@/lib/models/ai-generation"
+
 
 type Provider = "openai" | "gemini" | "anthropic" | "xai"
 
@@ -127,12 +129,10 @@ function getSystemPrompt(action: Action, tone?: string): string {
   }
 }
 
+import { executeAIOperation } from "@/lib/ai/manager"
+
 export async function POST(request: NextRequest) {
-  const startTime = Date.now()
   let userId = "anonymous"
-  let logStatus: "success" | "failed" = "success"
-  let tokens = 0
-  let cost = 0
 
   try {
     await connectDB()
@@ -160,30 +160,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { action, prompt, tone, provider = "openai" } = body as {
+    const { action, prompt, tone } = body as {
       action: Action
       prompt: string
       tone?: string
-      provider?: Provider
     }
 
     if (!prompt) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 })
     }
-
-    const caller = providerMap[provider]
-    if (!caller) {
-      return NextResponse.json({ error: `Unsupported provider: ${provider}` }, { status: 400 })
-    }
-
-    const systemPrompt = getSystemPrompt(action, tone)
-    const result = await caller(systemPrompt, prompt)
-
-    const endTime = Date.now()
-    const responseTime = endTime - startTime
-
-    const promptTokens = Math.ceil(prompt.length / 4)
-    const completionTokens = Math.ceil(result.length / 4)
 
     let feature = "Caption Generator"
     if (action === "generate-hashtags") {
@@ -192,43 +177,52 @@ export async function POST(request: NextRequest) {
       feature = "Content Calendar"
     }
 
-    let model = "gpt-4o-mini"
-    if (provider === "gemini") model = "gemini-2.0-flash"
-    else if (provider === "anthropic") model = "claude-sonnet-4-20250514"
-    else if (provider === "xai") model = "grok-2-1212"
-
-    await recordAIUsage({
-      userId,
-      workspaceId: null,
-      feature,
-      model,
-      promptTokens,
-      completionTokens,
-      responseTime,
-      status: "success"
-    })
-
-    return NextResponse.json({ result })
-  } catch (err: unknown) {
-    console.error("Generate API error:", err)
-    logStatus = "failed"
-    const message = err instanceof Error ? err.message : "Internal server error"
-    
-    if (userId !== "anonymous") {
-      const endTime = Date.now()
-      const responseTime = endTime - startTime
-      await recordAIUsage({
+    const result = await executeAIOperation(
+      async (providerInstance) => {
+        if (action === "generate-caption") {
+          return providerInstance.generateCaption(prompt, tone)
+        } else if (action === "rewrite-text") {
+          return providerInstance.generateText(
+            prompt,
+            `You are a professional copywriter. Rewrite the given text to make it more engaging and effective for social media. ${tone ? "Use a " + tone + " tone." : ""} Improve clarity and impact while preserving the core message.`
+          )
+        } else if (action === "change-tone") {
+          return providerInstance.generateText(
+            prompt,
+            `You are a professional copywriter. Rewrite the given text in a ${tone || "different"} tone while preserving the core message.`
+          )
+        } else if (action === "generate-hashtags") {
+          return providerInstance.generateHashtags(prompt)
+        } else if (action === "content-ideas") {
+          return providerInstance.generateCalendar(prompt)
+        } else if (action === "improve-grammar") {
+          return providerInstance.generateText(
+            prompt,
+            `You are a professional editor. Fix grammar, spelling, and punctuation errors in the given text. Preserve the original meaning and style as much as possible.`
+          )
+        } else {
+          return providerInstance.generateText(prompt)
+        }
+      },
+      {
         userId,
         workspaceId: null,
-        feature: "Caption Generator",
-        model: "gpt-4o-mini",
-        promptTokens: 0,
-        completionTokens: 0,
-        responseTime,
-        status: "failed"
+        feature
+      }
+    )
+
+    if (result && result.text) {
+      await AIGeneration.create({
+        userId,
+        prompt,
+        result: result.text,
       })
     }
 
+    return NextResponse.json({ result: result.text })
+  } catch (err: unknown) {
+    console.error("Generate API error:", err)
+    const message = err instanceof Error ? err.message : "Internal server error"
     return NextResponse.json(
       { error: message },
       { status: 500 }

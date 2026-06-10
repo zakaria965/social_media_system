@@ -2215,39 +2215,12 @@ export default function SettingsCenter() {
                 <CardDescription className="text-xs">Modify the theme, layout margins, and accent typography of your dashboard view.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold">Dark theme Mode</p>
-                    <p className="text-[10px] text-muted-foreground">Toggles system dark palette classes.</p>
-                  </div>
-                  <Switch
-                    checked={localTheme === "dark"}
-                    onCheckedChange={toggleLocalTheme}
-                  />
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-xs text-emerald-800 font-semibold leading-relaxed">
+                  <p className="font-bold mb-0.5">Branding System Locked</p>
+                  <p className="text-[11px] opacity-90">GrowWave uses one unified enterprise brand system. Custom color accents and dark mode overrides are locked to ensure consistent brand identity across all views.</p>
                 </div>
 
-                <Separator className="bg-border/60" />
-
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-semibold">Accent Style Color</Label>
-                    <div className="flex gap-2">
-                      {["#0f766e", "#0284c7", "#7c3aed", "#e11d48", "#2563eb"].map((color) => {
-                        const active = dbUser.accentColor === color
-                        return (
-                          <button
-                            key={color}
-                            onClick={() => saveSettingsPayload({ user: { accentColor: color } }, "appearance")}
-                            className="size-7 rounded-full border border-border/40 flex items-center justify-center transition-all hover:scale-105 active:scale-95"
-                            style={{ backgroundColor: color }}
-                          >
-                            {active && <Check className="size-3.5 text-white" />}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-
                   <div className="space-y-2">
                     <Label className="text-xs font-semibold">Sidebar Dense Layout</Label>
                     <select

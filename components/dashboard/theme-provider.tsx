@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo } from "react"
 
 type Theme = "light" | "dark"
 
@@ -12,33 +12,24 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined)
 
-function getInitial(): Theme {
-  if (typeof window === "undefined") return "light"
-  const stored = localStorage.getItem("growwave-theme") as Theme | null
-  if (stored === "light" || stored === "dark") return stored
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
-}
-
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(getInitial)
+  const theme: Theme = "light"
 
   useEffect(() => {
     const root = document.documentElement
-    if (theme === "dark") {
-      root.classList.add("dark")
-    } else {
-      root.classList.remove("dark")
-    }
-    localStorage.setItem("growwave-theme", theme)
-  }, [theme])
-
-  const toggle = useCallback(() => {
-    setThemeState((prev) => (prev === "light" ? "dark" : "light"))
+    root.classList.remove("dark")
+    localStorage.setItem("growwave-theme", "light")
   }, [])
 
-  const setTheme = useCallback((t: Theme) => setThemeState(t), [])
+  const toggle = useCallback(() => {
+    // Theme is globally locked to light mode. Toggling is disabled.
+  }, [])
 
-  const value = useMemo(() => ({ theme, toggle, setTheme }), [theme, toggle, setTheme])
+  const setTheme = useCallback((t: Theme) => {
+    // Theme is globally locked to light mode. Custom themes are disabled.
+  }, [])
+
+  const value = useMemo(() => ({ theme, toggle, setTheme }), [toggle, setTheme])
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
 }

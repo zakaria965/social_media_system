@@ -75,7 +75,7 @@ export default function HomePage() {
                   whileHover={reduce ? undefined : { y: -4 }}
                   transition={{ type: "spring", stiffness: 380, damping: 22 }}
                 >
-                  <Card className="h-full rounded-2xl border-border/80 bg-white/80 shadow-sm backdrop-blur-md transition-shadow hover:shadow-lg">
+                  <Card className="h-full rounded-2xl border-0 bg-white/80 shadow-card hover:shadow-card-hover backdrop-blur-md transition-all">
                     <CardHeader className="items-center text-center">
                       <div className="flex size-12 items-center justify-center rounded-full bg-green-100">
                         <StepIcon className="size-6 text-primary" aria-hidden />
@@ -129,7 +129,7 @@ export default function HomePage() {
                   whileHover={reduce ? undefined : { y: -3 }}
                   transition={{ type: "spring", stiffness: 400, damping: 24 }}
                 >
-                  <Card className="h-full rounded-2xl border-border/80 bg-card p-8 shadow-sm transition-shadow hover:shadow-xl">
+                  <Card className="h-full rounded-2xl border-0 bg-card p-8 shadow-card hover:shadow-card-hover transition-all">
                     <CardHeader className="p-0">
                       <div className="flex size-12 items-center justify-center rounded-full bg-green-100">
                         <ItemIcon className="size-6 text-primary" aria-hidden />

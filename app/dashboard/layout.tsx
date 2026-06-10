@@ -101,7 +101,7 @@ export default function DashboardLayout({
       <div
         className={cn(
           "flex flex-1 flex-col transition-[padding] duration-300 ease-in-out",
-          activeCollapsed ? "lg:pl-20" : "lg:pl-64"
+          activeCollapsed ? "lg:pl-20" : "lg:pl-[260px]"
         )}
       >
         <TopNavbar onMenuClick={() => setSidebarOpen(true)} />

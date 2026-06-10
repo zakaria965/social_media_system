@@ -210,7 +210,7 @@ export default function FreePublishPage() {
           </p>
         </div>
         <Link href="/free-user/create">
-          <Button className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs rounded-lg uppercase tracking-wider flex items-center gap-1">
+          <Button className="bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs rounded-xl uppercase tracking-wider flex items-center gap-1">
             <Plus className="size-3.5" />
             Compose Post
           </Button>
@@ -218,7 +218,7 @@ export default function FreePublishPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="grid gap-3 sm:grid-cols-12 bg-background p-3 rounded-xl border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+      <div className="grid gap-3 sm:grid-cols-12 bg-white p-4 rounded-2xl border-0 shadow-card">
         {/* Search */}
         <div className="relative sm:col-span-8">
           <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
@@ -226,7 +226,7 @@ export default function FreePublishPage() {
             placeholder="Search posts..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-9 text-xs focus-visible:ring-[#30FC47]"
+            className="pl-9 h-9 text-xs focus-visible:ring-[var(--brand-primary)]"
           />
         </div>
 
@@ -236,7 +236,7 @@ export default function FreePublishPage() {
           <select
             value={selectedPlatform}
             onChange={(e) => setSelectedPlatform(e.target.value)}
-            className="w-full text-xs font-bold text-slate-600 bg-slate-50 border border-slate-250 p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#30FC47] h-9 dark:bg-slate-800 dark:border-slate-700"
+            className="w-full text-xs font-bold text-slate-600 bg-slate-50 border border-slate-250 p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] h-9 dark:bg-slate-800 dark:border-slate-700"
           >
             <option value="all">All Channels</option>
             <option value="facebook">Facebook</option>
@@ -262,13 +262,13 @@ export default function FreePublishPage() {
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 text-xs font-bold transition-all relative border-b-2 -mb-[2px] flex items-center gap-1.5 ${
                 activeTab === tab
-                  ? "border-[#30FC47] text-slate-950 dark:text-white"
+                  ? "border-[var(--brand-primary)] text-slate-950 dark:text-white"
                   : "border-transparent text-slate-500 hover:text-slate-900"
               }`}
             >
               {labels[tab]}
               <span className={`text-[9px] px-1.5 py-0.2 rounded-full ${
-                activeTab === tab ? "bg-[#30FC47]/20 text-emerald-700" : "bg-slate-100 text-slate-500 dark:bg-slate-800"
+                activeTab === tab ? "bg-[var(--brand-primary)]/20 text-emerald-700" : "bg-slate-100 text-slate-500 dark:bg-slate-800"
               }`}>
                 {count}
               </span>
@@ -280,7 +280,7 @@ export default function FreePublishPage() {
       {/* Lists */}
       <div className="space-y-4">
         {filteredPosts.map((post) => (
-          <Card key={post.id} className="rounded-xl border border-slate-200 bg-background shadow-sm dark:bg-slate-900 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-750 transition-all">
+          <Card key={post.id} className="rounded-2xl border-0 bg-white shadow-card hover:shadow-card-hover transition-all duration-300">
             <CardContent className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               
               {/* Left detail */}
@@ -328,7 +328,7 @@ export default function FreePublishPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => handleDeletePost(post.id)}
-                    className="p-2 rounded-lg border border-slate-200 hover:border-rose-500/30 hover:bg-rose-50/50 text-slate-400 hover:text-rose-500 transition-all bg-background"
+                    className="p-2 rounded-xl border border-[#EEF2F7] hover:border-rose-500/30 hover:bg-rose-50/50 text-slate-400 hover:text-rose-500 transition-all bg-background shadow-card"
                     title="Delete Post"
                   >
                     <Trash2 className="size-4" />
@@ -341,14 +341,14 @@ export default function FreePublishPage() {
                         onClick={() => {
                           router.push(`/free-user/create?title=${encodeURIComponent(post.title)}&content=${encodeURIComponent(post.content)}`)
                         }}
-                        className="p-2 rounded-lg border border-slate-200 hover:border-[#30FC47]/40 hover:bg-slate-50 text-slate-600 transition-all bg-background"
+                        className="p-2 rounded-xl border border-[#EEF2F7] hover:border-[var(--brand-primary)]/40 hover:bg-slate-50 text-slate-600 transition-all bg-background shadow-card"
                         title="Edit in Composer"
                       >
                         <Edit className="size-4" />
                       </button>
                       <button
                         onClick={() => handleChangeStatus(post.id, "ready")}
-                        className="bg-slate-900 hover:bg-slate-950 text-white font-extrabold text-[10px] py-2 px-3.5 rounded-lg uppercase tracking-wider transition-all"
+                        className="bg-slate-900 hover:bg-slate-950 text-white font-extrabold text-[10px] py-2 px-3.5 rounded-xl uppercase tracking-wider transition-all shadow-card"
                       >
                         Mark Ready
                       </button>
@@ -359,7 +359,7 @@ export default function FreePublishPage() {
                     <>
                       <button
                         onClick={() => setPublishingPost(post)}
-                        className="bg-slate-900 hover:bg-slate-950 text-white font-extrabold text-[10px] py-2 px-3.5 rounded-lg uppercase tracking-wider transition-all"
+                        className="bg-slate-900 hover:bg-slate-950 text-white font-extrabold text-[10px] py-2 px-3.5 rounded-xl uppercase tracking-wider transition-all shadow-card"
                       >
                         Publish Now
                       </button>
@@ -369,7 +369,7 @@ export default function FreePublishPage() {
                   {post.status === "failed" && (
                     <button
                       onClick={() => handleChangeStatus(post.id, "ready")}
-                      className="bg-slate-900 hover:bg-slate-950 text-white font-extrabold text-[10px] py-2 px-3.5 rounded-lg uppercase tracking-wider transition-all flex items-center gap-1"
+                      className="bg-slate-900 hover:bg-slate-950 text-white font-extrabold text-[10px] py-2 px-3.5 rounded-xl uppercase tracking-wider transition-all flex items-center gap-1 shadow-card"
                     >
                       <RefreshCw className="size-3" />
                       Retry Publish
@@ -377,7 +377,7 @@ export default function FreePublishPage() {
                   )}
 
                   {post.status === "published" && (
-                    <Badge variant="outline" className="border-emerald-500/20 text-emerald-600 bg-emerald-500/5 text-[9px] uppercase font-bold py-1 px-2 select-none flex items-center gap-0.5">
+                    <Badge variant="outline" className="border-emerald-500/20 text-emerald-600 bg-emerald-500/5 text-[9px] uppercase font-bold py-1 px-2 select-none flex items-center gap-0.5 shadow-card">
                       <CheckCircle className="size-3" />
                       Live Feed
                     </Badge>
@@ -397,7 +397,7 @@ export default function FreePublishPage() {
               Your publishing list is empty. Get started by composing a new idea or draft.
             </p>
             <Link href="/free-user/create" className="mt-4">
-              <Button size="xs" className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold uppercase text-[10px]">
+              <Button size="xs" className="bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold uppercase text-[10px]">
                 Create Content
               </Button>
             </Link>
@@ -417,7 +417,7 @@ export default function FreePublishPage() {
                   onClick={() => {
                     router.push("/free-user/settings?tab=accounts")
                   }}
-                  className="w-full bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs py-2 rounded-lg uppercase tracking-wider transition-all"
+                  className="w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs py-2 rounded-xl uppercase tracking-wider transition-all"
                 >
                   Connect Facebook
                 </Button>
@@ -436,7 +436,7 @@ export default function FreePublishPage() {
                   <Button 
                     variant="outline" 
                     onClick={() => setPublishingPost(null)}
-                    className="text-xs font-bold text-[#6B7280]"
+                    className="text-xs font-bold text-[#6B7280] rounded-xl shadow-card"
                   >
                     Cancel
                   </Button>
@@ -484,7 +484,7 @@ export default function FreePublishPage() {
                         setPublishingPost(null)
                       })
                     }}
-                    className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-4 rounded-lg uppercase tracking-wider"
+                    className="bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs px-4 rounded-xl uppercase tracking-wider shadow-card"
                   >
                     Publish Now
                   </Button>

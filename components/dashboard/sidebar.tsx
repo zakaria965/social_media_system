@@ -500,9 +500,10 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
         )}
 
         <aside
+          style={{ backgroundColor: '#FCFAF6', borderRight: '1px solid #F1F5F9' }}
           className={cn(
-            "fixed top-0 left-0 z-50 flex h-full flex-col border-r border-border-light dark:border-zinc-800/40 bg-sidebar-bg dark:bg-zinc-950/80 backdrop-blur-xl transition-all duration-300 lg:translate-x-0 ease-in-out select-none",
-            isCollapsed ? "lg:w-20 w-64" : "w-64",
+            "fixed top-0 left-0 z-50 flex h-full flex-col transition-all duration-300 lg:translate-x-0 ease-in-out select-none",
+            isCollapsed ? "lg:w-20 w-[260px]" : "w-[260px]",
             open ? "translate-x-0" : "-translate-x-full"
           )}
         >
@@ -623,14 +624,14 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
             <Dialog open={isCustomizeOpen} onOpenChange={setIsCustomizeOpen}>
               <DialogTrigger asChild>
                 {!isCollapsed ? (
-                  <Button className="flex-1 gap-2 rounded-xl bg-brand-green hover:bg-brand-green-hover text-[#0F172A] font-extrabold shadow-sm hover:scale-[1.01] transition-all duration-200 py-5 text-xs border-0 cursor-pointer">
+                  <Button className="flex-1 gap-2 rounded-[14px] bg-[#22C55E] hover:bg-[#4ADE80] text-[#FFFFFF] font-semibold shadow-xs hover:scale-[1.01] transition-all duration-200 h-12 text-xs border-0 cursor-pointer">
                     <Plus className="size-4 shrink-0" />
                     <span>Customize Workspace</span>
                   </Button>
                 ) : (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button size="icon" className="size-10 mx-auto flex items-center justify-center rounded-xl bg-brand-green hover:bg-brand-green-hover text-[#0F172A] shadow-sm border-0 cursor-pointer">
+                      <Button size="icon" className="size-10 mx-auto flex items-center justify-center rounded-[14px] bg-[#22C55E] hover:bg-[#4ADE80] text-[#FFFFFF] shadow-xs border-0 cursor-pointer">
                         <Plus className="size-4 shrink-0" />
                       </Button>
                     </TooltipTrigger>

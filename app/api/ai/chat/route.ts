@@ -13,6 +13,7 @@ import { getActiveWorkspaceId } from "@/lib/workspaces"
 import { User } from "@/lib/models/user"
 import { checkAIQuota, recordAIUsage } from "@/lib/ai-quota"
 import OpenAI from "openai"
+import { PlatformSettings } from "@/lib/models/platform-settings"
 
 export const dynamic = "force-dynamic"
 
@@ -21,6 +22,7 @@ export async function POST(request: NextRequest) {
   let email = ""
   let workspaceId: any = null
   let dbUser: any = null
+  let providerName = "GEMINI"
 
   try {
     // 1. Authenticate user
@@ -35,10 +37,19 @@ export async function POST(request: NextRequest) {
     await connectDB()
     workspaceId = await getActiveWorkspaceId(email, request)
 
-    // Check if OpenAI Key is configured
-    const apiKey = process.env.OPENAI_API_KEY
-    if (!apiKey) {
-      console.error("AI service configuration is incomplete: OPENAI_API_KEY is not defined")
+    // Verify that at least one API key is available based on selected provider
+    const platformSettings = await PlatformSettings.findOne()
+    const selection = platformSettings?.aiProvider || "gemini"
+
+    const openAiApiKey = process.env.OPENAI_API_KEY
+    const geminiApiKey = process.env.GEMINI_API_KEY
+
+    const isGeminiEnabled = selection === "gemini" || selection === "auto"
+    const hasKey = isGeminiEnabled ? !!geminiApiKey : !!openAiApiKey
+
+    if (!hasKey) {
+      const missingKeyName = isGeminiEnabled ? "GEMINI_API_KEY" : "OPENAI_API_KEY"
+      console.error(`AI service configuration is incomplete: ${missingKeyName} is not defined`)
       
       // Log failure internally
       try {
@@ -47,7 +58,7 @@ export async function POST(request: NextRequest) {
           workspaceId,
           action: "ai_chat_failure",
           details: JSON.stringify({
-            error: "AI service configuration is incomplete. OPENAI_API_KEY is missing.",
+            error: `AI service configuration is incomplete. ${missingKeyName} is missing.`,
             apiStatus: 400,
             errorCode: "CONFIG_INCOMPLETE",
             timestamp: new Date().toISOString()
@@ -313,55 +324,99 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
       })),
     ]
 
-    // Create OpenAI Stream
-    const openai = new OpenAI({ apiKey })
-    let responseStream
-    try {
-      responseStream = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: formattedMessages as any,
-        stream: true,
-        max_tokens: 2048,
-      })
-    } catch (err: any) {
-      console.error("OpenAI Completions Call Failed:", err)
-      
-      let errorCode = "SERVICE_UNAVAILABLE"
-      let errorMessage = "AI Assistant is temporarily unavailable. Please try again in a few moments."
-      let httpStatus = 500
+    // Create Stream with Fallback System
+    providerName = "GEMINI"
+    let responseStream: any = null
+    let fallbackInitiated = false
 
-      const errMsgStr = err?.message?.toLowerCase() || ""
-      const status = err?.status || err?.statusCode
-
-      if (status === 429 || errMsgStr.includes("429") || errMsgStr.includes("quota") || errMsgStr.includes("limit_exceeded") || err?.code === "insufficient_quota") {
-        errorCode = "QUOTA_EXCEEDED"
-        errorMessage = "Your AI usage limit has been reached."
-        httpStatus = 429
-      } else if (status === 401 || errMsgStr.includes("api key") || errMsgStr.includes("auth") || errMsgStr.includes("invalid_api_key")) {
-        errorCode = "CONFIG_INCOMPLETE"
-        errorMessage = "AI service configuration is incomplete."
-        httpStatus = 400
-      }
-
-      // Log failure internally
+    if (selection === "gemini" || selection === "auto") {
       try {
-        await ActivityLog.create({
-          userId: email,
-          workspaceId,
-          action: "ai_chat_failure",
-          details: JSON.stringify({
-            error: err instanceof Error ? err.message : String(err),
-            apiStatus: httpStatus,
-            errorCode,
-            timestamp: new Date().toISOString()
-          }),
-          status: "failed",
-        })
-      } catch (logErr) {
-        console.error("Failed to log AI activity failure:", logErr)
-      }
+        if (!geminiApiKey) {
+          throw new Error("GEMINI_API_KEY is not configured")
+        }
+        
+        const { GoogleGenerativeAI } = require("@google/generative-ai")
+        const genAI = new GoogleGenerativeAI(geminiApiKey)
+        
+        const systemMsg = formattedMessages.find(m => m.role === "system")?.content || ""
+        const chatContents = formattedMessages
+          .filter(m => m.role !== "system")
+          .map(m => ({
+            role: m.role === "assistant" ? "model" : "user",
+            parts: [{ text: m.content }]
+          }))
 
-      return NextResponse.json({ errorCode, error: errorMessage }, { status: httpStatus })
+        const geminiModel = genAI.getGenerativeModel({ 
+          model: "gemini-2.0-flash",
+          systemInstruction: systemMsg
+        })
+
+        responseStream = await geminiModel.generateContentStream({
+          contents: chatContents,
+          generationConfig: { maxOutputTokens: 2048 }
+        })
+        providerName = "GEMINI"
+      } catch (err: any) {
+        console.error("Gemini stream creation failed, trying fallback to OpenAI:", err)
+        fallbackInitiated = true
+        providerName = "OPENAI"
+      }
+    } else {
+      providerName = "OPENAI"
+    }
+
+    if (providerName === "OPENAI") {
+      if (!openAiApiKey) {
+        throw new Error("AI service configuration is incomplete. OPENAI_API_KEY is missing.")
+      }
+      const openai = new OpenAI({ apiKey: openAiApiKey })
+      try {
+        responseStream = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: formattedMessages as any,
+          stream: true,
+          max_tokens: 2048,
+        })
+      } catch (err: any) {
+        console.error("OpenAI Completions Call Failed:", err)
+        
+        let errorCode = "SERVICE_UNAVAILABLE"
+        let errorMessage = "AI Assistant is temporarily unavailable. Please try again in a few moments."
+        let httpStatus = 500
+
+        const errMsgStr = err?.message?.toLowerCase() || ""
+        const status = err?.status || err?.statusCode
+
+        if (status === 429 || errMsgStr.includes("429") || errMsgStr.includes("quota") || errMsgStr.includes("limit_exceeded") || err?.code === "insufficient_quota") {
+          errorCode = "QUOTA_EXCEEDED"
+          errorMessage = "Your AI usage limit has been reached."
+          httpStatus = 429
+        } else if (status === 401 || errMsgStr.includes("api key") || errMsgStr.includes("auth") || errMsgStr.includes("invalid_api_key")) {
+          errorCode = "CONFIG_INCOMPLETE"
+          errorMessage = "AI service configuration is incomplete."
+          httpStatus = 400
+        }
+
+        // Log failure internally
+        try {
+          await ActivityLog.create({
+            userId: email,
+            workspaceId,
+            action: "ai_chat_failure",
+            details: JSON.stringify({
+              error: err instanceof Error ? err.message : String(err),
+              apiStatus: httpStatus,
+              errorCode,
+              timestamp: new Date().toISOString()
+            }),
+            status: "failed",
+          })
+        } catch (logErr) {
+          console.error("Failed to log AI activity failure:", logErr)
+        }
+
+        return NextResponse.json({ errorCode, error: errorMessage }, { status: httpStatus })
+      }
     }
 
     const encoder = new TextEncoder()
@@ -369,11 +424,21 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
       async start(controller) {
         let assistantText = ""
         try {
-          for await (const chunk of responseStream) {
-            const text = chunk.choices[0]?.delta?.content || ""
-            if (text) {
-              assistantText += text
-              controller.enqueue(encoder.encode(text))
+          if (providerName === "GEMINI") {
+            for await (const chunk of responseStream.stream) {
+              const text = chunk.text() || ""
+              if (text) {
+                assistantText += text
+                controller.enqueue(encoder.encode(text))
+              }
+            }
+          } else {
+            for await (const chunk of responseStream) {
+              const text = chunk.choices[0]?.delta?.content || ""
+              if (text) {
+                assistantText += text
+                controller.enqueue(encoder.encode(text))
+              }
             }
           }
           controller.close()
@@ -384,7 +449,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
               userId: email,
               workspaceId,
               action: "ai_chat",
-              details: `Interacted with GrowWave AI Copilot. Action: ${action || "General Chat"}.`,
+              details: `Interacted with GrowWave AI Copilot. Action: ${action || "General Chat"}. Provider: ${providerName}${fallbackInitiated ? " (OpenAI Fallback)" : ""}`,
               status: "success",
             })
             
@@ -412,7 +477,8 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
                 userId: dbUser._id.toString(),
                 workspaceId,
                 feature,
-                model: "gpt-4o-mini",
+                provider: providerName,
+                model: providerName === "GEMINI" ? "gemini-2.0-flash" : "gpt-4o-mini",
                 promptTokens,
                 completionTokens,
                 responseTime,
@@ -469,7 +535,8 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
               userId: dbUser._id.toString(),
               workspaceId,
               feature: "AI Chat",
-              model: "gpt-4o-mini",
+              provider: providerName,
+              model: providerName === "GEMINI" ? "gemini-2.0-flash" : "gpt-4o-mini",
               promptTokens: 0,
               completionTokens: 0,
               responseTime: Date.now() - startTime,
@@ -516,7 +583,8 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
         userId: dbUser._id.toString(),
         workspaceId,
         feature: "AI Chat",
-        model: "gpt-4o-mini",
+        provider: providerName,
+        model: providerName === "GEMINI" ? "gemini-2.0-flash" : "gpt-4o-mini",
         promptTokens: 0,
         completionTokens: 0,
         responseTime: Date.now() - startTime,

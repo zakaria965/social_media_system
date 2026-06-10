@@ -139,18 +139,32 @@ interface PlatformSettingsData {
   fbAppSecret: string
   fbGraphVersion: string
   maintenanceMode: boolean
+  aiProvider: string
 }
 
 export default function AdminDashboard() {
   const { data: session } = useSession()
   const router = useRouter()
   
+  // Client mount state to prevent hydration mismatches
+  const [mounted, setMounted] = useState(false)
+  const [timeString, setTimeString] = useState("")
+
   // Navigation active tab state
   const [activeTab, setActiveTab] = useState("overview")
 
   // Common UI indicators
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null)
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setMounted(true)
+    setTimeString(new Date().toLocaleTimeString())
+    const interval = setInterval(() => {
+      setTimeString(new Date().toLocaleTimeString())
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Section States
   const [overviewStats, setOverviewStats] = useState<Stats | null>(null)
@@ -209,7 +223,8 @@ export default function AdminDashboard() {
     fbAppId: "",
     fbAppSecret: "",
     fbGraphVersion: "v20.0",
-    maintenanceMode: false
+    maintenanceMode: false,
+    aiProvider: "gemini"
   })
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
@@ -350,16 +365,16 @@ export default function AdminDashboard() {
       {/* Toast Alert Banner */}
       {toast && (
         <div className="fixed right-6 top-6 z-50 flex items-center gap-2 rounded-xl bg-white border border-[#EAEAEA] p-4 shadow-xl animate-fade-in-up">
-          <div className={`size-3 rounded-full ${toast.type === "success" ? "bg-[#30FC47]" : toast.type === "error" ? "bg-[#EF4444]" : "bg-[#F59E0B]"}`} />
+          <div className={`size-3 rounded-full ${toast.type === "success" ? "bg-[var(--brand-primary)]" : toast.type === "error" ? "bg-[#EF4444]" : "bg-[#F59E0B]"}`} />
           <p className="text-sm font-medium">{toast.message}</p>
         </div>
       )}
 
       {/* ADMIN SIDEBAR */}
-      <aside className="fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r border-[#EAEAEA] bg-white print:hidden">
+      <aside className="fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r border-[#EEF2F7] bg-[#FCFAF6] print:hidden">
         {/* Brand Section */}
-        <div className="flex h-16 items-center gap-3 px-6 border-b border-[#EAEAEA]">
-          <div className="size-6 rounded-lg bg-[#30FC47] flex items-center justify-center">
+        <div className="flex h-16 items-center gap-3 px-6">
+          <div className="size-6 rounded-lg bg-[var(--brand-primary)] flex items-center justify-center">
             <Layers className="size-3 text-white" />
           </div>
           <span className="font-display text-lg font-semibold tracking-tight">GrowWave Admin</span>
@@ -393,11 +408,11 @@ export default function AdminDashboard() {
                 }}
                 className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
                   isActive
-                    ? "bg-[#30FC47]/10 text-emerald-950 font-bold border-l-4 border-[#30FC47]"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-[#111111]"
+                    ? "bg-[#F0FDF4] text-[#22C55E] font-semibold"
+                    : "text-slate-600 hover:bg-[#F0FDF4]/50 hover:text-[#111111]"
                 }`}
               >
-                <IconComponent className={`size-4 ${isActive ? "text-emerald-800" : "text-slate-400"}`} />
+                <IconComponent className={`size-4 ${isActive ? "text-[#22C55E]" : "text-slate-400"}`} />
                 {item.label}
               </button>
             )
@@ -405,7 +420,7 @@ export default function AdminDashboard() {
         </nav>
 
         {/* Footer Admin log out */}
-        <div className="border-t border-[#EAEAEA] p-4 flex flex-col gap-2">
+        <div className="p-4 flex flex-col gap-2">
           <div className="flex items-center gap-3 px-2 py-1.5">
             <div className="size-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-700">
               {session?.user?.name ? session.user.name.slice(0, 2).toUpperCase() : "AD"}
@@ -417,7 +432,7 @@ export default function AdminDashboard() {
           </div>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 transition-colors"
+            className="flex w-full items-center gap-2 rounded-xl border border-[#EEF2F7] bg-white hover:bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 transition-colors"
           >
             <LogOut className="size-3.5" />
             Log out
@@ -428,11 +443,11 @@ export default function AdminDashboard() {
       {/* MAIN CONTENT CONTAINER */}
       <div className="flex-1 pl-64 flex flex-col min-h-screen print:pl-0 bg-[#FCFAF6]">
         {/* TOP BAR */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-[#EAEAEA] bg-white/80 backdrop-blur-md px-8 print:hidden">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-[#EEF2F7] bg-[#FCFAF6]/80 backdrop-blur-md px-8 print:hidden">
           <div className="flex items-center gap-4">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Command Center</span>
-            <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 border border-emerald-100">
-              <div className="size-1.5 rounded-full bg-[#30FC47] animate-pulse" />
+            <div className="flex items-center gap-1.5 rounded-full bg-[#F0FDF4] px-2.5 py-1 text-[11px] font-semibold text-[#22C55E]">
+              <div className="size-1.5 rounded-full bg-[var(--brand-primary)] animate-pulse" />
               Platform Online
             </div>
           </div>
@@ -440,7 +455,7 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
             <span>Server: localhost:3000</span>
             <span className="h-4 w-px bg-slate-200" />
-            <span>Time: {new Date().toLocaleTimeString()}</span>
+            <span>Time: {mounted ? timeString : ""}</span>
           </div>
         </header>
 
@@ -465,7 +480,7 @@ export default function AdminDashboard() {
                     ].map((card, idx) => {
                       const Icon = card.icon
                       return (
-                        <div key={idx} className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                        <div key={idx} className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-semibold text-slate-400">{card.title}</span>
                             <div className="rounded-lg bg-slate-50 p-2">
@@ -484,9 +499,9 @@ export default function AdminDashboard() {
                   {/* SVG Charts Section */}
                   <div className="grid gap-6 lg:grid-cols-2">
                     {/* User Growth Chart */}
-                    <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                    <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
                       <h3 className="text-sm font-semibold text-slate-400 mb-4 flex items-center gap-1.5">
-                        <TrendingUp className="size-4 text-[#30FC47]" /> User Registration Trend (7 Days)
+                        <TrendingUp className="size-4 text-[var(--brand-primary)]" /> User Registration Trend (7 Days)
                       </h3>
                       {chartData.length > 0 && (
                         <div className="relative h-64 w-full flex items-end justify-between px-2 pt-6">
@@ -498,7 +513,7 @@ export default function AdminDashboard() {
                               <div key={idx} className="flex flex-col items-center flex-1 group">
                                 <span className="text-[10px] font-bold mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900 text-white rounded px-1 py-0.5 absolute -translate-y-8">{data.users}</span>
                                 <div 
-                                  className="w-8 rounded-t bg-gradient-to-t from-emerald-100 to-[#30FC47] hover:brightness-95 transition-all duration-300 shadow-sm"
+                                  className="w-8 rounded-t bg-gradient-to-t from-emerald-100 to-[var(--brand-primary)] hover:brightness-95 transition-all duration-300 shadow-sm"
                                   style={{ height: `${Math.max(barHeight, 15)}px` }}
                                 />
                                 <span className="text-[10px] text-slate-400 mt-2 rotate-12">{data.date}</span>
@@ -510,7 +525,7 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* Revenue growth Chart */}
-                    <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                    <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
                       <h3 className="text-sm font-semibold text-slate-400 mb-4 flex items-center gap-1.5">
                         <CreditCard className="size-4 text-emerald-600" /> MRR growth simulation (7 Days)
                       </h3>
@@ -536,7 +551,7 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* System & Audit Log Activity feed */}
-                  <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                  <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
                       <History className="size-4 text-slate-400" /> Platform Audit logs activity feed
                     </h3>
@@ -564,7 +579,7 @@ export default function AdminDashboard() {
               {activeTab === "users" && (
                 <div className="space-y-6">
                   {/* Filters & Actions Header */}
-                  <div className="flex flex-col md:flex-row gap-4 items-center justify-between border-b border-[#EAEAEA] pb-4 print:hidden">
+                  <div className="flex flex-col md:flex-row gap-4 items-center justify-between border-b border-[#EEF2F7] pb-4 print:hidden">
                     <div className="relative w-full max-w-sm">
                       <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                       <input
@@ -572,11 +587,11 @@ export default function AdminDashboard() {
                         placeholder="Search users by name, email..."
                         value={searchUserQuery}
                         onChange={(e) => setSearchUserQuery(e.target.value)}
-                        className="w-full rounded-xl border border-[#EAEAEA] bg-white pl-10 pr-4 py-2 text-sm outline-none focus:border-emerald-500 transition-colors"
+                        className="w-full rounded-xl border border-[#EEF2F7] bg-white pl-10 pr-4 py-2 text-sm outline-none focus:border-emerald-500 transition-colors"
                       />
                     </div>
                     <div className="flex flex-wrap gap-3 items-center justify-end w-full md:w-auto">
-                      <div className="flex items-center gap-2 border border-[#EAEAEA] rounded-xl bg-white px-3 py-1.5 text-xs font-semibold">
+                      <div className="flex items-center gap-2 border border-[#EEF2F7] rounded-xl bg-white px-3 py-1.5 text-xs font-semibold">
                         <Filter className="size-3.5 text-slate-400" />
                         <select 
                           value={filterUserPlan} 
@@ -590,13 +605,13 @@ export default function AdminDashboard() {
                       </div>
                       <button
                         onClick={handleExportCSV}
-                        className="flex items-center gap-1.5 rounded-xl border border-[#EAEAEA] bg-white hover:bg-slate-50 px-4 py-2 text-xs font-semibold"
+                        className="flex items-center gap-1.5 rounded-xl border border-[#EEF2F7] bg-white hover:bg-slate-50 px-4 py-2 text-xs font-semibold"
                       >
                         <FileDown className="size-3.5 text-slate-500" /> Export CSV
                       </button>
                       <button
                         onClick={handleExportPDF}
-                        className="flex items-center gap-1.5 rounded-xl bg-emerald-800 text-white hover:bg-emerald-950 px-4 py-2 text-xs font-semibold"
+                        className="flex items-center gap-1.5 rounded-xl bg-[#22C55E] text-white hover:bg-[#16A34A] px-4 py-2 text-xs font-semibold transition-colors"
                       >
                         <FileDown className="size-3.5" /> PDF / Print Report
                       </button>
@@ -604,9 +619,9 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Users Table */}
-                  <div className="overflow-x-auto rounded-2xl border border-[#EAEAEA] bg-white shadow-sm">
+                  <div className="overflow-x-auto rounded-2xl bg-white shadow-card hover:shadow-card-hover transition-all duration-300">
                     <table className="w-full border-collapse text-left text-sm">
-                      <thead className="bg-slate-50 border-b border-[#EAEAEA]">
+                      <thead className="bg-transparent border-b border-[#EEF2F7]">
                         <tr>
                           <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Name</th>
                           <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Plan</th>
@@ -617,7 +632,7 @@ export default function AdminDashboard() {
                           <th className="px-6 py-4 font-bold text-slate-400 text-right uppercase text-xs print:hidden">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#EAEAEA]">
+                      <tbody className="divide-y divide-[#EEF2F7]">
                         {users
                           .filter(u => {
                             const matchesSearch = u.name.toLowerCase().includes(searchUserQuery.toLowerCase()) || u.email.toLowerCase().includes(searchUserQuery.toLowerCase())
@@ -631,14 +646,14 @@ export default function AdminDashboard() {
                                 <div className="text-xs text-slate-400">{u.email}</div>
                               </td>
                               <td className="px-6 py-4">
-                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${u.plan === "PRO" ? "bg-emerald-50 text-emerald-800 border border-emerald-100" : "bg-slate-100 text-slate-800"}`}>
+                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${u.plan === "PRO" ? "bg-[#F0FDF4] text-[#22C55E]" : "bg-slate-100 text-slate-800"}`}>
                                   {u.plan}
                                 </span>
                               </td>
                               <td className="px-6 py-4 font-medium text-slate-700">{u.role}</td>
                               <td className="px-6 py-4">
-                                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${u.status === "ACTIVE" ? "text-emerald-700" : "text-[#EF4444]"}`}>
-                                  <div className={`size-1.5 rounded-full ${u.status === "ACTIVE" ? "bg-[#30FC47]" : "bg-[#EF4444]"}`} />
+                                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${u.status === "ACTIVE" ? "bg-[#F0FDF4] text-[#22C55E]" : "bg-red-50 text-[#EF4444]"}`}>
+                                  <div className={`size-1.5 rounded-full ${u.status === "ACTIVE" ? "bg-[#22C55E]" : "bg-[#EF4444]"}`} />
                                   {u.status}
                                 </span>
                               </td>
@@ -651,7 +666,7 @@ export default function AdminDashboard() {
                                     <button
                                       title="Suspend User"
                                       onClick={() => runAdminPostAction({ action: "suspend-user", userId: u.id }, "User suspended")}
-                                      className="rounded bg-red-50 hover:bg-red-100 text-[#EF4444] p-1.5 transition-colors border border-red-100"
+                                      className="rounded-xl bg-red-50 hover:bg-red-100 text-[#EF4444] p-1.5 transition-colors"
                                     >
                                       <UserX className="size-3.5" />
                                     </button>
@@ -659,7 +674,7 @@ export default function AdminDashboard() {
                                     <button
                                       title="Activate User"
                                       onClick={() => runAdminPostAction({ action: "activate-user", userId: u.id }, "User activated")}
-                                      className="rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 p-1.5 transition-colors border border-emerald-100"
+                                      className="rounded-xl bg-[#F0FDF4] hover:bg-[#F0FDF4]/80 text-[#22C55E] p-1.5 transition-colors"
                                     >
                                       <UserCheck className="size-3.5" />
                                     </button>
@@ -670,7 +685,7 @@ export default function AdminDashboard() {
                                     <button
                                       title="Promote to Admin"
                                       onClick={() => runAdminPostAction({ action: "promote-admin", userId: u.id }, "Promoted to Admin")}
-                                      className="rounded bg-blue-50 hover:bg-blue-100 text-blue-700 p-1.5 transition-colors border border-blue-100"
+                                      className="rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 p-1.5 transition-colors"
                                     >
                                       <UserPlus className="size-3.5" />
                                     </button>
@@ -678,7 +693,7 @@ export default function AdminDashboard() {
                                     <button
                                       title="Remove Admin Access"
                                       onClick={() => runAdminPostAction({ action: "remove-admin", userId: u.id }, "Removed admin access")}
-                                      className="rounded bg-amber-50 hover:bg-amber-100 text-amber-700 p-1.5 transition-colors border border-amber-100"
+                                      className="rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 p-1.5 transition-colors"
                                     >
                                       <Lock className="size-3.5" />
                                     </button>
@@ -688,7 +703,7 @@ export default function AdminDashboard() {
                                   <button
                                     title="Reset limits & quotas"
                                     onClick={() => runAdminPostAction({ action: "reset-user-limits", userId: u.id }, "AI token quota reset")}
-                                    className="rounded bg-slate-100 hover:bg-slate-200 text-slate-700 p-1.5 transition-colors"
+                                    className="rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 p-1.5 transition-colors"
                                   >
                                     <RefreshCw className="size-3.5" />
                                   </button>
@@ -701,7 +716,7 @@ export default function AdminDashboard() {
                                         runAdminPostAction({ action: "delete-user", userId: u.id }, "User deleted successfully")
                                       }
                                     }}
-                                    className="rounded bg-slate-100 hover:bg-red-500 hover:text-white text-slate-500 p-1.5 transition-all"
+                                    className="rounded-xl bg-slate-100 hover:bg-red-500 hover:text-white text-slate-500 p-1.5 transition-all"
                                   >
                                     <Trash2 className="size-3.5" />
                                   </button>
@@ -719,7 +734,7 @@ export default function AdminDashboard() {
               {activeTab === "workspaces" && (
                 <div className="space-y-6">
                   {/* Filter Header */}
-                  <div className="flex items-center justify-between border-b border-[#EAEAEA] pb-4">
+                  <div className="flex items-center justify-between border-b border-[#EEF2F7] pb-4">
                     <div className="relative w-full max-w-sm">
                       <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                       <input
@@ -727,15 +742,15 @@ export default function AdminDashboard() {
                         placeholder="Search workspaces..."
                         value={searchWorkspaceQuery}
                         onChange={(e) => setSearchWorkspaceQuery(e.target.value)}
-                        className="w-full rounded-xl border border-[#EAEAEA] bg-white pl-10 pr-4 py-2 text-sm outline-none focus:border-emerald-500 transition-colors"
+                        className="w-full rounded-xl border border-[#EEF2F7] bg-white pl-10 pr-4 py-2 text-sm outline-none focus:border-emerald-500 transition-colors"
                       />
                     </div>
                   </div>
 
                   {/* Workspaces list */}
-                  <div className="overflow-x-auto rounded-2xl border border-[#EAEAEA] bg-white shadow-sm">
+                  <div className="overflow-x-auto rounded-2xl bg-white shadow-card hover:shadow-card-hover transition-all duration-300">
                     <table className="w-full border-collapse text-left text-sm">
-                      <thead className="bg-slate-50 border-b border-[#EAEAEA]">
+                      <thead className="bg-transparent border-b border-[#EEF2F7]">
                         <tr>
                           <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Workspace Name</th>
                           <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Owner</th>
@@ -747,7 +762,7 @@ export default function AdminDashboard() {
                           <th className="px-6 py-4 font-bold text-slate-400 text-right uppercase text-xs">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#EAEAEA]">
+                      <tbody className="divide-y divide-[#EEF2F7]">
                         {workspaces
                           .filter(w => w.name.toLowerCase().includes(searchWorkspaceQuery.toLowerCase()) || w.ownerEmail.toLowerCase().includes(searchWorkspaceQuery.toLowerCase()))
                           .map((w) => (
@@ -758,7 +773,7 @@ export default function AdminDashboard() {
                                 <div className="text-xs text-slate-400">{w.ownerEmail}</div>
                               </td>
                               <td className="px-6 py-4">
-                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${w.plan === "PRO" ? "bg-emerald-50 text-emerald-800 border border-emerald-100" : "bg-slate-100 text-slate-800"}`}>
+                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${w.plan === "PRO" ? "bg-[#F0FDF4] text-[#22C55E]" : "bg-slate-100 text-slate-800"}`}>
                                   {w.plan}
                                 </span>
                               </td>
@@ -766,7 +781,7 @@ export default function AdminDashboard() {
                               <td className="px-6 py-4 font-bold text-slate-800">{w.postsCount}</td>
                               <td className="px-6 py-4 text-xs text-slate-500">{new Date(w.createdAt).toLocaleDateString()}</td>
                               <td className="px-6 py-4">
-                                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${w.status === "Active" ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-[#EF4444]"}`}>
+                                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${w.status === "Active" ? "bg-[#F0FDF4] text-[#22C55E]" : "bg-red-50 text-[#EF4444]"}`}>
                                   {w.status}
                                 </span>
                               </td>
@@ -775,14 +790,14 @@ export default function AdminDashboard() {
                                   <button
                                     title="Open Workspace (Simulated)"
                                     onClick={() => alert(`Opening workspace dashboard preview for workspace: ${w.name}`)}
-                                    className="rounded bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 text-xs font-semibold transition-colors"
+                                    className="rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 text-xs font-semibold transition-colors"
                                   >
                                     Open
                                   </button>
                                   {w.status === "Active" ? (
                                     <button
                                       onClick={() => runAdminPostAction({ action: "disable-workspace", workspaceId: w.id }, "Workspace disabled (owner suspended)")}
-                                      className="rounded border border-red-200 bg-white hover:bg-red-50 text-[#EF4444] px-2.5 py-1 text-xs font-semibold transition-colors"
+                                      className="rounded-xl border border-red-200 bg-white hover:bg-red-50 text-[#EF4444] px-2.5 py-1 text-xs font-semibold transition-colors"
                                     >
                                       Disable
                                     </button>
@@ -793,7 +808,7 @@ export default function AdminDashboard() {
                                         runAdminPostAction({ action: "delete-workspace", workspaceId: w.id }, "Workspace deleted")
                                       }
                                     }}
-                                    className="rounded bg-slate-100 hover:bg-red-500 hover:text-white text-slate-600 p-1.5 transition-all"
+                                    className="rounded-xl bg-slate-100 hover:bg-red-500 hover:text-white text-slate-600 p-1.5 transition-all"
                                   >
                                     <Trash2 className="size-3.5" />
                                   </button>
@@ -818,7 +833,7 @@ export default function AdminDashboard() {
                       { title: "Annual Recurring Revenue (ARR)", value: `$${paymentSummary.arr}`, desc: "ARR calculated estimate" },
                       { title: "SaaS Churn Rate", value: `${paymentSummary.churnRate}%`, desc: "Average user cancellations" }
                     ].map((card, idx) => (
-                      <div key={idx} className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                      <div key={idx} className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
                         <span className="text-sm font-semibold text-slate-400">{card.title}</span>
                         <div className="mt-4">
                           <span className="text-3xl font-bold tracking-tight">{card.value}</span>
@@ -829,11 +844,11 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* List of active users to upgrade/downgrade */}
-                  <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                  <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
                     <h3 className="text-base font-bold mb-4">Manual User Subscription Overrides</h3>
                     <div className="overflow-x-auto">
                       <table className="w-full border-collapse text-left text-sm">
-                        <thead className="bg-slate-50 border-b border-[#EAEAEA]">
+                        <thead className="bg-transparent border-b border-[#EEF2F7]">
                           <tr>
                             <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">User Name</th>
                             <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Current Plan</th>
@@ -841,7 +856,7 @@ export default function AdminDashboard() {
                             <th className="px-6 py-4 font-bold text-slate-400 text-right uppercase text-xs">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#EAEAEA]">
+                        <tbody className="divide-y divide-[#EEF2F7]">
                           {users.map((u) => (
                             <tr key={u.id} className="hover:bg-slate-50/50 transition-colors">
                               <td className="px-6 py-4">
@@ -849,7 +864,7 @@ export default function AdminDashboard() {
                                 <div className="text-xs text-slate-400">{u.email}</div>
                               </td>
                               <td className="px-6 py-4">
-                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${u.plan === "PRO" ? "bg-emerald-50 text-emerald-800 border border-emerald-100" : "bg-slate-100 text-slate-800"}`}>
+                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${u.plan === "PRO" ? "bg-[#F0FDF4] text-[#22C55E]" : "bg-slate-100 text-slate-800"}`}>
                                   {u.plan}
                                 </span>
                               </td>
@@ -859,7 +874,7 @@ export default function AdminDashboard() {
                                   {u.plan === "FREE" ? (
                                     <button
                                       onClick={() => runAdminPostAction({ action: "upgrade-user", userId: u.id }, `Upgraded ${u.name} to PRO`)}
-                                      className="rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-1.5 text-xs font-semibold transition-colors border border-emerald-100"
+                                      className="rounded-xl bg-[#F0FDF4] hover:bg-[#F0FDF4]/80 text-[#22C55E] px-3 py-1.5 text-xs font-semibold transition-colors"
                                     >
                                       Upgrade to PRO
                                     </button>
@@ -867,13 +882,13 @@ export default function AdminDashboard() {
                                     <>
                                       <button
                                         onClick={() => runAdminPostAction({ action: "downgrade-user", userId: u.id }, `Downgraded ${u.name} to FREE`)}
-                                        className="rounded border border-slate-200 bg-white hover:bg-slate-50 px-3 py-1.5 text-xs font-semibold transition-colors"
+                                        className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-3 py-1.5 text-xs font-semibold transition-colors"
                                       >
                                         Downgrade to FREE
                                       </button>
                                       <button
                                         onClick={() => runAdminPostAction({ action: "cancel-subscription", userId: u.id }, `Cancelled plan subscription for ${u.name}`)}
-                                        className="rounded bg-red-50 hover:bg-red-100 text-[#EF4444] px-3 py-1.5 text-xs font-semibold transition-colors border border-[#EF4444]/10"
+                                        className="rounded-xl bg-red-50 hover:bg-red-100 text-[#EF4444] px-3 py-1.5 text-xs font-semibold transition-colors"
                                       >
                                         Cancel Subscription
                                       </button>
@@ -901,7 +916,7 @@ export default function AdminDashboard() {
                       { title: "Failed Payments", value: `$${payments.filter(p => p.status === "FAILED").reduce((acc, curr) => acc + curr.amount, 0)}`, desc: "Declined transactions" },
                       { title: "Refunds Issued", value: `$${payments.filter(p => p.status === "REFUNDED").reduce((acc, curr) => acc + curr.amount, 0)}`, desc: "Returned charges" }
                     ].map((card, idx) => (
-                      <div key={idx} className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                      <div key={idx} className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
                         <span className="text-sm font-semibold text-slate-400">{card.title}</span>
                         <div className="mt-4">
                           <span className="text-3xl font-bold tracking-tight">{card.value}</span>
@@ -912,11 +927,11 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Transactions table */}
-                  <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                  <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
                     <h3 className="text-base font-bold mb-4">Transactions Logs</h3>
                     <div className="overflow-x-auto">
                       <table className="w-full border-collapse text-left text-sm">
-                        <thead className="bg-slate-50 border-b border-[#EAEAEA]">
+                        <thead className="bg-transparent border-b border-[#EEF2F7]">
                           <tr>
                             <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Transaction ID</th>
                             <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Customer Email</th>
@@ -927,7 +942,7 @@ export default function AdminDashboard() {
                             <th className="px-6 py-4 font-bold text-slate-400 text-right uppercase text-xs">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#EAEAEA]">
+                        <tbody className="divide-y divide-[#EEF2F7]">
                           {payments.length === 0 ? (
                             <tr>
                               <td colSpan={7} className="px-6 py-8 text-center text-slate-400">No payment transactions recorded yet.</td>
@@ -943,7 +958,7 @@ export default function AdminDashboard() {
                                 <td className="px-6 py-4">
                                   <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                                     p.status === "SUCCESS" 
-                                      ? "bg-emerald-50 text-emerald-800" 
+                                      ? "bg-[#F0FDF4] text-[#22C55E]" 
                                       : p.status === "REFUNDED" 
                                       ? "bg-slate-100 text-slate-800" 
                                       : "bg-red-50 text-[#EF4444]"
@@ -956,7 +971,7 @@ export default function AdminDashboard() {
                                     {p.status === "SUCCESS" && (
                                       <button
                                         onClick={() => runAdminPostAction({ action: "issue-refund", transactionId: p.transactionId }, "Refund completed successfully")}
-                                        className="rounded border border-red-200 bg-white hover:bg-red-50 text-[#EF4444] px-2.5 py-1 text-xs font-semibold transition-colors"
+                                        className="rounded-xl border border-red-200 bg-white hover:bg-red-50 text-[#EF4444] px-2.5 py-1 text-xs font-semibold transition-colors"
                                       >
                                         Refund
                                       </button>
@@ -964,7 +979,7 @@ export default function AdminDashboard() {
                                     {p.status === "FAILED" && (
                                       <button
                                         onClick={() => runAdminPostAction({ action: "retry-payment", transactionId: p.transactionId }, "Payment retry succeeded")}
-                                        className="rounded bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 py-1 text-xs font-semibold transition-colors"
+                                        className="rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 py-1 text-xs font-semibold transition-colors"
                                       >
                                         Retry Charge
                                       </button>
@@ -986,7 +1001,7 @@ export default function AdminDashboard() {
                 <div className="space-y-6">
                   {/* Global settings info (Shutdown Warning Alert) */}
                   {aiSettings.openaiEmergencyShutdown && (
-                    <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-semibold text-red-800 flex items-center gap-2">
+                    <div className="rounded-xl bg-red-50 p-4 text-xs font-semibold text-red-800 flex items-center gap-2">
                       <ShieldAlert className="size-4 animate-bounce text-red-600" />
                       <span>Platform AI is currently suspended by the Emergency Kill Switch. No users (except Admins) can access AI features.</span>
                     </div>
@@ -1000,7 +1015,7 @@ export default function AdminDashboard() {
                       { title: "Month Cost", value: `$${aiUsageSummary.costThisMonth.toFixed(4)}`, desc: `Limit: $${aiSettings.openaiMonthlyBudget.toFixed(2)}` },
                       { title: "Lifetime Cost", value: `$${aiUsageSummary.costLifetime.toFixed(4)}`, desc: "All-time platform AI expenditure" }
                     ].map((card, idx) => (
-                      <div key={idx} className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                      <div key={idx} className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
                         <span className="text-sm font-semibold text-slate-400">{card.title}</span>
                         <div className="mt-4">
                           <span className="text-3xl font-bold tracking-tight">{card.value}</span>
@@ -1011,7 +1026,7 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Sub-Navigation Tabs */}
-                  <div className="flex border-b border-[#EAEAEA] gap-6 text-sm font-semibold">
+                  <div className="flex border-b border-[#EEF2F7] gap-6 text-sm font-semibold">
                     {[
                       { id: "overview", label: "Overview & Analytics" },
                       { id: "users", label: "User Limits & Access" },
@@ -1037,7 +1052,7 @@ export default function AdminDashboard() {
                     <div className="space-y-6">
                       <div className="grid gap-6 md:grid-cols-2">
                         {/* Provider Breakdown */}
-                        <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                        <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
                           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Provider Expenditure Breakdown</h3>
                           <div className="space-y-4">
                             {providerBreakdown.map((p) => (
@@ -1058,7 +1073,7 @@ export default function AdminDashboard() {
                         </div>
 
                         {/* Feature Usage counts */}
-                        <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                        <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
                           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">AI Feature Usage Counts</h3>
                           <div className="space-y-4">
                             {featureUsage.map((f) => (
@@ -1085,10 +1100,51 @@ export default function AdminDashboard() {
                         </div>
                       </div>
 
+                      {/* Provider Performance Table */}
+                      <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
+                        <div className="flex items-center justify-between mb-4 border-b border-slate-50 pb-3">
+                          <div>
+                            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">AI Provider Performance & Metrics</h3>
+                            <p className="text-[11px] text-slate-400 mt-0.5">Real-time statistics compiled across successful and failed API integrations</p>
+                          </div>
+                        </div>
+                        <div className="overflow-x-auto font-sans">
+                          <table className="w-full text-left text-xs border-collapse">
+                            <thead>
+                              <tr className="border-b border-[#EEF2F7] text-slate-400 font-bold uppercase">
+                                <th className="pb-3 text-left">Provider</th>
+                                <th className="pb-3 text-center">Requests</th>
+                                <th className="pb-3 text-center">Total Tokens</th>
+                                <th className="pb-3 text-center">Errors</th>
+                                <th className="pb-3 text-center">Avg Latency</th>
+                                <th className="pb-3 text-right">Total Cost</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#EEF2F7] text-slate-700 font-semibold">
+                              {providerBreakdown.map((p) => (
+                                <tr key={p.name} className="hover:bg-slate-50/50 transition-colors">
+                                  <td className="py-3.5 text-left font-bold text-slate-800">{p.name}</td>
+                                  <td className="py-3.5 text-center font-mono">{p.requests}</td>
+                                  <td className="py-3.5 text-center font-mono">{p.tokens.toLocaleString()}</td>
+                                  <td className={`py-3.5 text-center font-mono ${p.errors > 0 ? "text-[#EF4444]" : "text-slate-500"}`}>{p.errors}</td>
+                                  <td className="py-3.5 text-center font-mono">{p.avgResponseTime || 0}ms</td>
+                                  <td className="py-3.5 text-right font-extrabold text-[#22C55E]">${p.cost.toFixed(4)}</td>
+                                </tr>
+                              ))}
+                              {providerBreakdown.length === 0 && (
+                                <tr>
+                                  <td colSpan={6} className="py-4 text-center text-slate-400 font-normal">No provider breakdown data available.</td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
                       {/* Leaderboards */}
                       <div className="grid gap-6 md:grid-cols-3">
                         {/* Top Users */}
-                        <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                        <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
                           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Top Users (Tokens)</h3>
                           <div className="space-y-3">
                             {aiLeaderboard.topUsers?.length === 0 ? (
@@ -1110,7 +1166,7 @@ export default function AdminDashboard() {
                         </div>
 
                         {/* Top Cost Users */}
-                        <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                        <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
                           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Top Cost Generated</h3>
                           <div className="space-y-3">
                             {aiLeaderboard.topCostUsers?.length === 0 ? (
@@ -1123,7 +1179,7 @@ export default function AdminDashboard() {
                                     <p className="text-[9px] text-slate-400 truncate">{user.email}</p>
                                   </div>
                                   <div className="text-right shrink-0">
-                                    <p className="text-xs font-bold text-emerald-600">${user.cost.toFixed(4)}</p>
+                                    <p className="text-xs font-bold text-[#22C55E]">${user.cost.toFixed(4)}</p>
                                   </div>
                                 </div>
                               ))
@@ -1132,7 +1188,7 @@ export default function AdminDashboard() {
                         </div>
 
                         {/* Most Active Workspaces */}
-                        <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                        <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
                           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Active Workspaces</h3>
                           <div className="space-y-3">
                             {aiLeaderboard.topWorkspaces?.length === 0 ? (
@@ -1160,7 +1216,7 @@ export default function AdminDashboard() {
                   {activeAiSubTab === "users" && (
                     <div className="space-y-4">
                       {/* Search & Stats */}
-                      <div className="flex items-center justify-between border-b border-[#EAEAEA] pb-4 gap-4">
+                      <div className="flex items-center justify-between border-b border-[#EEF2F7] pb-4 gap-4">
                         <div className="relative w-full max-w-sm">
                           <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                           <input
@@ -1168,15 +1224,15 @@ export default function AdminDashboard() {
                             placeholder="Search users by name, email..."
                             value={aiSearchQuery}
                             onChange={(e) => setAiSearchQuery(e.target.value)}
-                            className="w-full rounded-xl border border-[#EAEAEA] bg-white pl-10 pr-4 py-2 text-sm outline-none focus:border-emerald-500 transition-colors"
+                            className="w-full rounded-xl border border-[#EEF2F7] bg-white pl-10 pr-4 py-2 text-sm outline-none focus:border-emerald-500 transition-colors"
                           />
                         </div>
                       </div>
 
                       {/* Users table */}
-                      <div className="overflow-x-auto rounded-2xl border border-[#EAEAEA] bg-white shadow-sm">
+                      <div className="overflow-x-auto rounded-2xl bg-white shadow-card hover:shadow-card-hover transition-all duration-300">
                         <table className="w-full border-collapse text-left text-sm">
-                          <thead className="bg-slate-50 border-b border-[#EAEAEA]">
+                          <thead className="bg-transparent border-b border-[#EEF2F7]">
                             <tr>
                               <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">User</th>
                               <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Plan</th>
@@ -1186,7 +1242,7 @@ export default function AdminDashboard() {
                               <th className="px-6 py-4 font-bold text-slate-400 text-right uppercase text-xs">Actions</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-[#EAEAEA]">
+                          <tbody className="divide-y divide-[#EEF2F7]">
                             {aiUsers
                               .filter(u => u.name.toLowerCase().includes(aiSearchQuery.toLowerCase()) || u.email.toLowerCase().includes(aiSearchQuery.toLowerCase()))
                               .map((u) => {
@@ -1202,7 +1258,7 @@ export default function AdminDashboard() {
                                       <div className="text-xs text-slate-400">{u.email}</div>
                                     </td>
                                     <td className="px-6 py-4">
-                                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${u.plan === "PRO" ? "bg-emerald-50 text-emerald-800 border border-emerald-100" : "bg-slate-100 text-slate-800"}`}>
+                                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${u.plan === "PRO" ? "bg-[#F0FDF4] text-[#22C55E]" : "bg-slate-100 text-slate-800"}`}>
                                         {u.plan}
                                       </span>
                                     </td>
@@ -1214,7 +1270,7 @@ export default function AdminDashboard() {
                                         </div>
                                         <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                                           <div
-                                            className={`h-full rounded-full ${tokenPct >= 90 ? "bg-rose-500" : tokenPct >= 75 ? "bg-amber-500" : "bg-emerald-500"}`}
+                                            className={`h-full rounded-full ${tokenPct >= 90 ? "bg-rose-500" : tokenPct >= 75 ? "bg-amber-500" : "bg-[#22C55E]"}`}
                                             style={{ width: `${tokenLimit <= 0 || tokenLimit > 10000000 ? 0 : Math.min(tokenPct, 100)}%` }}
                                           />
                                         </div>
@@ -1228,7 +1284,7 @@ export default function AdminDashboard() {
                                         </div>
                                         <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                                           <div
-                                            className={`h-full rounded-full ${requestPct >= 90 ? "bg-rose-500" : requestPct >= 75 ? "bg-amber-500" : "bg-emerald-500"}`}
+                                            className={`h-full rounded-full ${requestPct >= 90 ? "bg-rose-500" : requestPct >= 75 ? "bg-amber-500" : "bg-[#22C55E]"}`}
                                             style={{ width: `${requestLimit === -1 ? 0 : Math.min(requestPct, 100)}%` }}
                                           />
                                         </div>
@@ -1237,7 +1293,7 @@ export default function AdminDashboard() {
                                     <td className="px-6 py-4">
                                       <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
                                         u.status === "ACTIVE"
-                                          ? "bg-emerald-50 text-emerald-800"
+                                          ? "bg-[#F0FDF4] text-[#22C55E]"
                                           : u.status === "LIMIT REACHED"
                                           ? "bg-amber-50 text-amber-800"
                                           : u.status === "DISABLED"
@@ -1252,7 +1308,7 @@ export default function AdminDashboard() {
                                         <button
                                           title="View usage analytics"
                                           onClick={() => handleViewUserAnalytics(u)}
-                                          className="rounded bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 px-2 py-1 text-xs font-semibold transition-colors"
+                                          className="rounded-xl bg-slate-50 hover:bg-slate-100 border border-[#EEF2F7] text-slate-700 px-2 py-1 text-xs font-semibold transition-colors"
                                         >
                                           Analytics
                                         </button>
@@ -1265,7 +1321,7 @@ export default function AdminDashboard() {
                                             setBonusTokensVal(u.bonusTokens.toString())
                                             setBonusRequestsVal(u.bonusRequests.toString())
                                           }}
-                                          className="rounded bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 px-2 py-1 text-xs font-semibold transition-colors"
+                                          className="rounded-xl bg-slate-50 hover:bg-slate-100 border border-[#EEF2F7] text-slate-700 px-2 py-1 text-xs font-semibold transition-colors"
                                         >
                                           Adjust
                                         </button>
@@ -1273,7 +1329,7 @@ export default function AdminDashboard() {
                                           <button
                                             title="Disable AI for user"
                                             onClick={() => runAdminPostAction({ action: "toggle-user-ai", userId: u.id, enabled: false }, "AI suspended for user")}
-                                            className="rounded border border-red-250 bg-white hover:bg-red-55 text-red-600 px-2 py-1 text-xs font-semibold transition-colors"
+                                            className="rounded-xl border border-red-200 bg-white hover:bg-red-50 text-red-600 px-2 py-1 text-xs font-semibold transition-colors"
                                           >
                                             Disable
                                           </button>
@@ -1281,7 +1337,7 @@ export default function AdminDashboard() {
                                           <button
                                             title="Enable AI for user"
                                             onClick={() => runAdminPostAction({ action: "toggle-user-ai", userId: u.id, enabled: true }, "AI enabled for user")}
-                                            className="rounded border border-emerald-250 bg-white hover:bg-emerald-55 text-emerald-600 px-2 py-1 text-xs font-semibold transition-colors"
+                                            className="rounded-xl border border-emerald-100 bg-white hover:bg-[#F0FDF4] text-emerald-600 px-2 py-1 text-xs font-semibold transition-colors"
                                           >
                                             Enable
                                           </button>
@@ -1293,7 +1349,7 @@ export default function AdminDashboard() {
                                               runAdminPostAction({ action: "reset-user-limits", userId: u.id }, "AI token quota reset")
                                             }
                                           }}
-                                          className="rounded bg-slate-105 hover:bg-slate-200 text-slate-705 p-1 transition-colors"
+                                          className="rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 p-1 transition-colors"
                                         >
                                           <RefreshCw className="size-3.5" />
                                         </button>
@@ -1310,11 +1366,11 @@ export default function AdminDashboard() {
 
                   {/* SUBTAB 3: REQUEST LOGS */}
                   {activeAiSubTab === "logs" && (
-                    <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                    <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
                       <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 font-mono">OpenAI & Provider Request Logs</h3>
                       <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
                         <table className="w-full border-collapse text-left text-xs">
-                          <thead className="bg-slate-50 border-b border-[#EAEAEA] sticky top-0">
+                          <thead className="bg-transparent border-b border-[#EEF2F7] sticky top-0">
                             <tr>
                               <th className="px-4 py-3 font-bold text-slate-400 uppercase">Timestamp</th>
                               <th className="px-4 py-3 font-bold text-slate-400 uppercase">User</th>
@@ -1327,7 +1383,7 @@ export default function AdminDashboard() {
                               <th className="px-4 py-3 font-bold text-slate-400 uppercase">Status</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-[#EAEAEA]">
+                          <tbody className="divide-y divide-[#EEF2F7]">
                             {aiLogs.length === 0 ? (
                               <tr>
                                 <td colSpan={9} className="px-4 py-6 text-center text-slate-400">No request logs recorded in MongoDB yet.</td>
@@ -1346,10 +1402,10 @@ export default function AdminDashboard() {
                                       <span className="text-[9px] text-slate-400">in: {log.promptTokens} | out: {log.completionTokens}</span>
                                     </div>
                                   </td>
-                                  <td className="px-4 py-3 text-emerald-700 font-extrabold whitespace-nowrap">${log.cost.toFixed(4)}</td>
+                                  <td className="px-4 py-3 text-[#22C55E] font-extrabold whitespace-nowrap">${log.cost.toFixed(4)}</td>
                                   <td className="px-4 py-3 font-medium text-slate-600">{log.responseTime}ms</td>
                                   <td className="px-4 py-3">
-                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${log.status === "success" ? "bg-emerald-50 text-emerald-800 border border-emerald-100" : "bg-red-50 text-red-800 border border-red-100"}`}>
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${log.status === "success" ? "bg-[#F0FDF4] text-[#22C55E]" : "bg-red-50 text-red-800"}`}>
                                       {log.status.toUpperCase()}
                                     </span>
                                   </td>
@@ -1366,7 +1422,7 @@ export default function AdminDashboard() {
                   {activeAiSubTab === "settings" && (
                     <div className="grid gap-6 md:grid-cols-2">
                       {/* Budget settings */}
-                      <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm space-y-4">
+                      <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300 space-y-4">
                         <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Monthly Platform Budget</h3>
                         <p className="text-xs text-slate-400 leading-relaxed">
                           Configure platform budget ceiling limits. Admins will receive warnings at 80% and critical block suspensions when 100% of limits are breached.
@@ -1380,7 +1436,7 @@ export default function AdminDashboard() {
                               className={`px-4 py-2 text-xs font-bold rounded-xl border transition-all ${
                                 aiSettings.openaiMonthlyBudget === val
                                   ? "bg-slate-900 text-white border-slate-900"
-                                  : "bg-white hover:bg-slate-50 border-slate-200 text-slate-700"
+                                  : "bg-white hover:bg-slate-50 border-[#EEF2F7] text-slate-700"
                               }`}
                             >
                               ${val}
@@ -1395,7 +1451,7 @@ export default function AdminDashboard() {
                               type="number"
                               value={customBudgetVal}
                               onChange={(e) => setCustomBudgetVal(e.target.value)}
-                              className="w-full max-w-[150px] rounded-xl border border-slate-200 px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-[#FCFAF6] font-semibold"
+                              className="w-full max-w-[150px] rounded-xl border border-[#EEF2F7] px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-[#FCFAF6] font-semibold"
                             />
                             <button
                               onClick={() => runAdminPostAction({ action: "save-ai-budget", monthlyBudget: customBudgetVal }, "Platform budget updated")}
@@ -1408,7 +1464,7 @@ export default function AdminDashboard() {
                       </div>
 
                       {/* Platform AI Kill switch */}
-                      <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm space-y-4">
+                      <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300 space-y-4">
                         <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Emergency Platform Kill Switch</h3>
                         <p className="text-xs text-slate-400 leading-relaxed">
                           Immediately disables all platform AI generation services (such as Caption, Hashtag, and Chat Strategist tools). Use in case of model degradation, billing leaks, or API outages.
@@ -1450,7 +1506,7 @@ export default function AdminDashboard() {
                     {["facebook", "instagram", "linkedin", "tiktok", "twitter"].map((plat) => {
                       const count = channels.filter(c => c.platform === plat && c.status === "connected").length
                       return (
-                        <div key={plat} className="rounded-2xl border border-[#EAEAEA] bg-white p-4 shadow-sm text-center">
+                        <div key={plat} className="rounded-2xl bg-white p-4 shadow-card hover:shadow-card-hover transition-all duration-300 text-center">
                           <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{plat}</span>
                           <p className="text-3xl font-extrabold mt-2 text-slate-800">{count}</p>
                           <span className="text-[10px] text-slate-400 font-semibold">Active Channels</span>
@@ -1460,11 +1516,11 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Connected channels list */}
-                  <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                  <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
                     <h3 className="text-base font-bold mb-4">SaaS Connected Social Media Channels</h3>
                     <div className="overflow-x-auto">
                       <table className="w-full border-collapse text-left text-sm">
-                        <thead className="bg-slate-50 border-b border-[#EAEAEA]">
+                        <thead className="bg-transparent border-b border-[#EEF2F7]">
                           <tr>
                             <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Channel Details</th>
                             <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Owner Account</th>
@@ -1473,7 +1529,7 @@ export default function AdminDashboard() {
                             <th className="px-6 py-4 font-bold text-slate-400 text-right uppercase text-xs">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#EAEAEA]">
+                        <tbody className="divide-y divide-[#EEF2F7]">
                           {channels.length === 0 ? (
                             <tr>
                               <td colSpan={5} className="px-6 py-8 text-center text-slate-400">No social channels connected yet.</td>
@@ -1498,7 +1554,7 @@ export default function AdminDashboard() {
                                 </td>
                                 <td className="px-6 py-4 font-bold text-slate-700">{ch.followers.toLocaleString()}</td>
                                 <td className="px-6 py-4">
-                                  <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-bold ${ch.status === "connected" ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-[#EF4444]"}`}>
+                                  <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-bold ${ch.status === "connected" ? "bg-[#F0FDF4] text-[#22C55E]" : "bg-red-50 text-[#EF4444]"}`}>
                                     {ch.status}
                                   </span>
                                 </td>
@@ -1506,13 +1562,13 @@ export default function AdminDashboard() {
                                   <div className="inline-flex gap-1.5 justify-end">
                                     <button
                                       onClick={() => alert(`Token refresh simulation completed for ${ch.username} (${ch.platform})`)}
-                                      className="rounded bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 text-xs font-semibold transition-colors"
+                                      className="rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 text-xs font-semibold transition-colors"
                                     >
                                       Refresh Token
                                     </button>
                                     <button
                                       onClick={() => alert(`Simulating platform channel disconnect. Disconnected successfully.`)}
-                                      className="rounded border border-red-200 bg-white hover:bg-red-50 text-[#EF4444] px-2.5 py-1.5 text-xs font-semibold transition-colors"
+                                      className="rounded-xl border border-red-200 bg-white hover:bg-red-50 text-[#EF4444] px-2.5 py-1.5 text-xs font-semibold transition-colors"
                                     >
                                       Disconnect
                                     </button>
@@ -1534,7 +1590,7 @@ export default function AdminDashboard() {
                   {/* Grid tickets & reply drawer */}
                   <div className="grid gap-6 lg:grid-cols-3">
                     {/* Tickets list */}
-                    <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm lg:col-span-1 space-y-4">
+                    <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300 lg:col-span-1 space-y-4">
                       <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Support Inquiries</h3>
                       <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
                         {tickets.length === 0 ? (
@@ -1549,8 +1605,8 @@ export default function AdminDashboard() {
                               }}
                               className={`w-full text-left rounded-xl p-3 border text-xs transition-all ${
                                 selectedTicket?._id === t._id 
-                                  ? "border-emerald-500 bg-emerald-50/25 shadow-sm" 
-                                  : "border-[#EAEAEA] hover:bg-slate-50/50"
+                                  ? "border-[#22C55E] bg-[#F0FDF4]/30 shadow-sm" 
+                                  : "border-[#EEF2F7] hover:bg-slate-50/50"
                               }`}
                             >
                               <div className="flex justify-between items-center mb-1">
@@ -1573,7 +1629,7 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* Ticket details / reply */}
-                    <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm lg:col-span-2 space-y-4">
+                    <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300 lg:col-span-2 space-y-4">
                       {selectedTicket ? (
                         <div className="space-y-4">
                           <div className="flex justify-between items-start border-b border-slate-100 pb-4">
@@ -1586,7 +1642,7 @@ export default function AdminDashboard() {
                               <select
                                 value={selectedTicket.priority}
                                 onChange={(e) => runAdminPostAction({ action: "update-ticket-meta", ticketId: selectedTicket.ticketId, priority: e.target.value }, "Priority updated")}
-                                className="border border-slate-200 rounded px-2.5 py-1 text-xs outline-none bg-white cursor-pointer font-semibold"
+                                className="border border-[#EEF2F7] rounded-xl px-2.5 py-1 text-xs outline-none bg-white cursor-pointer font-semibold"
                               >
                                 <option value="LOW">Low</option>
                                 <option value="MEDIUM">Medium</option>
@@ -1596,7 +1652,7 @@ export default function AdminDashboard() {
                               <select
                                 value={selectedTicket.status}
                                 onChange={(e) => runAdminPostAction({ action: "update-ticket-meta", ticketId: selectedTicket.ticketId, status: e.target.value }, "Status updated")}
-                                className="border border-slate-200 rounded px-2.5 py-1 text-xs outline-none bg-white cursor-pointer font-semibold"
+                                className="border border-[#EEF2F7] rounded-xl px-2.5 py-1 text-xs outline-none bg-white cursor-pointer font-semibold"
                               >
                                 <option value="OPEN">Open</option>
                                 <option value="PENDING">Pending</option>
@@ -1605,7 +1661,7 @@ export default function AdminDashboard() {
                               <select
                                 value={selectedTicket.assignedTo}
                                 onChange={(e) => runAdminPostAction({ action: "update-ticket-meta", ticketId: selectedTicket.ticketId, assignedTo: e.target.value }, "Assignee updated")}
-                                className="border border-slate-200 rounded px-2.5 py-1 text-xs outline-none bg-white cursor-pointer font-semibold"
+                                className="border border-[#EEF2F7] rounded-xl px-2.5 py-1 text-xs outline-none bg-white cursor-pointer font-semibold"
                               >
                                 <option value="Unassigned">Unassigned</option>
                                 <option value="Admin Agent 1">Admin Agent 1</option>
@@ -1615,14 +1671,14 @@ export default function AdminDashboard() {
                           </div>
 
                           {/* Message thread logs */}
-                          <div className="space-y-3 max-h-64 overflow-y-auto pr-2 bg-slate-50/50 rounded-xl p-4 border border-[#EAEAEA]">
+                          <div className="space-y-3 max-h-64 overflow-y-auto pr-2 bg-slate-50/50 rounded-xl p-4 border border-[#EEF2F7]">
                             {selectedTicket.messages.map((m, idx) => {
                               const isAdmin = m.sender.includes("Admin") || m.sender.includes("Support")
                               return (
                                 <div key={idx} className={`flex flex-col max-w-[85%] rounded-2xl p-3 text-xs ${
                                   isAdmin 
                                     ? "bg-emerald-950 text-white rounded-tr-none ml-auto" 
-                                    : "bg-white border border-[#EAEAEA] rounded-tl-none mr-auto text-slate-800"
+                                    : "bg-white border border-[#EEF2F7] rounded-tl-none mr-auto text-slate-800"
                                 }`}>
                                   <span className="font-bold mb-1">{m.sender}</span>
                                   <p className="leading-relaxed">{m.content}</p>
@@ -1639,12 +1695,12 @@ export default function AdminDashboard() {
                               value={ticketInternalNotes}
                               onChange={(e) => setTicketInternalNotes(e.target.value)}
                               placeholder="Write private internal notes..."
-                              className="w-full rounded-xl border border-slate-200 p-3 text-xs outline-none focus:border-emerald-500 bg-white"
+                              className="w-full rounded-xl border border-[#EEF2F7] p-3 text-xs outline-none focus:border-emerald-500 bg-white"
                               rows={2}
                             />
                             <button
                               onClick={() => runAdminPostAction({ action: "update-ticket-meta", ticketId: selectedTicket.ticketId, internalNotes: ticketInternalNotes }, "Notes saved")}
-                              className="rounded bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 text-xs font-semibold transition-colors"
+                              className="rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 text-xs font-semibold transition-colors"
                             >
                               Save Notes
                             </button>
@@ -1659,7 +1715,7 @@ export default function AdminDashboard() {
                                 placeholder="Write support message copy here..."
                                 value={ticketReply}
                                 onChange={(e) => setTicketReply(e.target.value)}
-                                className="flex-1 rounded-xl border border-slate-200 px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-white"
+                                className="flex-1 rounded-xl border border-[#EEF2F7] px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-white"
                               />
                               <button
                                 onClick={async () => {
@@ -1669,7 +1725,7 @@ export default function AdminDashboard() {
                                     setTicketReply("")
                                   }
                                 }}
-                                className="rounded-xl bg-[#30FC47] hover:bg-emerald-500 hover:text-white px-4 py-2 text-xs font-bold text-emerald-950 flex items-center gap-1 transition-colors"
+                                className="rounded-xl bg-[var(--brand-primary)] hover:bg-emerald-500 hover:text-white px-4 py-2 text-xs font-bold text-emerald-950 flex items-center gap-1 transition-colors"
                               >
                                 <Send className="size-3.5" /> Send
                               </button>
@@ -1689,7 +1745,7 @@ export default function AdminDashboard() {
 
               {/* TAB 9: NOTIFICATIONS CENTER */}
               {activeTab === "notifications" && (
-                <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm space-y-6 max-w-xl mx-auto">
+                <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300 space-y-6 max-w-xl mx-auto">
                   <h3 className="text-lg font-bold text-slate-800">Broadcast Platform Announcement</h3>
                   <p className="text-xs text-slate-400">Send massive notifications, news, or system updates directly to selected customer plan segments.</p>
                   
@@ -1701,7 +1757,7 @@ export default function AdminDashboard() {
                         placeholder="e.g. Growth Campaign Update 2026"
                         value={announcementSubject}
                         onChange={(e) => setAnnouncementSubject(e.target.value)}
-                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm outline-none focus:border-emerald-500 bg-[#FCFAF6]"
+                        className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-sm outline-none focus:border-emerald-500 bg-[#FCFAF6]"
                       />
                     </div>
 
@@ -1711,7 +1767,7 @@ export default function AdminDashboard() {
                         <select
                           value={announcementTarget}
                           onChange={(e) => setAnnouncementTarget(e.target.value)}
-                          className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm outline-none bg-[#FCFAF6] cursor-pointer"
+                          className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-sm outline-none bg-[#FCFAF6] cursor-pointer"
                         >
                           <option value="ALL">All Users</option>
                           <option value="FREE">Free Users Only</option>
@@ -1723,7 +1779,7 @@ export default function AdminDashboard() {
                         <select
                           value={announcementType}
                           onChange={(e) => setAnnouncementType(e.target.value)}
-                          className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm outline-none bg-[#FCFAF6] cursor-pointer"
+                          className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-sm outline-none bg-[#FCFAF6] cursor-pointer"
                         >
                           <option value="BOTH">Email + In-App Notice</option>
                           <option value="EMAIL">Email Campaign Only</option>
@@ -1738,7 +1794,7 @@ export default function AdminDashboard() {
                         placeholder="Draft your announcement message here..."
                         value={announcementContent}
                         onChange={(e) => setAnnouncementContent(e.target.value)}
-                        className="w-full rounded-xl border border-slate-200 p-4 text-sm outline-none focus:border-emerald-500 bg-[#FCFAF6]"
+                        className="w-full rounded-xl border border-[#EEF2F7] p-4 text-sm outline-none focus:border-emerald-500 bg-[#FCFAF6]"
                         rows={6}
                       />
                     </div>
@@ -1761,7 +1817,7 @@ export default function AdminDashboard() {
                           setAnnouncementContent("")
                         }
                       }}
-                      className="w-full rounded-xl bg-[#30FC47] hover:bg-emerald-500 hover:text-white py-3 text-sm font-bold text-emerald-950 transition-colors shadow-sm"
+                      className="w-full rounded-xl bg-[var(--brand-primary)] hover:bg-emerald-500 hover:text-white py-3 text-sm font-bold text-emerald-950 transition-colors shadow-sm"
                     >
                       Broadcast Announcement Now
                     </button>
@@ -1784,10 +1840,10 @@ export default function AdminDashboard() {
                     ].map((sys, idx) => {
                       const Icon = sys.icon
                       return (
-                        <div key={idx} className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                        <div key={idx} className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
                           <div className="flex items-center justify-between mb-4">
                             <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">{sys.name}</span>
-                            <div className={`size-3 rounded-full ${sys.health === "green" ? "bg-[#30FC47]" : sys.health === "yellow" ? "bg-[#F59E0B]" : "bg-[#EF4444]"}`} />
+                            <div className={`size-3 rounded-full ${sys.health === "green" ? "bg-[var(--brand-primary)]" : sys.health === "yellow" ? "bg-[#F59E0B]" : "bg-[#EF4444]"}`} />
                           </div>
                           <div className="flex items-center gap-3">
                             <div className="rounded-lg bg-slate-50 p-2.5">
@@ -1804,7 +1860,7 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* System Load Metrics */}
-                  <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm grid gap-6 md:grid-cols-3">
+                  <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300 grid gap-6 md:grid-cols-3">
                     <div>
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Memory Allocation</p>
                       <div className="h-2 rounded bg-slate-100 overflow-hidden">
@@ -1818,7 +1874,7 @@ export default function AdminDashboard() {
                     <div>
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Server CPU Utilization</p>
                       <div className="h-2 rounded bg-slate-100 overflow-hidden">
-                        <div className="h-full bg-[#30FC47] rounded" style={{ width: "12%" }} />
+                        <div className="h-full bg-[var(--brand-primary)] rounded" style={{ width: "12%" }} />
                       </div>
                       <div className="flex justify-between text-[10px] text-slate-400 mt-1">
                         <span>Load: 12%</span>
@@ -1843,11 +1899,11 @@ export default function AdminDashboard() {
               {activeTab === "audit-logs" && (
                 <div className="space-y-6">
                   {/* Audit Logs list */}
-                  <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                  <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
                     <h3 className="text-base font-bold mb-4">Platform Administrative Security Logs</h3>
                     <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
                       <table className="w-full border-collapse text-left text-sm">
-                        <thead className="bg-slate-50 border-b border-[#EAEAEA] sticky top-0">
+                        <thead className="bg-transparent border-b border-[#EEF2F7] sticky top-0">
                           <tr>
                             <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Action</th>
                             <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Actor</th>
@@ -1857,7 +1913,7 @@ export default function AdminDashboard() {
                             <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Timestamp</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#EAEAEA] text-xs">
+                        <tbody className="divide-y divide-[#EEF2F7] text-xs">
                           {auditLogs.length === 0 ? (
                             <tr>
                               <td colSpan={6} className="px-6 py-8 text-center text-slate-400">No administrative logs recorded yet.</td>
@@ -1888,21 +1944,21 @@ export default function AdminDashboard() {
                 <div className="space-y-6">
                   {/* Security Stats Grid */}
                   <div className="grid gap-6 sm:grid-cols-3">
-                    <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm text-center">
+                    <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300 text-center">
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Failed Login Attempts</p>
                       <p className="text-4xl font-extrabold text-[#EF4444] mt-2">
                         {users.reduce((acc, curr) => acc + (curr.activeSessions?.filter(s => s.status === "failed")?.length || 0), 0) || 4}
                       </p>
                       <span className="text-[10px] text-slate-400">Suspicious activities monitored</span>
                     </div>
-                    <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm text-center">
+                    <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300 text-center">
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Blocked IPs</p>
                       <p className="text-4xl font-extrabold text-slate-800 mt-2">1</p>
-                      <span className="text-[10px] text-[#30FC47] font-semibold">IP Firewalls active</span>
+                      <span className="text-[10px] text-[var(--brand-primary)] font-semibold">IP Firewalls active</span>
                     </div>
-                    <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm text-center">
+                    <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300 text-center">
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Active Sessions</p>
-                      <p className="text-4xl font-extrabold text-emerald-800 mt-2">
+                      <p className="text-4xl font-extrabold text-[#22C55E] mt-2">
                         {users.reduce((acc, curr) => acc + (curr.activeSessionsCount || 0), 0)}
                       </p>
                       <span className="text-[10px] text-slate-400">Global open login tokens</span>
@@ -1910,12 +1966,12 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Active login sessions controller */}
-                  <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm">
+                  <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
                     <h3 className="text-base font-bold mb-4">Active User Session Tokens</h3>
                     <p className="text-xs text-slate-400 mb-4">View active authentication sessions. Force log out terminals immediately if suspicious actions are detected.</p>
                     <div className="overflow-x-auto">
                       <table className="w-full border-collapse text-left text-sm">
-                        <thead className="bg-slate-50 border-b border-[#EAEAEA]">
+                        <thead className="bg-transparent border-b border-[#EEF2F7]">
                           <tr>
                             <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">User Account</th>
                             <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">IP Address</th>
@@ -1924,7 +1980,7 @@ export default function AdminDashboard() {
                             <th className="px-6 py-4 font-bold text-slate-400 text-right uppercase text-xs">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#EAEAEA] text-xs">
+                        <tbody className="divide-y divide-[#EEF2F7] text-xs">
                           {users.filter(u => u.activeSessionsCount > 0).map(u => 
                             u.activeSessions.map((sessionItem) => (
                               <tr key={sessionItem.id} className="hover:bg-slate-50/50 transition-colors">
@@ -1938,7 +1994,7 @@ export default function AdminDashboard() {
                                 <td className="px-6 py-4 text-right">
                                   <button
                                     onClick={() => runAdminPostAction({ action: "force-logout-session", sessionId: sessionItem.id }, `Terminated session for user: ${u.email}`)}
-                                    className="rounded border border-red-200 bg-white hover:bg-red-50 text-[#EF4444] px-2.5 py-1 text-[11px] font-semibold transition-colors"
+                                    className="rounded-xl border border-red-200 bg-white hover:bg-red-50 text-[#EF4444] px-2.5 py-1 text-[11px] font-semibold transition-colors"
                                   >
                                     Force Log out
                                   </button>
@@ -1960,7 +2016,7 @@ export default function AdminDashboard() {
 
               {/* TAB 13: PLATFORM SETTINGS */}
               {activeTab === "settings" && (
-                <div className="rounded-2xl border border-[#EAEAEA] bg-white p-6 shadow-sm space-y-6 max-w-xl mx-auto">
+                <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300 space-y-6 max-w-xl mx-auto">
                   <h3 className="text-lg font-bold text-slate-800">Global Configuration Settings</h3>
                   <p className="text-xs text-slate-400">Change operational settings of the platform. Make sure keys and credential fields are correct.</p>
                   
@@ -1976,8 +2032,21 @@ export default function AdminDashboard() {
                           value={settings.openaiKey}
                           onChange={(e) => setSettings({ ...settings, openaiKey: e.target.value })}
                           placeholder="sk-svcacct-..."
-                          className="w-full rounded-xl border border-slate-200 px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-[#FCFAF6] font-mono"
+                          className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-[#FCFAF6] font-mono"
                         />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-600">Active AI Provider</label>
+                        <select
+                          value={settings.aiProvider || "gemini"}
+                          onChange={(e) => setSettings({ ...settings, aiProvider: e.target.value })}
+                          className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-xs outline-none bg-[#FCFAF6] cursor-pointer font-semibold"
+                        >
+                          <option value="openai">OpenAI</option>
+                          <option value="gemini">Gemini (Recommended)</option>
+                          <option value="auto">Auto (Gemini with OpenAI Fallback)</option>
+                        </select>
                       </div>
 
                       <div className="grid gap-4 grid-cols-2">
@@ -1986,7 +2055,7 @@ export default function AdminDashboard() {
                           <select
                             value={settings.openaiModel}
                             onChange={(e) => setSettings({ ...settings, openaiModel: e.target.value })}
-                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-xs outline-none bg-[#FCFAF6] cursor-pointer"
+                            className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-xs outline-none bg-[#FCFAF6] cursor-pointer"
                           >
                             <option value="gpt-4o-mini">gpt-4o-mini</option>
                             <option value="gpt-4o">gpt-4o</option>
@@ -1999,7 +2068,7 @@ export default function AdminDashboard() {
                             type="number"
                             value={settings.openaiTokenLimit}
                             onChange={(e) => setSettings({ ...settings, openaiTokenLimit: Number(e.target.value) })}
-                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-[#FCFAF6]"
+                            className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-[#FCFAF6]"
                           />
                         </div>
                       </div>
@@ -2042,7 +2111,7 @@ export default function AdminDashboard() {
                             type="text"
                             value={settings.fbAppId}
                             onChange={(e) => setSettings({ ...settings, fbAppId: e.target.value })}
-                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-[#FCFAF6]"
+                            className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-[#FCFAF6]"
                           />
                         </div>
                         <div className="space-y-1">
@@ -2051,7 +2120,7 @@ export default function AdminDashboard() {
                             type="password"
                             value={settings.fbAppSecret}
                             onChange={(e) => setSettings({ ...settings, fbAppSecret: e.target.value })}
-                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-[#FCFAF6]"
+                            className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-[#FCFAF6]"
                           />
                         </div>
                       </div>
@@ -2062,7 +2131,7 @@ export default function AdminDashboard() {
                           type="text"
                           value={settings.fbGraphVersion}
                           onChange={(e) => setSettings({ ...settings, fbGraphVersion: e.target.value })}
-                          className="w-full rounded-xl border border-slate-200 px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-[#FCFAF6] font-mono"
+                          className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-[#FCFAF6] font-mono"
                         />
                       </div>
                     </div>
@@ -2083,7 +2152,7 @@ export default function AdminDashboard() {
 
                     <button
                       onClick={() => runAdminPostAction({ action: "save-settings", settingsData: settings }, "Global settings saved successfully")}
-                      className="w-full rounded-xl bg-[#30FC47] hover:bg-emerald-500 hover:text-white py-3 text-sm font-bold text-emerald-950 transition-colors shadow-sm"
+                      className="w-full rounded-xl bg-[var(--brand-primary)] hover:bg-emerald-500 hover:text-white py-3 text-sm font-bold text-emerald-950 transition-colors shadow-sm"
                     >
                       Save Settings
                     </button>
@@ -2098,8 +2167,8 @@ export default function AdminDashboard() {
       {/* AI Limits Adjustment Modal */}
       {adjustingAiUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-6 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-modal space-y-6 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-[#EEF2F7] pb-4">
               <div>
                 <h3 className="text-lg font-bold text-slate-800">Adjust AI Quotas & Limits</h3>
                 <p className="text-xs text-slate-400">Configure custom parameters for {adjustingAiUser.name}</p>
@@ -2113,14 +2182,14 @@ export default function AdminDashboard() {
             </div>
 
             <div className="space-y-4">
-              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 text-xs text-slate-600 flex justify-between items-center">
+              <div className="bg-[#FCFAF6] rounded-xl p-3 border border-[#EEF2F7] text-xs text-slate-600 flex justify-between items-center">
                 <div>
                   <p className="font-bold text-slate-700">{adjustingAiUser.email}</p>
                   <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Plan: {adjustingAiUser.plan}</p>
                 </div>
                 <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
                   adjustingAiUser.status === "ACTIVE"
-                    ? "bg-emerald-50 text-emerald-800"
+                    ? "bg-[#F0FDF4] text-[#22C55E]"
                     : adjustingAiUser.status === "LIMIT REACHED"
                     ? "bg-amber-50 text-amber-800"
                     : "bg-red-50 text-red-800"
@@ -2139,7 +2208,7 @@ export default function AdminDashboard() {
                   type="number"
                   value={tokenLimitVal}
                   onChange={(e) => setTokenLimitVal(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 bg-[#FCFAF6] font-semibold"
+                  className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2.5 text-sm outline-none focus:border-emerald-500 bg-[#FCFAF6] font-semibold"
                 />
               </div>
 
@@ -2153,7 +2222,7 @@ export default function AdminDashboard() {
                   type="number"
                   value={requestLimitVal}
                   onChange={(e) => setRequestLimitVal(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 bg-[#FCFAF6] font-semibold"
+                  className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2.5 text-sm outline-none focus:border-emerald-500 bg-[#FCFAF6] font-semibold"
                 />
               </div>
 
@@ -2165,7 +2234,7 @@ export default function AdminDashboard() {
                     type="number"
                     value={bonusTokensVal}
                     onChange={(e) => setBonusTokensVal(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 bg-[#FCFAF6] font-semibold"
+                    className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2.5 text-sm outline-none focus:border-emerald-500 bg-[#FCFAF6] font-semibold"
                   />
                 </div>
 
@@ -2176,16 +2245,16 @@ export default function AdminDashboard() {
                     type="number"
                     value={bonusRequestsVal}
                     onChange={(e) => setBonusRequestsVal(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 bg-[#FCFAF6] font-semibold"
+                    className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2.5 text-sm outline-none focus:border-emerald-500 bg-[#FCFAF6] font-semibold"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-3 justify-end pt-2 border-t border-slate-100">
+            <div className="flex gap-3 justify-end pt-2 border-t border-[#EEF2F7]">
               <button
                 onClick={() => setAdjustingAiUser(null)}
-                className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-5 py-2.5 text-xs font-bold text-slate-700 transition-colors"
+                className="rounded-xl border border-[#EEF2F7] bg-white hover:bg-slate-50 px-5 py-2.5 text-xs font-bold text-slate-700 transition-colors"
               >
                 Cancel
               </button>
@@ -2206,7 +2275,7 @@ export default function AdminDashboard() {
                     setAdjustingAiUser(null)
                   }
                 }}
-                className="rounded-xl bg-[#30FC47] hover:bg-emerald-500 hover:text-white px-5 py-2.5 text-xs font-bold text-emerald-950 transition-colors shadow-sm"
+                className="rounded-xl bg-[var(--brand-primary)] hover:bg-[#16A34A] hover:text-white px-5 py-2.5 text-xs font-bold text-emerald-950 transition-colors shadow-sm"
               >
                 Save Limits
               </button>
@@ -2218,8 +2287,8 @@ export default function AdminDashboard() {
       {/* AI User Analytics Modal */}
       {selectedAiUserAnalytics && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-6 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+          <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-modal space-y-6 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-[#EEF2F7] pb-4">
               <div>
                 <h3 className="text-lg font-bold text-slate-800">AI Quota Analytics</h3>
                 <p className="text-xs text-slate-400">Detailed usage statistics for user</p>
@@ -2239,20 +2308,20 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <div className="space-y-6">
-                <div className="flex justify-between items-center bg-slate-50 border border-slate-100 p-4 rounded-xl">
+                <div className="flex justify-between items-center bg-[#FCFAF6] p-4 rounded-xl">
                   <div>
                     <h4 className="font-bold text-slate-800 text-sm">{selectedAiUserAnalytics.user?.name}</h4>
                     <p className="text-xs text-slate-400">{selectedAiUserAnalytics.user?.email}</p>
                   </div>
                   <div className="text-right">
-                    <span className="inline-flex rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800 capitalize">
+                    <span className="inline-flex rounded-full bg-[#F0FDF4] px-2.5 py-0.5 text-xs font-bold text-[#22C55E] capitalize">
                       {selectedAiUserAnalytics.user?.plan} Plan
                     </span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="border border-slate-100 rounded-xl p-4 bg-white shadow-sm space-y-1">
+                  <div className="rounded-xl p-4 bg-[#FCFAF6] space-y-1">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tokens Used</span>
                     <p className="text-2xl font-black text-slate-800">{(selectedAiUserAnalytics.tokensUsed || 0).toLocaleString()}</p>
                     <p className="text-[10px] text-slate-400">
@@ -2260,7 +2329,7 @@ export default function AdminDashboard() {
                     </p>
                   </div>
 
-                  <div className="border border-slate-100 rounded-xl p-4 bg-white shadow-sm space-y-1">
+                  <div className="rounded-xl p-4 bg-[#FCFAF6] space-y-1">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Requests</span>
                     <p className="text-2xl font-black text-slate-800">{selectedAiUserAnalytics.requests || 0}</p>
                     <p className="text-[10px] text-slate-400">
@@ -2268,20 +2337,20 @@ export default function AdminDashboard() {
                     </p>
                   </div>
 
-                  <div className="border border-slate-100 rounded-xl p-4 bg-white shadow-sm space-y-1">
+                  <div className="rounded-xl p-4 bg-[#FCFAF6] space-y-1">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Estimated Cost</span>
-                    <p className="text-2xl font-black text-emerald-600">${(selectedAiUserAnalytics.costGenerated || 0).toFixed(4)}</p>
+                    <p className="text-2xl font-black text-[#22C55E]">${(selectedAiUserAnalytics.costGenerated || 0).toFixed(4)}</p>
                     <p className="text-[10px] text-slate-400">Calculated from pricing rates</p>
                   </div>
 
-                  <div className="border border-slate-100 rounded-xl p-4 bg-white shadow-sm space-y-1">
+                  <div className="rounded-xl p-4 bg-[#FCFAF6] space-y-1">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Avg Response Latency</span>
                     <p className="text-2xl font-black text-slate-800">{selectedAiUserAnalytics.avgResponseTime || 0}ms</p>
                     <p className="text-[10px] text-slate-400">OpenAI API connection time</p>
                   </div>
                 </div>
 
-                <div className="border border-slate-100 rounded-xl p-4 bg-white shadow-sm space-y-2">
+                <div className="rounded-xl p-4 bg-[#FCFAF6] space-y-2">
                   <div className="flex justify-between items-center text-xs">
                     <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Most Active Feature</span>
                     <span className="font-semibold text-slate-700">{selectedAiUserAnalytics.mostUsedFeature}</span>

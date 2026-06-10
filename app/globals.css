@@ -1,3 +1,4 @@
+@import "../styles/design-system.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -40,20 +41,20 @@
     --color-background: var(--background);
     
     /* V2 GrowWave Brand Color System */
-    --color-brand-green: #30FC47;
-    --color-brand-green-hover: #EFFFF1;
-    --color-brand-green-light: #EFFFF1;
-    --color-brand-green-border: #E5E7EB;
-    --color-brand-primary: #30FC47;
-    --color-brand-accent: #EFFFF1;
-    --color-brand-hover: #EFFFF1;
-    --color-brand-border: #E5E7EB;
-    --color-brand-success: #30FC47;
-    --color-brand-bg: #FCFAF6;
-    --color-brand-page-bg: #FCFAF6;
-    --color-brand-text: #1F2937;
-    --color-brand-text-secondary: #6B7280;
-    --color-brand-text-muted: #9CA3AF;
+    --color-brand-green: var(--brand-primary);
+    --color-brand-green-hover: var(--brand-hover);
+    --color-brand-green-light: var(--brand-light-surface);
+    --color-brand-green-border: var(--border);
+    --color-brand-primary: var(--brand-primary);
+    --color-brand-accent: var(--brand-surface);
+    --color-brand-hover: var(--brand-hover);
+    --color-brand-border: var(--border);
+    --color-brand-success: var(--brand-success);
+    --color-brand-bg: var(--bg-main);
+    --color-brand-page-bg: var(--bg-main);
+    --color-brand-text: var(--text-primary);
+    --color-brand-text-secondary: var(--text-secondary);
+    --color-brand-text-muted: var(--text-muted);
 
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
@@ -62,76 +63,80 @@
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
+    
+    --shadow-card: var(--shadow-card);
+    --shadow-card-hover: var(--shadow-card-hover);
 }
 
 :root {
     /* GrowWave — HSL/Hex tokens (see theme mapping in @theme inline) */
-    --background: #FCFAF6;
-    --foreground: #1F2937;
-    --card: #FCFAF6;
-    --card-foreground: #1F2937;
-    --popover: #FCFAF6;
-    --popover-foreground: #1F2937;
-    --primary: #30FC47;
-    --primary-foreground: #FFFFFF;
-    --secondary: #EFFFF1;
-    --secondary-foreground: #30FC47;
-    --muted: #EFFFF1;
-    --muted-foreground: #6B7280;
-    --accent: #EFFFF1;
-    --accent-foreground: #30FC47;
+    --background: var(--bg-main);
+    --foreground: var(--text-primary);
+    --card: var(--bg-card);
+    --card-foreground: var(--text-primary);
+    --popover: var(--bg-card);
+    --popover-foreground: var(--text-primary);
+    --primary: var(--brand-primary);
+    --primary-foreground: var(--text-white);
+    --secondary: var(--brand-surface);
+    --secondary-foreground: var(--brand-primary);
+    --muted: var(--bg-main);
+    --muted-foreground: var(--text-secondary);
+    --accent: var(--brand-surface);
+    --accent-foreground: var(--brand-hover);
     --destructive: hsl(0 84% 60%);
-    --border: #E5E7EB;
-    --input: #E5E7EB;
-    --ring: #30FC47;
+    --border: var(--border);
+    --input: var(--border);
+    --ring: var(--brand-primary);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
-    --radius: 0.5rem;
-    --sidebar: #FCFAF6;
-    --sidebar-foreground: #1F2937;
-    --sidebar-primary: #30FC47;
-    --sidebar-primary-foreground: #FFFFFF;
-    --sidebar-accent: #EFFFF1;
-    --sidebar-accent-foreground: #30FC47;
-    --sidebar-border: #E5E7EB;
-    --sidebar-ring: #30FC47;
+    --radius: var(--border-radius, 16px);
+    --sidebar: var(--bg-main);
+    --sidebar-foreground: var(--text-primary);
+    --sidebar-primary: var(--brand-primary);
+    --sidebar-primary-foreground: var(--text-white);
+    --sidebar-accent: var(--brand-surface);
+    --sidebar-accent-foreground: var(--brand-primary);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--brand-primary);
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
+    --background: var(--bg-main);
+    --foreground: var(--text-primary);
+    --card: var(--bg-card);
+    --card-foreground: var(--text-primary);
+    --popover: var(--bg-card);
+    --popover-foreground: var(--text-primary);
+    --primary: var(--brand-primary);
+    --primary-foreground: var(--text-white);
+    --secondary: var(--brand-surface);
+    --secondary-foreground: var(--brand-primary);
+    --muted: var(--bg-main);
+    --muted-foreground: var(--text-secondary);
+    --accent: var(--brand-surface);
+    --accent-foreground: var(--brand-hover);
+    --destructive: hsl(0 84% 60%);
+    --border: var(--border);
+    --input: var(--border);
+    --ring: var(--brand-primary);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --radius: var(--border-radius, 16px);
+    --sidebar: var(--bg-main);
+    --sidebar-foreground: var(--text-primary);
+    --sidebar-primary: var(--brand-primary);
+    --sidebar-primary-foreground: var(--text-white);
+    --sidebar-accent: var(--brand-surface);
+    --sidebar-accent-foreground: var(--brand-primary);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--brand-primary);
 }
 
 @utility font-display {

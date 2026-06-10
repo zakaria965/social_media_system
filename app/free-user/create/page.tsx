@@ -902,12 +902,30 @@ Each object must contain these keys:
   const renderPlatformBadge = (plat?: string) => {
     if (!plat) return null
     const p = plat.toLowerCase()
-    if (p === "facebook") return <IconFacebook className="size-3.5 text-blue-600 shrink-0" />
-    if (p === "instagram") return <IconInstagram className="size-3.5 text-pink-600 shrink-0" />
-    if (p === "linkedin") return <IconLinkedin className="size-3.5 text-sky-700 shrink-0" />
-    if (p === "twitter" || p === "x") return <IconX className="size-3.5 text-black dark:text-white shrink-0" />
-    if (p === "tiktok") return <IconTikTok className="size-3.5 text-fuchsia-600 shrink-0" />
-    return null
+    let icon = null
+    let badgeStyle = "bg-slate-55 text-slate-600"
+    if (p === "facebook") {
+      icon = <IconFacebook className="size-3 text-blue-600 shrink-0" />
+      badgeStyle = "bg-blue-50 text-blue-700"
+    } else if (p === "instagram") {
+      icon = <IconInstagram className="size-3 text-pink-600 shrink-0" />
+      badgeStyle = "bg-pink-50 text-pink-700"
+    } else if (p === "linkedin") {
+      icon = <IconLinkedin className="size-3 text-sky-700 shrink-0" />
+      badgeStyle = "bg-sky-50 text-sky-700"
+    } else if (p === "twitter" || p === "x") {
+      icon = <IconX className="size-3 text-slate-800 shrink-0" />
+      badgeStyle = "bg-slate-100 text-slate-800"
+    } else if (p === "tiktok") {
+      icon = <IconTikTok className="size-3 text-fuchsia-600 shrink-0" />
+      badgeStyle = "bg-fuchsia-50 text-fuchsia-700"
+    }
+    return (
+      <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider", badgeStyle)}>
+        {icon}
+        <span>{p}</span>
+      </span>
+    )
   }
 
   // Filter and Sort ideas
@@ -962,14 +980,14 @@ Each object must contain these keys:
           {toast.type === "error" ? (
             <AlertCircle className="size-3.5 text-white dark:text-rose-450 shrink-0" />
           ) : (
-            <Check className="size-3.5 text-[#30FC47] shrink-0" />
+            <Check className="size-3.5 text-[var(--brand-primary)] shrink-0" />
           )}
           <span>{toast.message}</span>
         </div>
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#D9F8DF] dark:border-slate-800 pb-5 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#EEF2F7] pb-5 gap-4">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-[#111827] dark:text-white">
             Create
@@ -984,7 +1002,7 @@ Each object must contain these keys:
             const activeChannel = channels.find((c) => c.connected)
             if (activeChannel) {
               return (
-                <div className="inline-flex items-center gap-1.5 bg-[#EFFFF1] text-emerald-800 dark:text-[#30FC47] dark:bg-emerald-950/40 px-3 py-1.5 rounded-full text-xs font-black border border-[#D9F8DF]">
+                <div className="inline-flex items-center gap-1.5 bg-[var(--brand-surface)] text-emerald-800 dark:text-[var(--brand-primary)] dark:bg-emerald-950/40 px-3 py-1.5 rounded-full text-xs font-black border-0">
                   {renderPlatformBadge(activeChannel.platform)}
                   <span>{activeChannel.name} Connected</span>
                 </div>
@@ -992,7 +1010,7 @@ Each object must contain these keys:
             }
             return (
               <Link href="/free-user/settings?tab=accounts">
-                <div className="inline-flex items-center gap-1.5 bg-rose-50 text-rose-800 dark:text-rose-450 dark:bg-rose-950/20 px-3 py-1.5 rounded-full text-xs font-black border border-rose-200 cursor-pointer hover:bg-rose-100 transition-all">
+                <div className="inline-flex items-center gap-1.5 bg-rose-50 text-rose-800 dark:text-rose-450 dark:bg-rose-950/20 px-3 py-1.5 rounded-full text-xs font-black border-0 cursor-pointer hover:bg-rose-100 transition-all">
                   <span className="size-2 rounded-full bg-rose-500 animate-ping shrink-0" />
                   <span>No Channel Connected</span>
                 </div>
@@ -1004,7 +1022,7 @@ Each object must contain these keys:
 
       {/* Onboarding Welcome Card */}
       {onboardVisible && (
-        <div className="bg-gradient-to-r from-[#EFFFF1] to-white dark:from-slate-900 dark:to-slate-950 border border-[#D9F8DF] dark:border-slate-800 p-6 rounded-2xl shadow-xs relative flex flex-col md:flex-row md:items-center justify-between gap-6 animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-card relative flex flex-col md:flex-row md:items-center justify-between gap-6 animate-in fade-in slide-in-from-top-4 duration-300">
           <button
             onClick={handleDismissOnboard}
             className="absolute top-4 right-4 text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 p-1"
@@ -1014,7 +1032,7 @@ Each object must contain these keys:
           </button>
           
           <div className="space-y-1.5 flex-1 pr-4">
-            <div className="inline-flex items-center gap-1.5 bg-[#30FC47]/20 text-emerald-800 dark:text-[#30FC47] dark:bg-emerald-950/40 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+            <div className="inline-flex items-center gap-1.5 bg-[var(--brand-primary)]/20 text-emerald-800 dark:text-[var(--brand-primary)] dark:bg-emerald-950/40 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
               Onboarding
             </div>
             <h2 className="text-lg font-black text-[#111827] dark:text-white">
@@ -1036,14 +1054,14 @@ Each object must contain these keys:
                 setNewIdeaMedia(null)
                 setIdeaFormOpen(true)
               }}
-              className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-4 py-2.5 rounded-xl uppercase tracking-wider shadow-sm transition-all"
+              className="bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs px-4 py-2.5 rounded-xl uppercase tracking-wider shadow-sm transition-all"
             >
               Create First Idea
             </Button>
             <Button
               variant="outline"
               onClick={handleOpenAiGenerate}
-              className="border-[#D9F8DF] hover:bg-[#EFFFF1] text-emerald-700 font-extrabold text-xs px-4 py-2.5 rounded-xl uppercase tracking-wider bg-white dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-[#30FC47]"
+              className="border-[var(--border)] hover:bg-[var(--brand-surface)] text-emerald-700 font-extrabold text-xs px-4 py-2.5 rounded-xl uppercase tracking-wider bg-white dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-[var(--brand-primary)]"
             >
               Generate With AI
             </Button>
@@ -1065,9 +1083,9 @@ Each object must contain these keys:
         <div>
           <Button
             onClick={() => setAiGeneratorOpen(true)}
-            className="bg-[#30FC47]/10 hover:bg-[#DDFBE3] border border-[#D9F8DF] text-emerald-800 dark:text-[#30FC47] dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 font-extrabold text-xs px-4.5 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-xs"
+            className="bg-[var(--brand-primary)]/10 hover:bg-[#DDFBE3] border border-[var(--border)] text-emerald-800 dark:text-[var(--brand-primary)] dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 font-extrabold text-xs px-4.5 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-xs"
           >
-            <Sparkles className="size-4 text-[#30FC47] fill-current animate-pulse" />
+            <Sparkles className="size-4 text-[var(--brand-primary)] fill-current animate-pulse" />
             Generate Ideas
           </Button>
         </div>
@@ -1081,7 +1099,7 @@ Each object must contain these keys:
             <select
               value={filterPlatform}
               onChange={(e) => setFilterPlatform(e.target.value)}
-              className="pl-8.5 pr-8 py-2 text-xs bg-background dark:bg-slate-900 border border-[#D9F8DF] dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#30FC47] appearance-none font-bold text-slate-700 dark:text-slate-300"
+              className="pl-8.5 pr-8 py-2 text-xs bg-white border border-[#EEF2F7] rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] appearance-none font-bold text-slate-700"
             >
               <option value="all">All Channels</option>
               <option value="facebook">Facebook</option>
@@ -1099,7 +1117,7 @@ Each object must contain these keys:
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="pl-8.5 pr-8 py-2 text-xs bg-background dark:bg-slate-900 border border-[#D9F8DF] dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#30FC47] appearance-none font-bold text-slate-700 dark:text-slate-300"
+              className="pl-8.5 pr-8 py-2 text-xs bg-white border border-[#EEF2F7] rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] appearance-none font-bold text-slate-700"
             >
               <option value="dateNewest">Newest First</option>
               <option value="dateOldest">Oldest First</option>
@@ -1120,7 +1138,7 @@ Each object must contain these keys:
               setNewIdeaMedia(null)
               setIdeaFormOpen(true)
             }}
-            className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-xs"
+            className="bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-xs"
           >
             <Plus className="size-4 text-white" />
             New Idea
@@ -1130,9 +1148,9 @@ Each object must contain these keys:
 
       {/* Main Kanban Board or Global Empty State */}
       {ideas.length === 0 ? (
-        <div className="flex flex-col items-center justify-center border border-dashed border-[#D9F8DF] dark:border-slate-800 rounded-2xl bg-background dark:bg-slate-900/60 p-16 text-center max-w-2xl mx-auto shadow-sm mt-8 animate-in fade-in zoom-in-95 duration-200">
-          <div className="flex size-14 items-center justify-center rounded-2xl bg-[#EFFFF1] dark:bg-slate-800 mb-6">
-            <Sparkles className="size-7 text-[#30FC47] fill-current" />
+        <div className="flex flex-col items-center justify-center border border-dashed border-[#EEF2F7] rounded-2xl bg-[#FCFAF6] p-16 text-center max-w-2xl mx-auto shadow-xs mt-8 animate-in fade-in zoom-in-95 duration-200">
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-[var(--brand-surface)] dark:bg-slate-800 mb-6">
+            <Sparkles className="size-7 text-[var(--brand-primary)] fill-current" />
           </div>
           <h2 className="text-xl font-black text-[#111827] dark:text-white">No items yet</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-sm leading-relaxed">
@@ -1150,14 +1168,14 @@ Each object must contain these keys:
                 setNewIdeaMedia(null)
                 setIdeaFormOpen(true)
               }}
-              className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-6 py-2.5 rounded-xl uppercase tracking-wider shadow-sm transition-all"
+              className="bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs px-6 py-2.5 rounded-xl uppercase tracking-wider shadow-sm transition-all"
             >
               + New Idea
             </Button>
             <Button
               variant="outline"
               onClick={() => setAiGeneratorOpen(true)}
-              className="border-[#D9F8DF] hover:bg-[#EFFFF1] text-emerald-700 font-extrabold text-xs px-6 py-2.5 rounded-xl uppercase tracking-wider bg-white dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-[#30FC47]"
+              className="border-[var(--border)] hover:bg-[var(--brand-surface)] text-emerald-700 font-extrabold text-xs px-6 py-2.5 rounded-xl uppercase tracking-wider bg-white dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-[var(--brand-primary)]"
             >
               🪄 Generate With AI
             </Button>
@@ -1171,17 +1189,17 @@ Each object must contain these keys:
             return (
               <div
                 key={columnName}
-                className="bg-background dark:bg-slate-900 border border-[#D9F8DF] dark:border-slate-850 rounded-2xl shadow-xs flex flex-col min-h-[550px] transition-all"
+                className="bg-[#F5F2EB]/65 border border-[#EEF2F7] rounded-2xl flex flex-col min-h-[580px] transition-all p-3 shadow-xs"
                 onDragOver={(e) => handleDragOver(e, columnName)}
                 onDrop={(e) => handleDrop(e, columnName)}
               >
                 {/* Column Header */}
-                <div className="flex items-center justify-between p-4 border-b border-slate-50 dark:border-slate-800">
+                <div className="flex items-center justify-between pb-3.5 mb-3 border-b border-[#EEF2F7]">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-black uppercase text-slate-900 dark:text-slate-200 tracking-wider">
+                    <span className="text-xs font-black uppercase text-slate-800 tracking-wider">
                       {columnName}
                     </span>
-                    <span className="bg-[#EFFFF1] text-emerald-800 dark:bg-slate-800 dark:text-emerald-400 text-[10px] font-black px-2 py-0.5 rounded-full select-none border border-[#D9F8DF]/60 dark:border-transparent">
+                    <span className="bg-[#22C55E]/10 text-[#22C55E] text-[10px] font-black px-2.5 py-0.5 rounded-full select-none">
                       {columnIdeas.length}
                     </span>
                   </div>
@@ -1198,7 +1216,7 @@ Each object must contain these keys:
                         setNewIdeaMedia(null)
                         setIdeaFormOpen(true)
                       }}
-                      className="size-6 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:hover:text-white transition-all"
+                      className="size-6 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-800 hover:bg-white/60 transition-all"
                       title={`Add idea to ${columnName}`}
                     >
                       <Plus className="size-4" />
@@ -1210,7 +1228,7 @@ Each object must contain these keys:
                           handleClearColumnTrigger(columnName)
                         }
                       }}
-                      className="size-6 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 dark:hover:text-white transition-all"
+                      className="size-6 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-800 hover:bg-white/60 transition-all"
                       title="Clear Column"
                     >
                       <MoreVertical className="size-3.5" />
@@ -1222,9 +1240,9 @@ Each object must contain these keys:
                 {/* Column Dropzone */}
                 <div
                   className={cn(
-                    "flex-1 p-3.5 space-y-3 rounded-b-2xl transition-all duration-200 min-h-[450px]",
+                    "flex-1 space-y-3 rounded-b-2xl transition-all duration-200 min-h-[450px] flex flex-col",
                     draggedOverColumn === columnName
-                      ? "bg-[#EFFFF1]/45 dark:bg-emerald-950/10 border-2 border-dashed border-[#30FC47]/60"
+                      ? "bg-[#22C55E]/10 border-2 border-dashed border-[#22C55E]/30 rounded-xl"
                       : ""
                   )}
                 >
@@ -1235,15 +1253,15 @@ Each object must contain these keys:
                       onDragStart={(e) => handleDragStart(e, idea.id)}
                       onDragEnd={handleDragEnd}
                       className={cn(
-                        "bg-background p-4 rounded-xl border border-slate-150 shadow-xs space-y-3 dark:bg-slate-955 dark:border-slate-850 hover:border-[#30FC47]/50 hover:shadow-sm transition-all cursor-grab active:cursor-grabbing relative group/card",
-                        draggedCardId === idea.id ? "opacity-40 border-dashed border-[#30FC47]" : ""
+                        "bg-white p-4 rounded-2xl border-0 shadow-card hover:shadow-card-hover transition-all duration-300 space-y-3.5 cursor-grab active:cursor-grabbing relative group/card",
+                        draggedCardId === idea.id ? "opacity-30 border-dashed border-[var(--brand-primary)]" : ""
                       )}
                     >
                       {/* Card Header Info */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
                           {renderPlatformBadge(idea.platform)}
-                          <span className="text-[9px] font-black text-slate-450 uppercase tracking-wider">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">
                             {new Date(idea.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}
                           </span>
                         </div>
@@ -1252,7 +1270,7 @@ Each object must contain these keys:
                         <div className="relative">
                           <button
                             onClick={() => setOpenMenuCardId(openMenuCardId === idea.id ? null : idea.id)}
-                            className="text-slate-450 hover:text-slate-655 dark:hover:text-slate-200 p-0.5 rounded transition-all"
+                            className="text-slate-400 hover:text-slate-600 p-0.5 rounded transition-all"
                             title="Options"
                           >
                             <MoreVertical className="size-3.5" />
@@ -1269,7 +1287,7 @@ Each object must contain these keys:
                                     handleStartEdit(idea)
                                     setOpenMenuCardId(null)
                                   }}
-                                  className="w-full text-left text-[11px] font-bold px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-700 dark:text-slate-350 flex items-center gap-1.5"
+                                  className="w-full text-left text-[11px] font-bold px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-805 rounded-lg transition-colors text-slate-700 dark:text-slate-355 flex items-center gap-1.5"
                                 >
                                   <Edit2 className="size-3 text-slate-450" />
                                   Edit Idea
@@ -1295,7 +1313,7 @@ Each object must contain these keys:
                                         handleMoveIdea(idea.id, col)
                                         setOpenMenuCardId(null)
                                       }}
-                                      className="w-full text-left text-[10px] font-bold px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-650 dark:text-slate-400"
+                                      className="w-full text-left text-[10px] font-bold px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-805 rounded-lg transition-colors text-slate-655 dark:text-slate-400"
                                     >
                                       &rarr; {col}
                                     </button>
@@ -1308,7 +1326,7 @@ Each object must contain these keys:
                       </div>
 
                       {/* Card Content */}
-                      <div className="space-y-2.5">
+                      <div className="space-y-2">
                         <span className="text-xs font-black text-slate-900 dark:text-white block leading-tight">
                           {idea.title}
                         </span>
@@ -1317,11 +1335,11 @@ Each object must contain these keys:
                         </p>
                         
                         {idea.mediaFile && (
-                          <div className="rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden relative group/media max-h-36 bg-slate-50 flex items-center justify-center">
+                          <div className="rounded-xl overflow-hidden relative group/media max-h-36 bg-slate-55 flex items-center justify-center">
                             {isImageUrl(idea.mediaFile.url) ? (
                               <img src={idea.mediaFile.url} alt="media preview" className="w-full h-full object-cover max-h-32" />
                             ) : (
-                              <div className="w-full p-2.5 flex items-center gap-2 bg-[#EFFFF1] dark:bg-emerald-950/20 text-emerald-700 dark:text-[#30FC47] text-[10px] font-bold">
+                              <div className="w-full p-2.5 flex items-center gap-2 bg-[var(--brand-surface)] dark:bg-emerald-950/20 text-emerald-700 dark:text-[var(--brand-primary)] text-[10px] font-bold">
                                 <ImageIcon className="size-4 shrink-0" />
                                 <span className="truncate max-w-[140px]">{idea.mediaFile.name}</span>
                               </div>
@@ -1331,23 +1349,23 @@ Each object must contain these keys:
                       </div>
 
                       {/* Card Actions & Status (Bug 5) */}
-                      <div className="pt-2.5 border-t border-slate-50 dark:border-slate-855 flex items-center justify-between gap-2">
+                      <div className="pt-3 border-t border-[#EEF2F7] flex items-center justify-between gap-2">
                         {idea.column === "Ideas" ? (
                           <button
                             onClick={() => handleMoveIdea(idea.id, "Drafts")}
-                            className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-[9px] px-2.5 py-1.5 rounded-lg uppercase tracking-wider transition-all select-none cursor-pointer"
+                            className="w-full text-center bg-[#F0FDF4] hover:bg-[#22C55E] text-[#22C55E] hover:text-white font-extrabold text-[9.5px] py-2 rounded-xl uppercase tracking-wider transition-all duration-300 select-none cursor-pointer"
                           >
                             Create Post
                           </button>
                         ) : idea.column === "Drafts" || idea.column === "Ready To Publish" ? (
                           <button
                             onClick={() => setPublishingIdea(idea)}
-                            className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-[9px] px-2.5 py-1.5 rounded-lg uppercase tracking-wider transition-all select-none cursor-pointer"
+                            className="w-full text-center bg-[#22C55E] hover:bg-[#16A34A] text-white font-extrabold text-[9.5px] py-2 rounded-xl uppercase tracking-wider transition-all duration-300 select-none cursor-pointer"
                           >
                             Publish Now
                           </button>
                         ) : (
-                          <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-widest leading-none select-none">
+                          <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-widest leading-none select-none w-full text-center">
                             {idea.column}
                           </span>
                         )}
@@ -1357,23 +1375,22 @@ Each object must contain these keys:
 
                   {/* Empty state for single column */}
                   {columnIdeas.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-slate-150 dark:border-slate-800 rounded-xl bg-[#FAFBFC]/30 dark:bg-slate-955/10 select-none">
-                      <span className="text-[10px] text-slate-455 font-bold uppercase tracking-wide">No items</span>
-                      <button
-                        onClick={() => {
-                          setEditingIdea(null)
-                          setNewIdeaTitle("")
-                          setNewIdeaContent("")
-                          setNewIdeaPlatform("facebook")
-                          setNewIdeaStatus(columnName)
-                          setNewIdeaMedia(null)
-                          setIdeaFormOpen(true)
-                        }}
-                        className="mt-2 text-[9px] font-black text-emerald-700 dark:text-[#30FC47] hover:underline flex items-center gap-0.5"
-                      >
-                        <Plus className="size-3" />
+                    <div 
+                      onClick={() => {
+                        setEditingIdea(null)
+                        setNewIdeaTitle("")
+                        setNewIdeaContent("")
+                        setNewIdeaPlatform("facebook")
+                        setNewIdeaStatus(columnName)
+                        setNewIdeaMedia(null)
+                        setIdeaFormOpen(true)
+                      }}
+                      className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-[#E5E2DA] hover:border-[#22C55E]/40 rounded-2xl bg-white/40 hover:bg-white/80 transition-all duration-300 cursor-pointer select-none group/empty"
+                    >
+                      <Plus className="size-5 text-slate-450 group-hover:text-[#22C55E] transition-colors mb-1.5" />
+                      <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider group-hover:text-slate-800 transition-colors">
                         Add Idea
-                      </button>
+                      </span>
                     </div>
                   )}
                 </div>
@@ -1388,7 +1405,7 @@ Each object must contain these keys:
         <div className="fixed bottom-4 right-4 z-40 w-72 rounded-2xl border border-slate-200 bg-white p-4.5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 animate-in slide-in-from-bottom-5">
           <div className="flex items-center justify-between border-b pb-2 mb-3">
             <div>
-              <span className="text-[9px] font-black uppercase text-emerald-600 dark:text-[#30FC47] tracking-wider">Setup Checklist</span>
+              <span className="text-[9px] font-black uppercase text-emerald-600 dark:text-[var(--brand-primary)] tracking-wider">Setup Checklist</span>
               <h4 className="text-xs font-black text-slate-900 dark:text-white mt-0.5">Complete your setup</h4>
             </div>
             <button
@@ -1448,16 +1465,16 @@ Each object must contain these keys:
           <div className="relative flex items-stretch gap-4 max-w-3xl w-full z-10 animate-in fade-in zoom-in-95 duration-200">
             {/* AI Assistant Sidebar (Left Panel) (Bug 1 & 9 & 6) */}
             {isAiSidebarOpen && (
-              <div className="w-80 rounded-3xl border border-slate-100 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 flex flex-col justify-between animate-in slide-in-from-left-4 duration-300 shrink-0">
+              <div className="w-80 rounded-2xl border-0 bg-white p-5 shadow-card flex flex-col justify-between animate-in slide-in-from-left-4 duration-300 shrink-0">
                 <div className="space-y-5 flex-1 flex flex-col">
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-                    <span className="text-xs font-black text-purple-650 dark:text-purple-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <div className="flex items-center justify-between pb-2 border-b border-[#EEF2F7]">
+                    <span className="text-xs font-black text-purple-650 uppercase tracking-widest flex items-center gap-1.5">
                       <Sparkles className="size-4 text-purple-500 fill-current animate-pulse" />
                       AI Assistant
                     </span>
                     <button 
                       onClick={() => setIsAiSidebarOpen(false)}
-                      className="text-slate-400 hover:text-slate-655 dark:hover:text-white p-1"
+                      className="text-slate-400 hover:text-slate-655 p-1"
                     >
                       <X className="size-4" />
                     </button>
@@ -1470,15 +1487,15 @@ Each object must contain these keys:
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
                           Generated Content
                         </span>
-                        <div className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-105 dark:border-slate-800 rounded-xl p-3 text-xs font-semibold text-slate-850 dark:text-slate-205 whitespace-pre-wrap overflow-y-auto max-h-[300px]">
+                        <div className="flex-1 bg-[#FCFAF6] border border-[#EEF2F7] rounded-xl p-3 text-xs font-semibold text-slate-850 whitespace-pre-wrap overflow-y-auto max-h-[300px]">
                           {generatedContent}
                         </div>
                       </div>
 
-                      <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-850 shrink-0">
+                      <div className="space-y-2 pt-3 border-t border-[#EEF2F7] shrink-0">
                         <Button
                           onClick={handleInsertIntoIdea}
-                          className="w-full bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-[11px] py-2.5 rounded-xl uppercase tracking-wider transition-all"
+                          className="w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-[11px] py-2.5 rounded-xl uppercase tracking-wider transition-all"
                         >
                           Insert Into Idea
                         </Button>
@@ -1486,14 +1503,14 @@ Each object must contain these keys:
                           <Button
                             variant="outline"
                             onClick={handleCopyGeneratedContent}
-                            className="border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-[10px] py-2 rounded-xl uppercase tracking-wider bg-white dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-slate-300"
+                            className="border border-[#EEF2F7] hover:bg-[#FCFAF6] text-slate-700 font-bold text-[10px] py-2 rounded-xl uppercase tracking-wider bg-white"
                           >
                             Copy
                           </Button>
                           <Button
                             variant="outline"
                             onClick={handleSidebarAIGenerate}
-                            className="border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-[10px] py-2 rounded-xl uppercase tracking-wider bg-white dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-slate-300"
+                            className="border border-[#EEF2F7] hover:bg-[#FCFAF6] text-slate-700 font-bold text-[10px] py-2 rounded-xl uppercase tracking-wider bg-white"
                           >
                             Regenerate
                           </Button>
@@ -1501,7 +1518,7 @@ Each object must contain these keys:
                         <Button
                           variant="ghost"
                           onClick={() => setGeneratedContent("")}
-                          className="w-full text-[10px] font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                          className="w-full text-[10px] font-bold text-slate-400 hover:text-slate-600"
                         >
                           &larr; Write New Prompt
                         </Button>
@@ -1511,7 +1528,7 @@ Each object must contain these keys:
                     /* AI Prompt Area (Bug 1 & 9) */
                     <div className="space-y-3.5 flex-1 flex flex-col">
                       <div className="space-y-1.5">
-                        <label className="text-[11px] font-black text-slate-700 dark:text-slate-355 uppercase tracking-wider block">
+                        <label className="text-[11px] font-black text-slate-700 uppercase tracking-wider block">
                           What do you want to write about?
                         </label>
                         <textarea
@@ -1519,27 +1536,27 @@ Each object must contain these keys:
                           value={aiPromptInput}
                           onChange={(e) => setAiPromptInput(e.target.value)}
                           rows={8}
-                          className="w-full text-xs font-semibold p-3 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-purple-500 resize-none bg-slate-50/20 text-[#111827] dark:text-white placeholder:text-slate-350"
+                          className="w-full text-xs font-semibold p-3 border border-[#EEF2F7] rounded-xl focus:outline-none focus:ring-1 focus:ring-purple-500 resize-none bg-[#FCFAF6]/50 text-[#111827] placeholder:text-slate-455"
                           disabled={aiSidebarGenerating}
                         />
                       </div>
-                      <p className="text-[10px] text-slate-455 dark:text-slate-500 leading-normal font-semibold">
-                        <strong className="text-slate-500 dark:text-slate-455">Pro tip:</strong> Include key points, your target audience, and platform context.
+                      <p className="text-[10px] text-slate-455 leading-normal font-semibold">
+                        <strong className="text-slate-500">Pro tip:</strong> Include key points, your target audience, and platform context.
                       </p>
                     </div>
                   )}
                 </div>
 
                 {!generatedContent && (
-                  <div className="pt-4 border-t border-slate-100 dark:border-slate-850">
+                  <div className="pt-4 border-t border-[#EEF2F7]">
                     <button
                       onClick={handleSidebarAIGenerate}
                       disabled={aiSidebarGenerating || !aiPromptInput.trim()}
                       className={cn(
                         "w-full font-black text-[11.5px] py-2.5 rounded-xl uppercase tracking-wider transition-all flex items-center justify-center gap-1.5",
                         aiPromptInput.trim() 
-                          ? "bg-[#30FC47] hover:bg-[#24D93B] text-white shadow-sm" 
-                          : "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed"
+                          ? "bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white shadow-sm" 
+                          : "bg-slate-100 text-slate-400 cursor-not-allowed"
                       )}
                     >
                       {aiSidebarGenerating ? (
@@ -1560,7 +1577,7 @@ Each object must contain these keys:
             )}
 
             {/* Main Create/Edit Modal Card (Right Panel) */}
-            <div className="flex-1 rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 flex flex-col justify-between min-h-[500px] relative">
+            <div className="flex-1 rounded-2xl border-0 bg-white p-6 shadow-card hover:shadow-card-hover transition-all flex flex-col justify-between min-h-[500px] relative">
               <button 
                 onClick={handleCloseModalCheck}
                 className="absolute top-4 right-4 text-slate-455 hover:text-slate-655 dark:hover:text-white p-1 rounded"
@@ -1632,7 +1649,7 @@ Each object must contain these keys:
                           <button
                             type="button"
                             onClick={handleSimulateMediaUpload}
-                            className="text-[10px] font-black text-emerald-600 hover:text-emerald-700 dark:text-[#30FC47] dark:hover:text-[#24D93B] uppercase tracking-wider"
+                            className="text-[10px] font-black text-emerald-600 hover:text-emerald-700 dark:text-[var(--brand-primary)] dark:hover:text-[var(--brand-hover)] uppercase tracking-wider"
                           >
                             Replace
                           </button>
@@ -1768,7 +1785,7 @@ Each object must contain these keys:
           <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-slate-250 bg-white shadow-2xl p-6 dark:border-slate-800 dark:bg-slate-900 z-10 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
               <div className="flex items-center gap-1.5">
-                <Sparkles className="size-4 text-[#30FC47]" />
+                <Sparkles className="size-4 text-[var(--brand-primary)]" />
                 <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider dark:text-white">
                   Generate Ideas with AI
                 </h3>
@@ -1785,7 +1802,7 @@ Each object must contain these keys:
                   placeholder="e.g. coffee brewing hacks, nextjs features"
                   value={aiTopic}
                   onChange={(e) => setAiTopic(e.target.value)}
-                  className="h-9 text-xs font-semibold focus-visible:ring-[#30FC47]"
+                  className="h-9 text-xs font-semibold focus-visible:ring-[var(--brand-primary)]"
                 />
               </div>
 
@@ -1795,7 +1812,7 @@ Each object must contain these keys:
                   placeholder="e.g. tech developers, home baristas"
                   value={aiAudience}
                   onChange={(e) => setAiAudience(e.target.value)}
-                  className="h-9 text-xs font-semibold focus-visible:ring-[#30FC47]"
+                  className="h-9 text-xs font-semibold focus-visible:ring-[var(--brand-primary)]"
                 />
               </div>
 
@@ -1805,7 +1822,7 @@ Each object must contain these keys:
                   placeholder="e.g. lead generation, brand education"
                   value={aiGoal}
                   onChange={(e) => setAiGoal(e.target.value)}
-                  className="h-9 text-xs font-semibold focus-visible:ring-[#30FC47]"
+                  className="h-9 text-xs font-semibold focus-visible:ring-[var(--brand-primary)]"
                 />
               </div>
 
@@ -1814,7 +1831,7 @@ Each object must contain these keys:
                 <select
                   value={aiPlatform}
                   onChange={(e) => setAiPlatform(e.target.value)}
-                  className="w-full text-xs font-bold text-slate-650 bg-white border border-slate-200 p-2 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#30FC47] h-9 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-350"
+                  className="w-full text-xs font-bold text-slate-650 bg-white border border-slate-200 p-2 rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] h-9 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-350"
                 >
                   <option value="all">All Channels</option>
                   <option value="facebook">Facebook</option>
@@ -1824,7 +1841,7 @@ Each object must contain these keys:
                 </select>
               </div>
 
-              <div className="bg-[#EFFFF1]/60 dark:bg-slate-850 p-3.5 rounded-xl border border-[#D9F8DF]/60 dark:border-slate-800 text-[11px] text-[#6B7280] dark:text-slate-455 leading-relaxed font-medium">
+              <div className="bg-[var(--brand-surface)]/60 dark:bg-slate-850 p-3.5 rounded-xl border border-[var(--border)]/60 dark:border-slate-800 text-[11px] text-[#6B7280] dark:text-slate-455 leading-relaxed font-medium">
                 💡 AI will return <strong>exactly 10 creative post ideas</strong> populated directly into your <strong>Ideas</strong> column as draft templates.
               </div>
             </div>
@@ -1841,7 +1858,7 @@ Each object must contain these keys:
               <Button
                 onClick={handleGenerateIdeasAI}
                 disabled={aiGenerating}
-                className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-5 rounded-lg uppercase tracking-wider h-9 flex items-center gap-1.5 disabled:opacity-60"
+                className="bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs px-5 rounded-lg uppercase tracking-wider h-9 flex items-center gap-1.5 disabled:opacity-60"
               >
                 {aiGenerating ? (
                   <>
@@ -1874,7 +1891,7 @@ Each object must contain these keys:
                   onClick={() => {
                     router.push("/free-user/settings?tab=accounts")
                   }}
-                  className="w-full bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs py-2 rounded-lg uppercase tracking-wider transition-all"
+                  className="w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs py-2 rounded-lg uppercase tracking-wider transition-all"
                 >
                   Connect Facebook
                 </Button>
@@ -1941,7 +1958,7 @@ Each object must contain these keys:
                         showToast("⚠️ Network error", "error")
                       }
                     }}
-                    className="bg-[#30FC47] hover:bg-[#24D93B] text-white font-extrabold text-xs px-4 rounded-lg uppercase tracking-wider"
+                    className="bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs px-4 rounded-lg uppercase tracking-wider"
                   >
                     Publish Now
                   </Button>
@@ -1995,7 +2012,7 @@ export default function FreeCreatePage() {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="size-8 text-[#30FC47] animate-spin" />
+        <Loader2 className="size-8 text-[var(--brand-primary)] animate-spin" />
       </div>
     }>
       <CreateContent />

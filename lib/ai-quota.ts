@@ -46,7 +46,8 @@ export async function checkAIQuota(userId: string): Promise<QuotaCheckResult> {
       openaiTokenLimit: 500000,
       openaiMonthlyBudget: 100.0,
       openaiEmergencyShutdown: false,
-      openaiUsageAlerts: true
+      openaiUsageAlerts: true,
+      aiProvider: "gemini"
     })
   }
 
@@ -74,7 +75,9 @@ export async function checkAIQuota(userId: string): Promise<QuotaCheckResult> {
   const resetDate = user.resetDate || firstDayOfNextMonth()
   if (now >= resetDate) {
     user.tokensUsed = 0
-    user.requestsUsed = 0
+    if (user.plan === "PRO") {
+      user.requestsUsed = 0
+    }
     user.resetDate = firstDayOfNextMonth()
     await user.save()
   }
@@ -86,7 +89,7 @@ export async function checkAIQuota(userId: string): Promise<QuotaCheckResult> {
 
   // 8. Enforce user quota limits
   const monthlyTokenLimit = user.monthlyTokenLimit ?? (user.plan === "PRO" ? 5000000 : 50000)
-  const monthlyRequestLimit = user.monthlyRequestLimit ?? (user.plan === "PRO" ? -1 : 50)
+  const monthlyRequestLimit = user.plan === "PRO" ? -1 : 5
 
   const effectiveTokenLimit = monthlyTokenLimit + (user.bonusTokens || 0)
   const effectiveRequestLimit = monthlyRequestLimit + (user.bonusRequests || 0)
@@ -95,7 +98,7 @@ export async function checkAIQuota(userId: string): Promise<QuotaCheckResult> {
   const requestsUsed = user.requestsUsed || 0
 
   if (effectiveRequestLimit !== -1 && requestsUsed >= effectiveRequestLimit) {
-    return { allowed: false, error: "You have reached your monthly AI limit.", limitReached: true }
+    return { allowed: false, error: "You have reached your AI limit.", limitReached: true }
   }
 
   if (effectiveTokenLimit !== -1 && tokensUsed >= effectiveTokenLimit) {
@@ -109,6 +112,7 @@ export async function recordAIUsage(params: {
   userId: string
   workspaceId: string | null
   feature: string
+  provider?: string
   model: string
   promptTokens: number
   completionTokens: number
@@ -116,7 +120,7 @@ export async function recordAIUsage(params: {
   status: "success" | "failed"
 }) {
   await connectDB()
-  const { userId, workspaceId, feature, model, promptTokens, completionTokens, responseTime, status } = params
+  const { userId, workspaceId, feature, provider, model, promptTokens, completionTokens, responseTime, status } = params
 
   const totalTokens = promptTokens + completionTokens
 
@@ -128,6 +132,8 @@ export async function recordAIUsage(params: {
       cost = promptTokens * 0.00000015 + completionTokens * 0.00000060
     } else if (cleanModel.includes("gpt-4o") || cleanModel.includes("claude-sonnet")) {
       cost = promptTokens * 0.0000025 + completionTokens * 0.000010
+    } else if (cleanModel.includes("gemini")) {
+      cost = promptTokens * 0.000000075 + completionTokens * 0.00000030
     } else {
       // General default fallback cost rate
       cost = totalTokens * 0.000002
@@ -139,6 +145,7 @@ export async function recordAIUsage(params: {
     userId,
     workspaceId,
     feature,
+    provider: provider || (model.toLowerCase().includes("gemini") ? "GEMINI" : "OPENAI"),
     model: model || "unknown",
     promptTokens,
     completionTokens,

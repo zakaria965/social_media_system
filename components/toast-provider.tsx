@@ -36,7 +36,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           role="status"
           className={cn(
             "fixed right-6 bottom-6 z-[100] flex items-center gap-2.5 rounded-xl px-4 py-3.5 text-xs font-bold text-white shadow-2xl transition-all duration-300 animate-in fade-in slide-in-from-bottom-5 border border-white/10 backdrop-blur-md",
-            toast.type === "success" && "bg-[#30FC47]",
+            toast.type === "success" && "bg-[var(--brand-primary)]",
             toast.type === "error" && "bg-rose-600",
             toast.type === "info" && "bg-slate-900/90 dark:bg-slate-800/90"
           )}

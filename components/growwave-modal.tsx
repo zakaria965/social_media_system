@@ -78,7 +78,8 @@ export function GrowWaveModal({
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 15 }}
           transition={{ type: "spring", duration: 0.4 }}
-          className="relative w-full max-w-md overflow-hidden rounded-[20px] bg-[#FCFAF6] border border-slate-200/40 shadow-2xl z-10 dark:border-slate-800/40 dark:bg-slate-900"
+          style={{ boxShadow: 'var(--shadow-modal)' }}
+          className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white border-0 z-10"
         >
           {/* Close button */}
           {!loading && (
@@ -124,7 +125,7 @@ export function GrowWaveModal({
                 className={`rounded-xl px-4 py-2 text-xs font-bold text-white shadow-xs flex items-center gap-1.5 hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                   variant === "danger"
                     ? "bg-[#EF4444] hover:bg-rose-600"
-                    : "bg-[#30FC47] hover:bg-emerald-500"
+                    : "bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)]"
                 }`}
               >
                 {loading ? (
