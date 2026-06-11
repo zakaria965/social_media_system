@@ -385,7 +385,6 @@ export default function AdminDashboard() {
           {[
             { id: "overview", label: "Overview", icon: Activity },
             { id: "users", label: "Users", icon: UsersIcon },
-            { id: "workspaces", label: "Workspaces", icon: Layers },
             { id: "subscriptions", label: "Subscriptions", icon: ListTodo },
             { id: "payments", label: "Payments", icon: CreditCard },
             { id: "ai-usage", label: "AI Usage", icon: Cpu },
@@ -730,97 +729,7 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {/* TAB 3: WORKSPACE MANAGEMENT */}
-              {activeTab === "workspaces" && (
-                <div className="space-y-6">
-                  {/* Filter Header */}
-                  <div className="flex items-center justify-between border-b border-[#EEF2F7] pb-4">
-                    <div className="relative w-full max-w-sm">
-                      <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="text"
-                        placeholder="Search workspaces..."
-                        value={searchWorkspaceQuery}
-                        onChange={(e) => setSearchWorkspaceQuery(e.target.value)}
-                        className="w-full rounded-xl border border-[#EEF2F7] bg-white pl-10 pr-4 py-2 text-sm outline-none focus:border-emerald-500 transition-colors"
-                      />
-                    </div>
-                  </div>
 
-                  {/* Workspaces list */}
-                  <div className="overflow-x-auto rounded-2xl bg-white shadow-card hover:shadow-card-hover transition-all duration-300">
-                    <table className="w-full border-collapse text-left text-sm">
-                      <thead className="bg-transparent border-b border-[#EEF2F7]">
-                        <tr>
-                          <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Workspace Name</th>
-                          <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Owner</th>
-                          <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Owner Plan</th>
-                          <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Connected Channels</th>
-                          <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Posts Count</th>
-                          <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Created Date</th>
-                          <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Status</th>
-                          <th className="px-6 py-4 font-bold text-slate-400 text-right uppercase text-xs">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#EEF2F7]">
-                        {workspaces
-                          .filter(w => w.name.toLowerCase().includes(searchWorkspaceQuery.toLowerCase()) || w.ownerEmail.toLowerCase().includes(searchWorkspaceQuery.toLowerCase()))
-                          .map((w) => (
-                            <tr key={w.id} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="px-6 py-4 font-semibold">{w.name}</td>
-                              <td className="px-6 py-4">
-                                <div className="font-semibold text-slate-700">{w.ownerName}</div>
-                                <div className="text-xs text-slate-400">{w.ownerEmail}</div>
-                              </td>
-                              <td className="px-6 py-4">
-                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${w.plan === "PRO" ? "bg-[#F0FDF4] text-[#22C55E]" : "bg-slate-100 text-slate-800"}`}>
-                                  {w.plan}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 font-bold text-slate-800">{w.channelsCount}</td>
-                              <td className="px-6 py-4 font-bold text-slate-800">{w.postsCount}</td>
-                              <td className="px-6 py-4 text-xs text-slate-500">{new Date(w.createdAt).toLocaleDateString()}</td>
-                              <td className="px-6 py-4">
-                                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${w.status === "Active" ? "bg-[#F0FDF4] text-[#22C55E]" : "bg-red-50 text-[#EF4444]"}`}>
-                                  {w.status}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 text-right">
-                                <div className="inline-flex gap-1.5 justify-end">
-                                  <button
-                                    title="Open Workspace (Simulated)"
-                                    onClick={() => alert(`Opening workspace dashboard preview for workspace: ${w.name}`)}
-                                    className="rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 text-xs font-semibold transition-colors"
-                                  >
-                                    Open
-                                  </button>
-                                  {w.status === "Active" ? (
-                                    <button
-                                      onClick={() => runAdminPostAction({ action: "disable-workspace", workspaceId: w.id }, "Workspace disabled (owner suspended)")}
-                                      className="rounded-xl border border-red-200 bg-white hover:bg-red-50 text-[#EF4444] px-2.5 py-1 text-xs font-semibold transition-colors"
-                                    >
-                                      Disable
-                                    </button>
-                                  ) : null}
-                                  <button
-                                    onClick={() => {
-                                      if (confirm(`Are you sure you want to permanently delete workspace ${w.name}?`)) {
-                                        runAdminPostAction({ action: "delete-workspace", workspaceId: w.id }, "Workspace deleted")
-                                      }
-                                    }}
-                                    className="rounded-xl bg-slate-100 hover:bg-red-500 hover:text-white text-slate-600 p-1.5 transition-all"
-                                  >
-                                    <Trash2 className="size-3.5" />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
 
               {/* TAB 4: SUBSCRIPTION MANAGEMENT */}
               {activeTab === "subscriptions" && (

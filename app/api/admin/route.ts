@@ -133,28 +133,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ users: mappedUsers })
     }
 
-    if (action === "workspaces") {
-      const workspaces = await Workspace.find().sort({ createdAt: -1 })
-      const mappedWorkspaces = await Promise.all(workspaces.map(async (ws) => {
-        const owner = await User.findOne({ email: ws.ownerEmail })
-        const channelsCount = await SocialAccount.countDocuments({ workspaceId: ws._id })
-        const postsCount = await Post.countDocuments({ workspaceId: ws._id })
-        
-        return {
-          id: ws._id.toString(),
-          name: ws.name,
-          ownerName: owner?.name || "Unknown Owner",
-          ownerEmail: ws.ownerEmail,
-          plan: owner?.plan || "FREE",
-          createdAt: ws.createdAt,
-          channelsCount,
-          postsCount,
-          status: owner?.status === "SUSPENDED" ? "Disabled" : "Active"
-        }
-      }))
-
-      return NextResponse.json({ workspaces: mappedWorkspaces })
-    }
 
     if (action === "payments") {
       const payments = await Payment.find().sort({ createdAt: -1 })
@@ -712,26 +690,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
-    // WORKSPACE ACTIONS
-    if (action === "disable-workspace") {
-      const ws = await Workspace.findById(workspaceId)
-      if (!ws) return NextResponse.json({ error: "Workspace not found" }, { status: 404 })
-      const owner = await User.findOne({ email: ws.ownerEmail })
-      if (owner) {
-        owner.status = "SUSPENDED"
-        await owner.save()
-      }
-      await logAdminAction(adminEmail, "DISABLE_WORKSPACE", "Workspace", `Disabled workspace ${ws.name} (Suspended owner: ${ws.ownerEmail})`)
-      return NextResponse.json({ success: true })
-    }
-
-    if (action === "delete-workspace") {
-      const ws = await Workspace.findById(workspaceId)
-      if (!ws) return NextResponse.json({ error: "Workspace not found" }, { status: 404 })
-      await Workspace.deleteOne({ _id: workspaceId })
-      await logAdminAction(adminEmail, "DELETE_WORKSPACE", "Workspace", `Deleted workspace: ${ws.name}`)
-      return NextResponse.json({ success: true })
-    }
 
     // SUBSCRIPTION ACTIONS
     if (action === "upgrade-user") {

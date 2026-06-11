@@ -386,7 +386,7 @@ export default function SettingsCenter() {
     const targetMap: { [key: string]: string[] } = {
       account: ["profile", "name", "username", "email", "bio", "avatar", "timezone", "country", "language", "format"],
       security: ["password", "2fa", "two factor", "sessions", "history", "recent devices", "google link", "revocation", "device"],
-      workspace: ["workspace", "visibility", "branding", "owner", "logo", "transfer"],
+      workspace: ["workspace", "visibility", "owner", "logo", "transfer"],
       channels: ["channel", "social", "facebook", "instagram", "linkedin", "tiktok", "twitter", "connect", "refresh", "disconnect"],
       publishing: ["publishing", "default publish time", "auto publish", "draft workflow", "retry delay", "posting gap", "queue"],
       ai: ["ai assistant", "openai", "gpt-4o", "brand voice", "templates", "content tone", "prompt", "hashtag", "caption"],

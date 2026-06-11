@@ -139,7 +139,7 @@ export async function PATCH(request: NextRequest) {
       if (w.timezone !== undefined) (workspace as any).timezone = w.timezone
       if (w.logo !== undefined) (workspace as any).logo = w.logo
       if (w.visibility !== undefined) (workspace as any).visibility = w.visibility
-      if (w.branding !== undefined) (workspace as any).branding = w.branding
+
 
       await workspace.save()
 
