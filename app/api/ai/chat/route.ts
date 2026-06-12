@@ -9,6 +9,7 @@ import { WorkspaceMember } from "@/lib/models/workspace-member"
 import { WorkspaceSettings } from "@/lib/models/workspace-settings"
 import { ActivityLog } from "@/lib/models/activity"
 import { AIConversation } from "@/lib/models/ai-conversation"
+import { AIGeneration } from "@/lib/models/ai-generation"
 import { getActiveWorkspaceId } from "@/lib/workspaces"
 import { User } from "@/lib/models/user"
 import { checkAIQuota, recordAIUsage } from "@/lib/ai-quota"
@@ -37,18 +38,22 @@ export async function POST(request: NextRequest) {
     await connectDB()
     workspaceId = await getActiveWorkspaceId(email, request)
 
-    // Verify that at least one API key is available based on selected provider
-    const platformSettings = await PlatformSettings.findOne()
-    const selection = "gemini"
+    // Parse incoming request parameters
+    const body = await request.json()
+    const { messages = [], action = "", chatId, model = "gemini" } = body as {
+      messages: { role: "user" | "assistant" | "system"; content: string }[]
+      action?: string
+      chatId?: string
+      model?: "gemini" | "zai"
+    }
 
-    const openAiApiKey = process.env.OPENAI_API_KEY
     const geminiApiKey = process.env.GEMINI_API_KEY
+    const zaiApiKey = process.env.ZAI_API_KEY
 
-    const isGeminiEnabled = selection === "gemini" || selection === "auto"
-    const hasKey = isGeminiEnabled ? !!geminiApiKey : !!openAiApiKey
+    const hasKey = model === "gemini" ? !!geminiApiKey : !!zaiApiKey
 
     if (!hasKey) {
-      const missingKeyName = isGeminiEnabled ? "GEMINI_API_KEY" : "OPENAI_API_KEY"
+      const missingKeyName = model === "gemini" ? "GEMINI_API_KEY" : "ZAI_API_KEY"
       console.error(`AI service configuration is incomplete: ${missingKeyName} is not defined`)
       
       // Log failure internally
@@ -242,13 +247,7 @@ export async function POST(request: NextRequest) {
       mostActiveMemberName = activeMember ? activeMember.name || activeMember.email : mostActiveMemberEmail
     }
 
-    // Parse incoming request parameters
-    const body = await request.json()
-    const { messages = [], action = "", chatId } = body as {
-      messages: { role: "user" | "assistant" | "system"; content: string }[]
-      action?: string
-      chatId?: string
-    }
+
 
     const prompt = messages[messages.length - 1]?.content || ""
     console.log("Request received");
@@ -328,12 +327,11 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
       })),
     ]
 
-    // Create Stream with Fallback System
-    providerName = "GEMINI"
+    // Create Stream based on selected model (Gemini or Z.ai)
     let responseStream: any = null
-    let fallbackInitiated = false
+    providerName = model === "gemini" ? "GEMINI" : "ZAI"
 
-    if (selection === "gemini" || selection === "auto") {
+    if (providerName === "GEMINI") {
       const userPlan = dbUser.plan?.toLowerCase() || "free"
       const quota = (userPlan === "pro" || dbUser.role === "ADMIN") ? "unlimited" : `${Math.max(0, 5 - (dbUser.requestsUsed || 0))}`
       console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\nGemini: initiated`)
@@ -363,46 +361,27 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
           contents: chatContents,
           generationConfig: { maxOutputTokens: 2048 }
         })
-        providerName = "GEMINI"
       } catch (err: any) {
         console.error("Gemini stream creation failed:", err)
         console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\nGemini: failed`)
-        throw err
-      }
-    } else {
-      providerName = "OPENAI"
-    }
-
-    if (providerName === "OPENAI") {
-      if (!openAiApiKey) {
-        throw new Error("AI service configuration is incomplete. OPENAI_API_KEY is missing.")
-      }
-      const openai = new OpenAI({ apiKey: openAiApiKey })
-      try {
-        responseStream = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: formattedMessages as any,
-          stream: true,
-          max_tokens: 2048,
-        })
-      } catch (err: any) {
-        console.error("OpenAI Completions Call Failed:", err)
         
         let errorCode = "SERVICE_UNAVAILABLE"
-        let errorMessage = "AI Assistant is temporarily unavailable. Please try again in a few moments."
+        let errorMessage = "Gemini is temporarily unavailable. Please try again later."
         let httpStatus = 500
 
         const errMsgStr = err?.message?.toLowerCase() || ""
         const status = err?.status || err?.statusCode
 
-        if (status === 429 || errMsgStr.includes("429") || errMsgStr.includes("quota") || errMsgStr.includes("limit_exceeded") || err?.code === "insufficient_quota") {
+        if (status === 429 || errMsgStr.includes("429") || errMsgStr.includes("quota") || errMsgStr.includes("limit") || errMsgStr.includes("resource_exhausted") || errMsgStr.includes("limit_exceeded")) {
           errorCode = "QUOTA_EXCEEDED"
-          errorMessage = "Your AI usage limit has been reached."
+          errorMessage = "Gemini quota limit reached. Please try again later or switch to Z.ai."
           httpStatus = 429
-        } else if (status === 401 || errMsgStr.includes("api key") || errMsgStr.includes("auth") || errMsgStr.includes("invalid_api_key")) {
+        } else if (status === 401 || errMsgStr.includes("api key") || errMsgStr.includes("auth") || errMsgStr.includes("invalid")) {
           errorCode = "CONFIG_INCOMPLETE"
-          errorMessage = "AI service configuration is incomplete."
+          errorMessage = "Gemini configuration is incomplete."
           httpStatus = 400
+        } else if (err && err.message) {
+          errorMessage = `Gemini error: ${err.message}`
         }
 
         // Log failure internally
@@ -423,6 +402,79 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
           console.error("Failed to log AI activity failure:", logErr)
         }
 
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1)
+        console.log(`[AI]\nProvider: Gemini\nDuration: ${duration}s\nTokens: 0\nError: ${err?.message || err}`)
+
+        return NextResponse.json({ errorCode, error: errorMessage }, { status: httpStatus })
+      }
+    } else {
+      // Z.ai (GLM) stream creation
+      const userPlan = dbUser.plan?.toLowerCase() || "free"
+      const quota = (userPlan === "pro" || dbUser.role === "ADMIN") ? "unlimited" : `${Math.max(0, 5 - (dbUser.requestsUsed || 0))}`
+      console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\nZ.ai: initiated`)
+
+      try {
+        if (!zaiApiKey) {
+          throw new Error("ZAI_API_KEY is not configured")
+        }
+
+        const zaiClient = new OpenAI({
+          apiKey: zaiApiKey,
+          baseURL: "https://api.z.ai/api/paas/v4"
+        })
+
+        responseStream = await zaiClient.chat.completions.create({
+          model: "glm-5-turbo",
+          messages: formattedMessages as any,
+          stream: true,
+          max_tokens: 2048,
+        })
+      } catch (err: any) {
+        console.error("Z.ai stream creation failed:", err)
+        console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\nZ.ai: failed`)
+
+        let errorCode = "SERVICE_UNAVAILABLE"
+        let errorMessage = "Z.ai is temporarily unavailable. Please try again later."
+        let httpStatus = 500
+
+        const errMsgStr = err?.message?.toLowerCase() || ""
+        const status = err?.status || err?.statusCode
+
+        if (status === 429 || errMsgStr.includes("429") || errMsgStr.includes("quota") || errMsgStr.includes("balance") || errMsgStr.includes("recharge") || errMsgStr.includes("limit_exceeded")) {
+          errorCode = "QUOTA_EXCEEDED"
+          errorMessage = "Z.ai is temporarily unavailable. Please try again later."
+          httpStatus = 429
+        } else if (status === 401 || errMsgStr.includes("api key") || errMsgStr.includes("auth") || errMsgStr.includes("invalid")) {
+          errorCode = "CONFIG_INCOMPLETE"
+          errorMessage = "Z.ai configuration is incomplete."
+          httpStatus = 400
+        }
+
+        if (err && err.message) {
+          errorMessage = `Z.ai is temporarily unavailable. Please try again later. Details: ${err.message}`
+        }
+
+        // Log failure internally
+        try {
+          await ActivityLog.create({
+            userId: email,
+            workspaceId,
+            action: "ai_chat_failure",
+            details: JSON.stringify({
+              error: err instanceof Error ? err.message : String(err),
+              apiStatus: httpStatus,
+              errorCode,
+              timestamp: new Date().toISOString()
+            }),
+            status: "failed",
+          })
+        } catch (logErr) {
+          console.error("Failed to log AI activity failure:", logErr)
+        }
+
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1)
+        console.log(`[AI]\nProvider: Z.ai\nDuration: ${duration}s\nTokens: 0\nError: ${err?.message || err}`)
+
         return NextResponse.json({ errorCode, error: errorMessage }, { status: httpStatus })
       }
     }
@@ -440,9 +492,6 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
                 controller.enqueue(encoder.encode(text))
               }
             }
-            const userPlan = dbUser.plan?.toLowerCase() || "free"
-            const quota = (userPlan === "pro" || dbUser.role === "ADMIN") ? "unlimited" : `${Math.max(0, 5 - (dbUser.requestsUsed || 0))}`
-            console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\nGemini: success`)
           } else {
             for await (const chunk of responseStream) {
               const text = chunk.choices[0]?.delta?.content || ""
@@ -460,7 +509,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
               userId: email,
               workspaceId,
               action: "ai_chat",
-              details: `Interacted with GrowWave AI Copilot. Action: ${action || "General Chat"}. Provider: ${providerName}${fallbackInitiated ? " (OpenAI Fallback)" : ""}`,
+              details: `Interacted with GrowWave AI Copilot. Action: ${action || "General Chat"}. Provider: ${providerName === "GEMINI" ? "GEMINI" : "ZAI"}`,
               status: "success",
             })
             
@@ -489,11 +538,20 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
                 workspaceId,
                 feature,
                 provider: providerName,
-                model: providerName === "GEMINI" ? "gemini-2.5-flash" : "gpt-4o-mini",
+                model: providerName === "GEMINI" ? "gemini-2.5-flash" : "glm-5-turbo",
                 promptTokens,
                 completionTokens,
                 responseTime,
                 status: "success"
+              })
+
+              // Store prompt and response details in AIGeneration
+              await AIGeneration.create({
+                userId: dbUser._id.toString(),
+                prompt: prompt || "AI Request",
+                response: assistantText,
+                model: providerName === "GEMINI" ? "gemini" : "zai",
+                createdAt: new Date()
               })
             }
             
@@ -501,7 +559,8 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
             const assistantMsg = {
               role: "assistant",
               content: assistantText,
-              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              model: providerName === "GEMINI" ? "gemini" : "zai"
             }
             const updatedHistory = [...messages, assistantMsg]
             await AIConversation.findOneAndUpdate(
@@ -516,6 +575,10 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
               { upsert: true }
             )
 
+            const duration = (responseTime / 1000).toFixed(1)
+            const totalTokens = promptTokens + completionTokens
+            console.log(`[AI]\nProvider: ${providerName === "GEMINI" ? "Gemini" : "Z.ai"}\nDuration: ${duration}s\nTokens: ${totalTokens}`)
+
           } catch (logErr) {
             console.error("Failed to log AI activity on success stream end:", logErr)
           }
@@ -525,7 +588,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
 
           const userPlan = dbUser.plan?.toLowerCase() || "free"
           const quota = (userPlan === "pro" || dbUser.role === "ADMIN") ? "unlimited" : `${Math.max(0, 5 - (dbUser.requestsUsed || 0))}`
-          console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\nGemini: failed`)
+          console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\n${providerName === "GEMINI" ? "Gemini" : "Z.ai"}: failed`)
 
           // Log failure
           try {
@@ -551,13 +614,16 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
               workspaceId,
               feature: "AI Chat",
               provider: providerName,
-              model: providerName === "GEMINI" ? "gemini-2.5-flash" : "gpt-4o-mini",
+              model: providerName === "GEMINI" ? "gemini-2.5-flash" : "glm-5-turbo",
               promptTokens: 0,
               completionTokens: 0,
               responseTime: Date.now() - startTime,
               status: "failed"
             })
           }
+
+          const duration = ((Date.now() - startTime) / 1000).toFixed(1)
+          console.log(`[AI]\nProvider: ${providerName === "GEMINI" ? "Gemini" : "Z.ai"}\nDuration: ${duration}s\nTokens: 0\nError: ${streamErr instanceof Error ? streamErr.message : String(streamErr)}`)
         }
       },
     })
@@ -576,7 +642,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
     if (dbUser) {
       const userPlan = dbUser.plan?.toLowerCase() || "free"
       const quota = (userPlan === "pro" || dbUser.role === "ADMIN") ? "unlimited" : `${Math.max(0, 5 - (dbUser.requestsUsed || 0))}`
-      console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\nGemini: failed`)
+      console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\n${providerName === "GEMINI" ? "Gemini" : "Z.ai"}: failed`)
     }
     
     // Log failure internally
@@ -605,7 +671,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
         workspaceId,
         feature: "AI Chat",
         provider: providerName,
-        model: providerName === "GEMINI" ? "gemini-2.5-flash" : "gpt-4o-mini",
+        model: providerName === "GEMINI" ? "gemini-2.5-flash" : "glm-5-turbo",
         promptTokens: 0,
         completionTokens: 0,
         responseTime: Date.now() - startTime,
@@ -613,7 +679,8 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
       })
     }
 
-    console.error("GEMINI ERROR:", err)
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1)
+    console.log(`[AI]\nProvider: ${providerName === "GEMINI" ? "Gemini" : "Z.ai"}\nDuration: ${duration}s\nTokens: 0\nError: ${err instanceof Error ? err.message : String(err)}`)
 
     return NextResponse.json(
       { errorCode: "SERVICE_UNAVAILABLE", error: err instanceof Error ? err.message : String(err) },

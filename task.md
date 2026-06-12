@@ -1,28 +1,23 @@
-# task.md — Phase 24 execution checklist
+# task.md — Execution checklist
 
-- [ ] Global Layouts & Top Navigation
-  - [ ] Update Free User layout background to `#FCFAF6` in [app/free-user/layout.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/free-user/layout.tsx)
-  - [ ] Polish Free User top-navbar search input and border-b in [components/free-user/top-navbar.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/components/free-user/top-navbar.tsx)
-  - [ ] Update Pro User top-navbar border color in [components/dashboard/top-navbar.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/components/dashboard/top-navbar.tsx)
-- [ ] Lite Sidebar Cleanup
-  - [ ] Set background, border-right, and remove other lines in [components/free-user/sidebar.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/components/free-user/sidebar.tsx)
-  - [ ] Update active items to borderless pills with light green background
-- [ ] Modal Restructuring
-  - [ ] Restyle custom [components/growwave-modal.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/components/growwave-modal.tsx): Remove outlines, enforce 12px button radius
-- [ ] Free User Pages Redesign
-  - [ ] Composer page ([app/free-user/create/page.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/free-user/create/page.tsx)) - Remove borders, apply floating shadows, set button radius to 12px
-  - [ ] Publishing page ([app/free-user/publish/page.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/free-user/publish/page.tsx)) - Card shadow system, tab borders, buttons
-  - [ ] Queue page ([app/free-user/scheduled/page.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/free-user/scheduled/page.tsx)) - Outlines cleanup, cards shadow, input styling
-  - [ ] Calendar page ([app/free-user/calendar/page.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/free-user/calendar/page.tsx)) - Card shadow, borderless month grid cells, event pills
-  - [ ] Settings page ([app/free-user/settings/page.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/free-user/settings/page.tsx)) - Profile cards shadow, remove outlines, clean password/account panels
-  - [ ] AI Assistant page ([app/free-user/ai-assistant/page.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/free-user/ai-assistant/page.tsx)) - Bubble styling, remove container borders, style logs & templates
-- [ ] Admin Dashboard Page Redesign
-  - [ ] Restyle sidebar, header borders, and backgrounds in [app/admin/page.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/admin/page.tsx)
-  - [ ] Replace stats grid cards and table container borders with `shadow-card hover:shadow-card-hover`
-  - [ ] Remove table cell borders and gridlines, updating headers and rows to use `#EEF2F7` dividers
-  - [ ] Clean up charts border containers
-- [ ] Landing Page Refinement
-  - [ ] Update landing navbar background/border in [components/navbar/index.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/components/navbar/index.tsx)
-  - [ ] Update card styles and button corner radii in homepage [app/page.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/page.tsx)
-- [ ] Build and Verification
-  - [ ] Verify production compilation with `npm run build`
+- [x] Port Management & Configuration
+  - [x] Update development and start scripts in `package.json` to lock port 3000
+  - [x] Add `NEXT_PUBLIC_APP_URL` to `.env`
+  - [x] Refactor `app/api/auth/facebook/route.ts` to use `NEXT_PUBLIC_APP_URL`
+  - [x] Refactor `app/api/auth/facebook/callback/route.ts` to use `NEXT_PUBLIC_APP_URL`
+- [x] Core & Provider Services
+  - [x] Create `lib/ai/providers/zai.ts` implementing the Z.ai (GLM) provider
+  - [x] Update `lib/ai/manager.ts` to register Z.ai and ensure exactly two providers
+  - [x] Delete `lib/ai/providers/openai.ts`
+  - [x] Update cost calculation for Z.ai in `lib/ai-quota.ts`
+- [x] Backend API Routes
+  - [x] Update `/api/ai/chat` endpoint to support model selection, stream from Z.ai, record logging, and store prompts to MongoDB
+  - [x] Update `/api/admin` `ai-usage` action to group logs under exactly two providers: `gemini` and `zai`
+- [x] Frontend Components & Pages
+  - [x] Build and place the Model Selector in `/dashboard/ai-assistant` header
+  - [x] Render model badges next to messages and next to copilot text during stream
+  - [x] Add AI Admin Analytics summary grid and update the provider table in `/admin`
+- [x] Verification
+  - [x] Verify Next.js build compilation
+  - [x] Test Gemini and Z.ai message flows manually
+  - [x] Verify Admin Analytics dashboard displays correct stats

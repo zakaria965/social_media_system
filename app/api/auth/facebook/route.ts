@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
   try {
-    const { origin } = new URL(request.url)
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
     const appId = process.env.FACEBOOK_APP_ID
 
     if (!appId) {
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Facebook configuration error: Missing FACEBOOK_APP_ID" }, { status: 500 })
     }
 
-    const redirectUri = `${origin}/api/auth/facebook/callback`
+    const redirectUri = `${appUrl}/api/auth/facebook/callback`
     const permissions = [
       "pages_show_list",
       "pages_manage_posts",

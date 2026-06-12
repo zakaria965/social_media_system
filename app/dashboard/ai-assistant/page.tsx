@@ -46,6 +46,13 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { PageTransition } from "@/components/dashboard/page-transition"
 import { useToast } from "@/components/toast-provider"
 import { cn } from "@/lib/utils"
@@ -57,6 +64,7 @@ interface ChatMessage {
   timestamp: string
   pinnedInsight?: boolean
   errorType?: "QUOTA_EXCEEDED" | "CONFIG_INCOMPLETE" | "SERVICE_UNAVAILABLE"
+  model?: "gemini" | "zai"
 }
 
 interface ChatSession {
@@ -136,6 +144,7 @@ export default function AIAssistantPage() {
   const [inputVal, setInputVal] = useState("")
   const [streaming, setStreaming] = useState(false)
   const [currentResponse, setCurrentResponse] = useState("")
+  const [selectedModel, setSelectedModel] = useState<"gemini" | "zai">("gemini")
   const [showCommands, setShowCommands] = useState(false)
 
   // Thinking State Rotator
@@ -483,7 +492,8 @@ export default function AIAssistantPage() {
         body: JSON.stringify({
           chatId: currentId,
           messages: updatedHistory.map((m) => ({ role: m.role, content: m.content })),
-          action: promptText.startsWith("/") ? promptText.split(" ")[0] : ""
+          action: promptText.startsWith("/") ? promptText.split(" ")[0] : "",
+          model: selectedModel
         })
       })
 
@@ -558,7 +568,8 @@ export default function AIAssistantPage() {
       const finalAssistantMsg: ChatMessage = {
         role: "assistant",
         content: assistantText,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        model: selectedModel
       }
 
       const finalChat = {
@@ -1053,6 +1064,18 @@ export default function AIAssistantPage() {
             </div>
 
             <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 border-r border-[#EEF2F7] pr-2.5 mr-1">
+                <span className="text-[11px] font-semibold text-[#64748B]">AI Model</span>
+                <Select value={selectedModel} onValueChange={(val: "gemini" | "zai") => setSelectedModel(val)}>
+                  <SelectTrigger className="h-8 w-[100px] text-xs rounded-xl border-[#EEF2F7] bg-[#FFFFFF] font-semibold text-[#374151]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gemini" className="text-xs">Gemini</SelectItem>
+                    <SelectItem value="zai" className="text-xs">Z.ai</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               {activeChat && activeMessages.length > 0 && (
                 <Button
                   variant="ghost"
@@ -1149,7 +1172,19 @@ export default function AIAssistantPage() {
 
                     <div className="flex-1 overflow-hidden space-y-3">
                       <div className="flex items-center justify-between mb-1 text-[10px] text-muted-foreground/75 font-semibold">
-                        <span className="uppercase tracking-wider">{msg.role === "user" ? "You" : "GrowWave Copilot"}</span>
+                        <span className="uppercase tracking-wider flex items-center gap-1.5">
+                          {msg.role === "user" ? "You" : "GrowWave Copilot"}
+                          {msg.role === "assistant" && msg.model && (
+                            <span className={cn(
+                              "inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-normal uppercase border",
+                              msg.model === "gemini" 
+                                ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-400"
+                                : "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-400"
+                            )}>
+                              {msg.model === "gemini" ? "🟢 Gemini" : "🔵 Z.ai"}
+                            </span>
+                          )}
+                        </span>
                         <div className="flex items-center gap-1.5">
                           <span>{msg.timestamp}</span>
                           {msg.role === "assistant" && (
@@ -1260,7 +1295,17 @@ export default function AIAssistantPage() {
                     </div>
                     <div className="flex-1 overflow-hidden">
                       <div className="flex items-center justify-between mb-1 text-[10px] text-muted-foreground/75 font-semibold">
-                        <span className="uppercase tracking-wider">GrowWave Copilot</span>
+                        <span className="uppercase tracking-wider flex items-center gap-1.5">
+                          GrowWave Copilot
+                          <span className={cn(
+                            "inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-normal uppercase border",
+                            selectedModel === "gemini" 
+                              ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-400"
+                              : "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-400"
+                          )}>
+                            {selectedModel === "gemini" ? "🟢 Gemini" : "🔵 Z.ai"}
+                          </span>
+                        </span>
                         <span className="flex items-center gap-1 font-semibold text-primary">
                           <span className="size-1 rounded-full bg-primary inline-block animate-ping" />
                           {currentResponse ? "streaming..." : generatingText}

@@ -12,13 +12,14 @@ export async function GET(request: NextRequest) {
     }
 
     const isFreePlan = session.user.plan === "FREE"
-    const { searchParams, origin } = new URL(request.url)
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    const { searchParams } = new URL(request.url)
     const code = searchParams.get("code")
     const error = searchParams.get("error")
 
     const errorRedirectBase = isFreePlan
-      ? `${origin}/free-user/settings?tab=accounts`
-      : `${origin}/dashboard/channels`
+      ? `${appUrl}/free-user/settings?tab=accounts`
+      : `${appUrl}/dashboard/channels`
 
     if (error) {
       return NextResponse.redirect(`${errorRedirectBase}&error=${encodeURIComponent(error)}`)
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
 
     const appId = process.env.FACEBOOK_APP_ID
     const appSecret = process.env.FACEBOOK_APP_SECRET
-    const redirectUri = `${origin}/api/auth/facebook/callback`
+    const redirectUri = `${appUrl}/api/auth/facebook/callback`
 
     // Exchange code for user access token
     const tokenRes = await fetch(
@@ -47,8 +48,8 @@ export async function GET(request: NextRequest) {
 
     // Redirect to settings / channels with selection trigger and token
     const successRedirect = isFreePlan
-      ? `${origin}/free-user/settings?tab=accounts&select_facebook_page=true&token=${userAccessToken}`
-      : `${origin}/dashboard/channels?select_facebook_page=true&token=${userAccessToken}`
+      ? `${appUrl}/free-user/settings?tab=accounts&select_facebook_page=true&token=${userAccessToken}`
+      : `${appUrl}/dashboard/channels?select_facebook_page=true&token=${userAccessToken}`
 
     return NextResponse.redirect(successRedirect)
   } catch (err: unknown) {
@@ -57,10 +58,10 @@ export async function GET(request: NextRequest) {
     
     const session = await getServerSession(authOptions)
     const isFreePlan = session?.user?.plan === "FREE"
-    const { origin } = new URL(request.url)
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
     const errorRedirectBase = isFreePlan
-      ? `${origin}/free-user/settings?tab=accounts`
-      : `${origin}/dashboard/channels`
+      ? `${appUrl}/free-user/settings?tab=accounts`
+      : `${appUrl}/dashboard/channels`
 
     return NextResponse.redirect(
       `${errorRedirectBase}?error=${encodeURIComponent(message)}`

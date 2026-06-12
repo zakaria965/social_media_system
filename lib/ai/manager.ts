@@ -1,5 +1,5 @@
 import { getGeminiProvider } from "./providers/gemini"
-import { getOpenAIProvider } from "./providers/openai"
+import { getZAIProvider } from "./providers/zai"
 import { AIProvider, AIResult } from "./providers/interface"
 import { PlatformSettings } from "@/lib/models/platform-settings"
 import { recordAIUsage } from "@/lib/ai-quota"
@@ -19,8 +19,14 @@ export async function executeAIOperation(
   const startTime = Date.now()
   const providersToTry: { name: string; getProvider: () => AIProvider }[] = []
 
-  // Enforce Gemini API as the sole provider
-  providersToTry.push({ name: "GEMINI", getProvider: getGeminiProvider })
+  // Register Gemini and Z.ai (GLM) providers
+  if (selection === "openai") {
+    providersToTry.push({ name: "ZAI", getProvider: getZAIProvider })
+    providersToTry.push({ name: "GEMINI", getProvider: getGeminiProvider })
+  } else {
+    providersToTry.push({ name: "GEMINI", getProvider: getGeminiProvider })
+    providersToTry.push({ name: "ZAI", getProvider: getZAIProvider })
+  }
 
   let lastError: any = null
 
@@ -30,8 +36,8 @@ export async function executeAIOperation(
       if (prov.name === "GEMINI" && !process.env.GEMINI_API_KEY) {
         throw new Error("GEMINI_API_KEY is not defined in environment variables")
       }
-      if (prov.name === "OPENAI" && !process.env.OPENAI_API_KEY) {
-        throw new Error("OPENAI_API_KEY is not defined in environment variables")
+      if (prov.name === "ZAI" && !process.env.ZAI_API_KEY) {
+        throw new Error("ZAI_API_KEY is not defined in environment variables")
       }
 
       const providerInstance = prov.getProvider()
@@ -64,7 +70,7 @@ export async function executeAIOperation(
         workspaceId: options.workspaceId,
         feature: options.feature,
         provider: prov.name,
-        model: prov.name === "GEMINI" ? "gemini-2.5-flash" : "gpt-4o-mini",
+        model: prov.name === "GEMINI" ? "gemini-2.5-flash" : "glm-5-turbo",
         promptTokens: 0,
         completionTokens: 0,
         responseTime,

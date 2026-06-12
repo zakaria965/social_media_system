@@ -134,6 +134,8 @@ export async function recordAIUsage(params: {
       cost = promptTokens * 0.0000025 + completionTokens * 0.000010
     } else if (cleanModel.includes("gemini")) {
       cost = promptTokens * 0.000000075 + completionTokens * 0.00000030
+    } else if (cleanModel.includes("glm")) {
+      cost = promptTokens * 0.0000001 + completionTokens * 0.0000003
     } else {
       // General default fallback cost rate
       cost = totalTokens * 0.000002

@@ -1,40 +1,43 @@
 import OpenAI from "openai"
 import { AIProvider, AIResult } from "./interface"
 
-export class OpenAIProvider implements AIProvider {
+export class ZAIProvider implements AIProvider {
   private client: OpenAI | null = null
 
   private getClient() {
     if (!this.client) {
-      const apiKey = process.env.OPENAI_API_KEY
-      if (!apiKey) throw new Error("OPENAI_API_KEY is not defined")
-      this.client = new OpenAI({ apiKey })
+      const apiKey = process.env.ZAI_API_KEY
+      if (!apiKey) throw new Error("ZAI_API_KEY is not defined")
+      this.client = new OpenAI({
+        apiKey,
+        baseURL: "https://api.z.ai/api/paas/v4"
+      })
     }
     return this.client
   }
 
   async generateText(prompt: string, systemPrompt?: string): Promise<AIResult> {
     const client = this.getClient()
-    const model = "gpt-4o-mini"
+    const modelName = "glm-5-turbo"
     
-    const messages = []
+    const messages: { role: "system" | "user" | "assistant"; content: string }[] = []
     if (systemPrompt) {
-      messages.push({ role: "system" as const, content: systemPrompt })
+      messages.push({ role: "system", content: systemPrompt })
     }
-    messages.push({ role: "user" as const, content: prompt })
+    messages.push({ role: "user", content: prompt })
 
     const response = await client.chat.completions.create({
-      model,
+      model: modelName,
       messages,
-      max_tokens: 1024
+      max_tokens: 2048
     })
 
     const text = response.choices[0]?.message?.content || ""
     const promptTokens = response.usage?.prompt_tokens || Math.ceil(prompt.length / 4)
     const completionTokens = response.usage?.completion_tokens || Math.ceil(text.length / 4)
     const totalTokens = promptTokens + completionTokens
-    // gpt-4o-mini pricing: $0.15 / 1M input tokens, $0.60 / 1M output tokens
-    const cost = promptTokens * 0.00000015 + completionTokens * 0.00000060
+    // Z.ai GLM-5-Turbo cost estimate
+    const cost = promptTokens * 0.0000001 + completionTokens * 0.0000003
 
     return {
       text,
@@ -42,7 +45,7 @@ export class OpenAIProvider implements AIProvider {
       completionTokens,
       totalTokens,
       cost,
-      model
+      model: modelName
     }
   }
 
@@ -75,10 +78,10 @@ export class OpenAIProvider implements AIProvider {
   }
 }
 
-let openAIInstance: OpenAIProvider | null = null
-export function getOpenAIProvider() {
-  if (!openAIInstance) {
-    openAIInstance = new OpenAIProvider()
+let zaiInstance: ZAIProvider | null = null
+export function getZAIProvider() {
+  if (!zaiInstance) {
+    zaiInstance = new ZAIProvider()
   }
-  return openAIInstance
+  return zaiInstance
 }

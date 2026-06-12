@@ -1204,6 +1204,31 @@ export default function AdminDashboard() {
                   {/* SUBTAB 1: OVERVIEW & ANALYTICS */}
                   {activeAiSubTab === "overview" && (
                     <div className="space-y-6">
+                      {/* AI Admin Analytics Summary Grid */}
+                      {(() => {
+                        const geminiStats = providerBreakdown.find(p => p.name === "Gemini") || { requests: 0 };
+                        const zaiStats = providerBreakdown.find(p => p.name === "Z.ai") || { requests: 0 };
+                        return (
+                          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
+                            {[
+                              { title: "Gemini Requests", value: geminiStats.requests, desc: "All-time Gemini API calls", color: "border-emerald-500/20" },
+                              { title: "Z.ai Requests", value: zaiStats.requests, desc: "All-time Z.ai API calls", color: "border-blue-500/20" },
+                              { title: "Total AI Usage", value: `${aiUsageSummary.totalTokensUsed.toLocaleString()} tkn`, desc: "Total generated tokens count", color: "border-purple-500/20" },
+                              { title: "Avg Response Time", value: `${aiUsageSummary.avgResponseTime || 0}ms`, desc: "Successful request latency", color: "border-amber-500/20" },
+                              { title: "Failed Requests", value: aiUsageSummary.failedRequests, desc: "Total failed API calls", color: "border-red-500/20" }
+                            ].map((card, idx) => (
+                              <div key={idx} className="rounded-2xl bg-white p-5 border border-slate-100 shadow-card hover:shadow-card-hover transition-all duration-300">
+                                <span className="text-xs font-semibold text-slate-400">{card.title}</span>
+                                <div className="mt-3">
+                                  <span className="text-2xl font-bold tracking-tight text-slate-800">{card.value}</span>
+                                  <p className="mt-1 text-[10px] text-slate-400 leading-normal">{card.desc}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+
                       <div className="grid gap-6 md:grid-cols-2">
                         {/* Provider Breakdown */}
                         <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
@@ -2175,17 +2200,17 @@ export default function AdminDashboard() {
                   <p className="text-xs text-slate-400">Change operational settings of the platform. Make sure keys and credential fields are correct.</p>
                   
                   <div className="space-y-6">
-                    {/* OpenAI settings */}
+                    {/* Z.ai settings */}
                     <div className="space-y-4 border-b border-slate-100 pb-6">
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><Cpu className="size-3.5" /> OpenAI Settings</h4>
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><Cpu className="size-3.5" /> Z.ai Settings</h4>
                       
                       <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-600">OPENAI_API_KEY</label>
+                        <label className="text-xs font-bold text-slate-600">ZAI_API_KEY</label>
                         <input
                           type="password"
                           value={settings.openaiKey}
                           onChange={(e) => setSettings({ ...settings, openaiKey: e.target.value })}
-                          placeholder="sk-svcacct-..."
+                          placeholder="95517b7591a047949c643d27530a36c5.FShnEkmne1d2YDva"
                           className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-[#FCFAF6] font-mono"
                         />
                       </div>
@@ -2197,9 +2222,9 @@ export default function AdminDashboard() {
                           onChange={(e) => setSettings({ ...settings, aiProvider: e.target.value })}
                           className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-xs outline-none bg-[#FCFAF6] cursor-pointer font-semibold"
                         >
-                          <option value="openai">OpenAI</option>
+                          <option value="openai">Z.ai (GLM)</option>
                           <option value="gemini">Gemini (Recommended)</option>
-                          <option value="auto">Auto (Gemini with OpenAI Fallback)</option>
+                          <option value="auto">Auto (Gemini with Z.ai Fallback)</option>
                         </select>
                       </div>
 
@@ -2211,9 +2236,9 @@ export default function AdminDashboard() {
                             onChange={(e) => setSettings({ ...settings, openaiModel: e.target.value })}
                             className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-xs outline-none bg-[#FCFAF6] cursor-pointer"
                           >
-                            <option value="gpt-4o-mini">gpt-4o-mini</option>
-                            <option value="gpt-4o">gpt-4o</option>
-                            <option value="o1-mini">o1-mini</option>
+                            <option value="glm-5-turbo">glm-5-turbo</option>
+                            <option value="glm-5">glm-5</option>
+                            <option value="glm-5.1">glm-5.1</option>
                           </select>
                         </div>
                         <div className="space-y-1">

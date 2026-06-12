@@ -244,10 +244,8 @@ export async function GET(request: NextRequest) {
       let successRequestsCount = 0
 
       const providerStats = {
-        openai: { cost: 0, requests: 0, tokens: 0, errors: 0, totalResponseTime: 0, successRequests: 0 },
-        anthropic: { cost: 0, requests: 0, tokens: 0, errors: 0, totalResponseTime: 0, successRequests: 0 },
         gemini: { cost: 0, requests: 0, tokens: 0, errors: 0, totalResponseTime: 0, successRequests: 0 },
-        deepseek: { cost: 0, requests: 0, tokens: 0, errors: 0, totalResponseTime: 0, successRequests: 0 }
+        zai: { cost: 0, requests: 0, tokens: 0, errors: 0, totalResponseTime: 0, successRequests: 0 }
       }
 
       const featureUsage = {
@@ -286,15 +284,9 @@ export async function GET(request: NextRequest) {
           costThisMonth += logCost
         }
 
+        const rawProvider = (log.provider || "").toLowerCase()
         const cleanModel = (log.model || "").toLowerCase()
-        const providerName = log.provider ? log.provider.toLowerCase() :
-                             (cleanModel.includes("claude") ? "anthropic" :
-                              cleanModel.includes("gemini") ? "gemini" :
-                              cleanModel.includes("deepseek") ? "deepseek" : "openai")
-        
-        const pKey = providerName === "anthropic" ? "anthropic" :
-                     providerName === "gemini" ? "gemini" :
-                     providerName === "deepseek" ? "deepseek" : "openai"
+        const pKey = (rawProvider.includes("gemini") || cleanModel.includes("gemini")) ? "gemini" : "zai"
 
         providerStats[pKey].cost += logCost
         providerStats[pKey].requests += 1
@@ -439,7 +431,7 @@ export async function GET(request: NextRequest) {
           user: u.email,
           workspace: workspaceName,
           feature: log.feature,
-          provider: log.provider || (log.model.toLowerCase().includes("gemini") ? "GEMINI" : "OPENAI"),
+          provider: (log.provider || "").toUpperCase().includes("GEMINI") || log.model.toLowerCase().includes("gemini") ? "GEMINI" : "ZAI",
           model: log.model,
           promptTokens: log.promptTokens,
           completionTokens: log.completionTokens,
@@ -461,9 +453,7 @@ export async function GET(request: NextRequest) {
           avgResponseTime
         },
         providerBreakdown: Object.entries(providerStats).map(([name, stats]) => ({
-          name: name === "openai" ? "OpenAI" :
-                name === "gemini" ? "Gemini" :
-                name === "anthropic" ? "Anthropic" : "DeepSeek",
+          name: name === "gemini" ? "Gemini" : "Z.ai",
           cost: stats.cost,
           requests: stats.requests,
           tokens: stats.tokens,

@@ -1,56 +1,51 @@
-# Walkthrough — Phase 21: Global Design System Lock
+# Walkthrough — Dual Model AI Architecture & Port Management
 
-We have successfully locked the GrowWave user interface to a centralized enterprise design system. Every page, component, and button now uses a single brand style consistently across all devices, sessions, browsers, and accounts.
-
-## Changes Completed
-
-### 1. Centralized CSS Variables
-- Created [design-system.css](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/styles/design-system.css) defining standard tokens:
-  - Primary Green: `#22C55E`
-  - Hover Green: `#16A34A`
-  - Surface Light Green: `#DCFCE7`
-  - Success Green: `#4ADE80`
-  - Main Background: `#FCFAF6`
-  - Card & Modal Backgrounds: `#FFFFFF`
-  - Primary Text: `#111827`, Secondary: `#6B7280`, Muted: `#9CA3AF`, White: `#FFFFFF`
-  - Borders: `#E5E7EB`
-  - Shadows: Cards (`0 4px 12px rgba(0,0,0,.05)`), Modals (`0 20px 40px rgba(0,0,0,.12)`)
-  - Border Radius: `16px` (unified)
-  - Typography: `Inter`, fallback `sans-serif`
-- Modified [globals.css](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/globals.css) to import `design-system.css` and mapped all standard shadcn and Tailwind variables to these tokens.
-
-### 2. Dark Mode Disabled
-- Overrode the `.dark` stylesheet rule variables in [globals.css](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/globals.css) to point to the identical light/brand design system tokens. No dark background or browser-specific override will ever render.
-
-### 3. Hardcoded Theme Lock
-- Updated [theme-provider.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/components/dashboard/theme-provider.tsx) to freeze the theme context to `"light"`. Toggling (`toggle`) and custom setting (`setTheme`) are disabled/no-op functions, and the `"dark"` class is stripped from the document root.
-
-### 4. Removed UI Customizations & Toggles
-- Removed the theme toggle buttons (Sun/Moon icon buttons) from:
-  - [components/dashboard/top-navbar.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/components/dashboard/top-navbar.tsx)
-  - [components/free-user/top-navbar.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/components/free-user/top-navbar.tsx)
-- Removed theme selectors from user settings:
-  - Deleted the "Appearance Settings" tab completely from the menu in [app/free-user/settings/page.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/free-user/settings/page.tsx).
-  - Replaced the "Dark theme Mode" toggle and "Accent Style Color" selector with a brand lock notice in [app/dashboard/settings/page.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/dashboard/settings/page.tsx).
-
-### 5. Automated Global Code Color Replacement
-- Executed a Node.js script that recursively scanned the `app` and `components` directory and replaced all hardcoded neon colors:
-  - `#30FC47` -> `var(--brand-primary)`
-  - `#24D93B` -> `var(--brand-hover)`
-  - `#EFFFF1` -> `var(--brand-surface)`
-  - `#D9F8DF` -> `var(--border)`
-
-### 6. Modal Polish
-- Refactored [growwave-modal.tsx](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/components/growwave-modal.tsx):
-  - Background is now pure `#FFFFFF` (white).
-  - Rounded corners are set to `rounded-2xl` (`16px`).
-  - Shadow matches `--shadow-modal` (`0 20px 40px rgba(0,0,0,.12)`).
-  - Accept button uses brand green (`var(--brand-primary)`) and hover green (`var(--brand-hover)`).
+We have successfully implemented and verified the professional multi-model AI architecture inside GrowWave supporting exactly **Gemini** and **Z.ai (GLM)**, alongside the strict development port lock on `http://localhost:3000`.
 
 ---
 
-## Build Verification
+## 1. Port Lock & Environment Configuration
 
-- **Cache Clean**: Deleted the stale `.next` type directories to clear dev type references.
-- **React Hydration Fix**: Resolved a client-server hydration mismatch by replacing invalid HTML structure (where a `<optgroup>` tag was wrapping table rows inside a `<tbody>` in `app/admin/page.tsx`) with a React `<Fragment>` wrapper.
-- **Production Build compilation**: Next.js production compiler succeeded with zero TypeScript or route compilation errors.
+- **Development Port Lock**: Updated [package.json](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/package.json) dev and start scripts to enforce port 3000:
+  ```json
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "start": "next start -p 3000"
+  }
+  ```
+  This prevents fallback to 3001/3002 if port 3000 is occupied, showing an `EADDRINUSE` error instead.
+- **Environment variables**: Configured `NEXT_PUBLIC_APP_URL="http://localhost:3000"` in `.env` and updated Facebook OAuth login routes ([route.ts](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/api/auth/facebook/route.ts) and [callback/route.ts](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/api/auth/facebook/callback/route.ts)) to use it.
+
+---
+
+## 2. Dual Provider AI Services
+
+- **Z.ai Provider**: Added [zai.ts](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/lib/ai/providers/zai.ts) targeting the `glm-5-turbo` model and pointing to `https://api.z.ai/api/paas/v4` utilizing the standard OpenAI SDK client wrapper.
+- **AI Manager**: Refactored [manager.ts](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/lib/ai/manager.ts) to register the `ZAIProvider` and `GeminiProvider` as the only two models, removing the legacy `openai.ts` provider.
+- **Quota & Cost Tracking**: Updated [ai-quota.ts](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/lib/ai-quota.ts) to calculate GLM-5 usage costs correctly.
+
+---
+
+## 3. Backend & Database Storage
+
+- **Stream Chat endpoint**: Refactored [/api/ai/chat](file:///c:/Users/xzaka/Desktop/social-media-management-with-ai/app/api/ai/chat/route.ts) to accept the selected model from request body, stream responses, and log latency and token usage in the console.
+- **MongoDB Records**: Prompt details, responses, model names (`"gemini"` or `"zai"`), and timestamps are logged into `AIGeneration` (collection `aigenerations`) and user conversation history `AIConversation`.
+- **Friendly Errors**:
+  - Gemini: Displays `"Gemini quota limit reached. Please try again later or switch to Z.ai."` on 429 quota exhaustion.
+  - Z.ai: Displays `"Z.ai is temporarily unavailable. Please try again later."` alongside details on 429 balance exhaustion.
+
+---
+
+## 4. Frontend Model Selector & Admin Dashboard
+
+- **UI Select Dropdown**: Placed the `[ AI Model ▼ ]` selector in the top-right chat header of `/dashboard/ai-assistant`.
+- **Badges**: Displays `🟢 Gemini` or `🔵 Z.ai` badges next to assistant messages in chat history and stream blocks.
+- **Admin Stats**: Updated `/admin` page and `/api/admin` backend actions under the `ai-usage` tab to group statistics strictly by Gemini and Z.ai (mapping legacy OpenAI logs under Z.ai).
+
+---
+
+## 5. Verification Accomplishments
+
+1. **Next.js Production Build**: Ran `npm run build` which succeeded with no TypeScript errors or path/routing conflicts.
+2. **API Key Checks**: Programmatically executed validation scripts verifying that both Gemini and Z.ai return 429 codes (Gemini for free-tier daily quota limit, Z.ai for empty credits balance), validating that custom friendly error components catch them properly.
+3. **Database logs**: Inspected MongoDB records to confirm successful logging of `ZAI` provider entries under `aiusages` collection and verified that metrics are correctly compiled.
