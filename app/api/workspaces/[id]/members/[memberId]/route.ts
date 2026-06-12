@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth.config"
 import { connectDB } from "@/lib/db"
 import { Workspace } from "@/lib/models/workspace"
 import { WorkspaceMember } from "@/lib/models/workspace-member"
+import { WorkspaceInvitation } from "@/lib/models/workspace-invitation"
 import { verifyMemberPermission, logWorkspaceActivity } from "@/lib/workspaces"
 
 export async function PATCH(
@@ -28,34 +29,50 @@ export async function PATCH(
       return NextResponse.json({ error: check.error }, { status: 403 })
     }
 
-    // 2. Fetch the target member to modify
-    const targetMember = await WorkspaceMember.findById(memberId)
+    // 2. Fetch the target to modify (either member or invite)
+    let targetMember = await WorkspaceMember.findById(memberId)
+    let isInvitation = false
     if (!targetMember) {
-      return NextResponse.json({ error: "Member not found" }, { status: 404 })
+      targetMember = await WorkspaceInvitation.findById(memberId)
+      isInvitation = true
+    }
+
+    if (!targetMember) {
+      return NextResponse.json({ error: "Member or invitation not found" }, { status: 404 })
     }
 
     // 3. Hierarchy Rules Check
-    const callerRole = check.role
-    if (callerRole === "admin") {
+    const callerRole = check.role || ""
+    const isCallerAdmin = ["admin", "Admin"].includes(callerRole)
+
+    const targetRole = targetMember.role || ""
+    const isTargetOwner = ["owner", "Workspace Owner"].includes(targetRole)
+    const isTargetAdmin = ["admin", "Admin"].includes(targetRole)
+
+    if (isCallerAdmin) {
       // Admins cannot change Owners or other Admins
-      if (targetMember.role === "owner" || targetMember.role === "admin") {
+      if (isTargetOwner || isTargetAdmin) {
         return NextResponse.json({ error: "Forbidden: Admins cannot edit Owners or other Admins" }, { status: 403 })
       }
       // Admins cannot elevate a member to Owner or Admin
-      if (role === "owner" || role === "admin") {
+      if (role && ["owner", "Workspace Owner", "admin", "Admin"].includes(role)) {
         return NextResponse.json({ error: "Forbidden: Admins cannot promote members to Owner or Admin" }, { status: 403 })
       }
     }
 
     // Owners cannot change their own Owner role (to prevent orphan workspaces)
-    if (targetMember.email === session.user.email && targetMember.role === "owner" && role && role !== "owner") {
+    if (targetMember.email === session.user.email && isTargetOwner && role && !["owner", "Workspace Owner"].includes(role)) {
       return NextResponse.json({ error: "Forbidden: You cannot transfer Ownership here. Ownership is transferred automatically by deleting or through explicit billing options" }, { status: 400 })
     }
 
-    // 4. Update the target member
+    // 4. Update the target
     if (role) targetMember.role = role
     if (customPermissions !== undefined) targetMember.customPermissions = customPermissions
-    if (status) targetMember.status = status
+    
+    // Status is only applicable for WorkspaceMember (active), not WorkspaceInvitation (which is always pending)
+    if (!isInvitation && status) {
+      (targetMember as any).status = status
+    }
 
     await targetMember.save()
 
@@ -64,7 +81,7 @@ export async function PATCH(
       workspaceId,
       session.user.email,
       "modify_member",
-      `Updated member permissions for "${targetMember.email}"`
+      `Updated member/invite permissions for "${targetMember.email}"`
     )
 
     return NextResponse.json({ member: targetMember })
@@ -93,28 +110,44 @@ export async function DELETE(
       return NextResponse.json({ error: check.error }, { status: 403 })
     }
 
-    // 2. Fetch target member to delete
-    const targetMember = await WorkspaceMember.findById(memberId)
+    // 2. Fetch target member/invite to delete
+    let targetMember = await WorkspaceMember.findById(memberId)
+    let isInvitation = false
     if (!targetMember) {
-      return NextResponse.json({ error: "Member not found" }, { status: 404 })
+      targetMember = await WorkspaceInvitation.findById(memberId)
+      isInvitation = true
+    }
+
+    if (!targetMember) {
+      return NextResponse.json({ error: "Member or invitation not found" }, { status: 404 })
     }
 
     // 3. Hierarchy Rules Check
-    const callerRole = check.role
-    if (callerRole === "admin") {
+    const callerRole = check.role || ""
+    const isCallerAdmin = ["admin", "Admin"].includes(callerRole)
+
+    const targetRole = targetMember.role || ""
+    const isTargetOwner = ["owner", "Workspace Owner"].includes(targetRole)
+    const isTargetAdmin = ["admin", "Admin"].includes(targetRole)
+
+    if (isCallerAdmin) {
       // Admins cannot remove Owners or other Admins
-      if (targetMember.role === "owner" || targetMember.role === "admin") {
+      if (isTargetOwner || isTargetAdmin) {
         return NextResponse.json({ error: "Forbidden: Admins cannot remove Owners or other Admins" }, { status: 403 })
       }
     }
 
     // Owners cannot remove themselves
-    if (targetMember.email === session.user.email && targetMember.role === "owner") {
+    if (targetMember.email === session.user.email && isTargetOwner) {
       return NextResponse.json({ error: "Forbidden: Owners cannot remove themselves. Delete the workspace instead" }, { status: 400 })
     }
 
-    // 4. Remove member
-    await WorkspaceMember.findByIdAndDelete(memberId)
+    // 4. Remove member or invitation
+    if (isInvitation) {
+      await WorkspaceInvitation.findByIdAndDelete(memberId)
+    } else {
+      await WorkspaceMember.findByIdAndDelete(memberId)
+    }
 
     // 5. Log Activity
     await logWorkspaceActivity(
@@ -124,7 +157,7 @@ export async function DELETE(
       `Removed member/invite "${targetMember.email}"`
     )
 
-    return NextResponse.json({ success: true, message: "Member successfully removed" })
+    return NextResponse.json({ success: true, message: "Member/invite successfully removed" })
   } catch (err: any) {
     console.error("DELETE /api/workspaces/[id]/members/[memberId] error:", err)
     return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 })

@@ -83,7 +83,7 @@ export interface IWorkspaceSettings extends Document {
   analyticsTimezone: string
 
   // Billing (Subscription Management)
-  currentPlan: "free" | "pro" | "enterprise"
+  currentPlan: "free" | "pro"
   storageUsage: number
   storageLimit: number
   connectedAccountsLimit: number
@@ -199,7 +199,7 @@ const WorkspaceSettingsSchema = new Schema<IWorkspaceSettings>(
     analyticsTimezone: { type: String, default: "UTC" },
 
     // Billing
-    currentPlan: { type: String, enum: ["free", "pro", "enterprise"], default: "free" },
+    currentPlan: { type: String, enum: ["free", "pro"], default: "free" },
     storageUsage: { type: Number, default: 0 },
     storageLimit: { type: Number, default: 104857600 }, // 100MB
     connectedAccountsLimit: { type: Number, default: 3 },

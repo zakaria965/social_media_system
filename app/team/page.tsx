@@ -73,10 +73,17 @@ const permissionOptions = [
 ]
 
 const roleConfig: Record<string, { label: string; icon: any; color: string; variant: "default" | "secondary" | "outline" | "ghost" }> = {
-  owner: { label: "Owner", icon: Crown, color: "text-amber-500", variant: "default" },
+  // Legacy
+  owner: { label: "Workspace Owner", icon: Crown, color: "text-amber-500", variant: "default" },
   admin: { label: "Admin", icon: ShieldCheck, color: "text-blue-500", variant: "secondary" },
-  editor: { label: "Editor", icon: Pencil, color: "text-emerald-500", variant: "outline" },
-  viewer: { label: "Viewer", icon: Eye, color: "text-zinc-500 dark:text-zinc-400", variant: "ghost" },
+  editor: { label: "Content Manager", icon: Pencil, color: "text-emerald-500", variant: "outline" },
+  viewer: { label: "Analyst", icon: Eye, color: "text-zinc-500", variant: "ghost" },
+  // New
+  "Workspace Owner": { label: "Workspace Owner", icon: Crown, color: "text-amber-500", variant: "default" },
+  "Admin": { label: "Admin", icon: ShieldCheck, color: "text-blue-500", variant: "secondary" },
+  "Content Manager": { label: "Content Manager", icon: Pencil, color: "text-emerald-500", variant: "outline" },
+  "Designer": { label: "Designer", icon: Sparkles, color: "text-purple-500", variant: "outline" },
+  "Analyst": { label: "Analyst", icon: Eye, color: "text-zinc-500", variant: "ghost" },
 }
 
 export default function TeamPage() {
@@ -95,7 +102,7 @@ export default function TeamPage() {
 
   // Dialog & Form states
   const [inviteEmail, setInviteEmail] = useState("")
-  const [inviteRole, setInviteRole] = useState("editor")
+  const [inviteRole, setInviteRole] = useState("Content Manager")
   const [invitePermissions, setInvitePermissions] = useState<string[]>([])
   const [isInviteOpen, setIsInviteOpen] = useState(false)
   const [copiedToken, setCopiedToken] = useState<string | null>(null)
@@ -150,10 +157,15 @@ export default function TeamPage() {
   // Initialize permissions when selected invite role changes
   useEffect(() => {
     const staticPerms: Record<string, string[]> = {
-      owner: permissionOptions.map(p => p.key),
-      admin: ["dashboard", "posts", "scheduling", "analytics", "ai-assistant", "media-library", "channels", "inbox", "team", "settings"],
-      editor: ["dashboard", "posts", "scheduling", "analytics", "ai-assistant", "media-library"],
-      viewer: ["dashboard", "analytics", "inbox"],
+      "owner": permissionOptions.map(p => p.key),
+      "Workspace Owner": permissionOptions.map(p => p.key),
+      "admin": ["dashboard", "posts", "scheduling", "analytics", "ai-assistant", "media-library", "channels", "inbox", "team", "settings"],
+      "Admin": ["dashboard", "posts", "scheduling", "analytics", "ai-assistant", "media-library", "channels", "inbox", "team", "settings"],
+      "editor": ["dashboard", "posts", "scheduling", "analytics", "ai-assistant", "media-library"],
+      "Content Manager": ["dashboard", "posts", "scheduling", "analytics", "ai-assistant", "media-library"],
+      "Designer": ["dashboard", "posts", "media-library"],
+      "viewer": ["dashboard", "analytics", "inbox"],
+      "Analyst": ["dashboard", "analytics", "inbox"],
     }
     if (staticPerms[inviteRole]) {
       setInvitePermissions(staticPerms[inviteRole])
@@ -182,7 +194,7 @@ export default function TeamPage() {
       if (res.ok) {
         showToast(`An invitation has been generated for ${inviteEmail.trim()}.`, "success")
         setInviteEmail("")
-        setInviteRole("editor")
+        setInviteRole("Content Manager")
         setIsInviteOpen(false)
         loadWorkspaceData()
       } else {
@@ -278,7 +290,7 @@ export default function TeamPage() {
       })
 
       if (res.ok) {
-        showToast(`Custom role "${name}" removed. Affected members demoted to Viewer.`, "success")
+        showToast(`Custom role "${name}" removed. Affected members demoted to Analyst.`, "success")
         loadWorkspaceData()
       } else {
         const err = await res.json()
@@ -297,8 +309,7 @@ export default function TeamPage() {
     setTimeout(() => setCopiedToken(null), 3000)
   }
 
-  // Permission Checks (Enforce billing & team client-side)
-  const canManageTeam = userPermissions.includes("team") || userRole === "owner"
+  const canManageTeam = userPermissions.includes("team") || ["owner", "Workspace Owner"].includes(userRole || "")
 
   if (!activeWorkspace) {
     return (
@@ -323,7 +334,7 @@ export default function TeamPage() {
               Team Workspace
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Manage members, custom client roles, private comments, and campaign approvals for{" "}
+              Manage members, custom roles, and campaign approvals for{" "}
               <span className="font-semibold text-foreground">{activeWorkspace.name}</span>.
             </p>
           </div>
@@ -364,7 +375,7 @@ export default function TeamPage() {
 
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-text-primary">Workspace Role</label>
-                        <Select value={inviteRole} onValueChange={setInviteRole}>
+                        <Select value={inviteRole} onValueChange={inviteRole => setInviteRole(inviteRole)}>
                           <SelectTrigger className="w-full rounded-xl border-border text-xs h-9">
                             <SelectValue />
                           </SelectTrigger>
@@ -372,9 +383,10 @@ export default function TeamPage() {
                             <DropdownMenuLabel className="text-[9px] uppercase tracking-wider text-text-secondary">
                               System Roles
                             </DropdownMenuLabel>
-                            <SelectItem value="admin" className="text-xs">Admin</SelectItem>
-                            <SelectItem value="editor" className="text-xs">Editor</SelectItem>
-                            <SelectItem value="viewer" className="text-xs">Viewer</SelectItem>
+                            <SelectItem value="Admin" className="text-xs">Admin</SelectItem>
+                            <SelectItem value="Content Manager" className="text-xs">Content Manager</SelectItem>
+                            <SelectItem value="Designer" className="text-xs">Designer</SelectItem>
+                            <SelectItem value="Analyst" className="text-xs">Analyst</SelectItem>
                             {customRoles.length > 0 && (
                               <>
                                 <DropdownMenuSeparator />
@@ -413,7 +425,7 @@ export default function TeamPage() {
                                       setInvitePermissions(invitePermissions.filter((p) => p !== opt.key))
                                     }
                                   }}
-                                  disabled={inviteRole === "owner"}
+                                  disabled={["owner", "Workspace Owner"].includes(inviteRole)}
                                   className="mt-0.5 rounded border-border size-3.5 accent-brand-green cursor-pointer"
                                 />
                                 <div className="space-y-0.5 leading-none">
@@ -593,9 +605,15 @@ export default function TeamPage() {
                     </div>
                     <div className="divide-y divide-border/60">
                       {members.map((member) => {
-                        const isOwner = member.role === "owner"
-                        const roleObj = roleConfig[member.role]
-                        const RoleIcon = roleObj ? roleObj.icon : ShieldCheck
+                        let role = member.role
+                        if (role === "owner") role = "Workspace Owner";
+                        if (role === "admin") role = "Admin";
+                        if (role === "editor") role = "Content Manager";
+                        if (role === "viewer") role = "Analyst";
+
+                        const isOwner = ["owner", "Workspace Owner"].includes(role)
+                        const roleObj = roleConfig[role] || { label: role, icon: ShieldCheck, color: "text-zinc-500", variant: "outline" }
+                        const RoleIcon = roleObj.icon
                         const isPending = member.status === "pending"
 
                         const initials = member.name
@@ -635,9 +653,9 @@ export default function TeamPage() {
                             <div className="flex flex-wrap items-center gap-4 text-xs sm:justify-end">
                               {/* Role Badge */}
                               <div className="flex items-center gap-1">
-                                <RoleIcon className={cn("size-3.5", roleObj ? roleObj.color : "text-purple-500")} />
-                                <Badge variant={roleObj ? roleObj.variant : "outline"} className="text-[10px] font-bold py-0.5 rounded px-2">
-                                  {roleObj ? roleObj.label : member.role}
+                                <RoleIcon className={cn("size-3.5", roleObj.color)} />
+                                <Badge variant={roleObj.variant as any} className="text-[10px] font-bold py-0.5 rounded px-2">
+                                  {roleObj.label}
                                 </Badge>
                               </div>
 
@@ -748,9 +766,15 @@ export default function TeamPage() {
                         <Select value={editingRole} onValueChange={(val) => {
                           setEditingRole(val)
                           const staticPerms: Record<string, string[]> = {
-                            admin: ["dashboard", "posts", "scheduling", "analytics", "ai-assistant", "media-library", "channels", "inbox", "team", "settings"],
-                            editor: ["dashboard", "posts", "scheduling", "analytics", "ai-assistant", "media-library"],
-                            viewer: ["dashboard", "analytics", "inbox"],
+                            "owner": permissionOptions.map(p => p.key),
+                            "Workspace Owner": permissionOptions.map(p => p.key),
+                            "admin": ["dashboard", "posts", "scheduling", "analytics", "ai-assistant", "media-library", "channels", "inbox", "team", "settings"],
+                            "Admin": ["dashboard", "posts", "scheduling", "analytics", "ai-assistant", "media-library", "channels", "inbox", "team", "settings"],
+                            "editor": ["dashboard", "posts", "scheduling", "analytics", "ai-assistant", "media-library"],
+                            "Content Manager": ["dashboard", "posts", "scheduling", "analytics", "ai-assistant", "media-library"],
+                            "Designer": ["dashboard", "posts", "media-library"],
+                            "viewer": ["dashboard", "analytics", "inbox"],
+                            "Analyst": ["dashboard", "analytics", "inbox"],
                           }
                           if (staticPerms[val]) {
                             setEditingPermissions(staticPerms[val])
@@ -763,9 +787,10 @@ export default function TeamPage() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="admin" className="text-xs">Admin</SelectItem>
-                            <SelectItem value="editor" className="text-xs">Editor</SelectItem>
-                            <SelectItem value="viewer" className="text-xs">Viewer</SelectItem>
+                            <SelectItem value="Admin" className="text-xs">Admin</SelectItem>
+                            <SelectItem value="Content Manager" className="text-xs">Content Manager</SelectItem>
+                            <SelectItem value="Designer" className="text-xs">Designer</SelectItem>
+                            <SelectItem value="Analyst" className="text-xs">Analyst</SelectItem>
                             {customRoles.map((cr) => (
                               <SelectItem key={cr.name} value={cr.name} className="text-xs">
                                 {cr.name}
@@ -841,7 +866,7 @@ export default function TeamPage() {
                       Configure Custom Role
                     </CardTitle>
                     <CardDescription className="text-xs">
-                      Build individual agency/client roles with selected permissions.
+                      Build custom team roles with selected permissions.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -850,7 +875,7 @@ export default function TeamPage() {
                         <label className="text-xs font-bold text-text-primary">Role Name</label>
                         <Input
                           required
-                          placeholder="e.g. Agency Client, Marketing Lead"
+                          placeholder="e.g. Marketing Lead, Partner"
                           value={newRoleName}
                           onChange={(e) => setNewRoleName(e.target.value)}
                           className="rounded-xl border-border text-xs h-9"
@@ -913,7 +938,7 @@ export default function TeamPage() {
                   <div className="divide-y divide-border/60">
                     {customRoles.length === 0 ? (
                       <div className="p-8 text-center text-xs text-muted-foreground">
-                        No custom roles configured yet. Start building agency clients roles above.
+                        No custom roles configured yet. Start building custom team roles above.
                       </div>
                     ) : (
                       customRoles.map((role) => (
@@ -1016,7 +1041,7 @@ export default function TeamPage() {
                     <CardContent className="p-4 flex flex-col items-center justify-center space-y-4 my-auto">
                       <div className="relative size-32 flex items-center justify-center">
                         <svg className="size-full -rotate-90">
-                          <circle
+                           <circle
                             cx="64"
                             cy="64"
                             r="54"

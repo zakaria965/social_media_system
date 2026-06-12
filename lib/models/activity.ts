@@ -27,8 +27,9 @@ const ActivityLogSchema = new Schema<IActivityLog>(
       default: "info",
     },
     createdAt: { type: Date, default: Date.now },
-  }
+  },
+  { collection: "team_activity_logs" }
 )
 
 export const ActivityLog: Model<IActivityLog> =
-  mongoose.models.ActivityLog ?? mongoose.model<IActivityLog>("ActivityLog", ActivityLogSchema)
+  mongoose.models.ActivityLog ?? mongoose.model<IActivityLog>("ActivityLog", ActivityLogSchema, "team_activity_logs")

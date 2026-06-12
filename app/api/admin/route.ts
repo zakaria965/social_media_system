@@ -13,6 +13,9 @@ import { PlatformSettings } from "@/lib/models/platform-settings"
 import { Payment } from "@/lib/models/payment"
 import { AILog } from "@/lib/models/ai-log"
 import { AIUsage } from "@/lib/models/ai-usage"
+import { WorkspaceMember } from "@/lib/models/workspace-member"
+import { WorkspaceInvitation } from "@/lib/models/workspace-invitation"
+import { ActivityLog } from "@/lib/models/activity"
 
 // Helper to log admin actions to AuditLog
 async function logAdminAction(actor: string, action: string, resource: string, details: string) {
@@ -133,6 +136,54 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ users: mappedUsers })
     }
 
+    if (action === "workspaces") {
+      const workspaces = await Workspace.find().sort({ createdAt: -1 })
+      
+      const mappedWorkspaces = await Promise.all(workspaces.map(async (ws) => {
+        const owner = await User.findOne({ email: ws.ownerEmail })
+        const members = await WorkspaceMember.find({ workspaceId: ws._id }).lean()
+        const invitations = await WorkspaceInvitation.find({ workspaceId: ws._id }).lean()
+        const channelsCount = await SocialAccount.countDocuments({ workspaceId: ws._id })
+        const postsCount = await Post.countDocuments({ workspaceId: ws._id })
+        const activityLogs = await ActivityLog.find({ workspaceId: ws._id }).sort({ createdAt: -1 }).limit(20).lean()
+        
+        return {
+          id: ws._id.toString(),
+          name: ws.name,
+          ownerName: owner?.name || ws.ownerEmail.split("@")[0],
+          ownerEmail: ws.ownerEmail,
+          plan: owner?.plan || "FREE",
+          createdAt: ws.createdAt,
+          channelsCount,
+          postsCount,
+          status: ws.status || "ACTIVE",
+          members: members.map(m => ({
+            id: m._id.toString(),
+            name: m.name,
+            email: m.email,
+            role: m.role,
+            joinedAt: m.joinedAt,
+            customPermissions: m.customPermissions
+          })),
+          invitations: invitations.map(i => ({
+            id: i._id.toString(),
+            email: i.email,
+            role: i.role,
+            invitedBy: i.invitedBy,
+            inviteExpiresAt: i.inviteExpiresAt
+          })),
+          activityLogs: activityLogs.map(a => ({
+            id: a._id.toString(),
+            action: a.action,
+            details: a.details,
+            userId: a.userId,
+            createdAt: a.createdAt
+          }))
+        }
+      }))
+
+      return NextResponse.json({ workspaces: mappedWorkspaces })
+    }
 
     if (action === "payments") {
       const payments = await Payment.find().sort({ createdAt: -1 })
@@ -873,6 +924,36 @@ export async function POST(request: NextRequest) {
       
       await settings.save()
       await logAdminAction(adminEmail, "UPDATE_SETTINGS", "Settings", "Saved platform configuration settings")
+      return NextResponse.json({ success: true })
+    }
+
+    // WORKSPACE & TEAM ACTIONS
+    if (action === "suspend-workspace") {
+      const ws = await Workspace.findById(workspaceId)
+      if (!ws) return NextResponse.json({ error: "Workspace not found" }, { status: 404 })
+      ws.status = "SUSPENDED"
+      await ws.save()
+      await logAdminAction(adminEmail, "SUSPEND_WORKSPACE", "Workspace", `Suspended workspace: ${ws.name} (${ws.ownerEmail})`)
+      return NextResponse.json({ success: true })
+    }
+
+    if (action === "activate-workspace") {
+      const ws = await Workspace.findById(workspaceId)
+      if (!ws) return NextResponse.json({ error: "Workspace not found" }, { status: 404 })
+      ws.status = "ACTIVE"
+      await ws.save()
+      await logAdminAction(adminEmail, "ACTIVATE_WORKSPACE", "Workspace", `Activated workspace: ${ws.name} (${ws.ownerEmail})`)
+      return NextResponse.json({ success: true })
+    }
+
+    if (action === "adjust-member-permissions") {
+      const { memberId, role, customPermissions } = body
+      const member = await WorkspaceMember.findById(memberId)
+      if (!member) return NextResponse.json({ error: "Workspace member not found" }, { status: 404 })
+      member.role = role
+      if (customPermissions) member.customPermissions = customPermissions
+      await member.save()
+      await logAdminAction(adminEmail, "ADJUST_MEMBER_PERMISSIONS", "WorkspaceMember", `Adjusted permissions for ${member.email} in workspace ${member.workspaceId}`)
       return NextResponse.json({ success: true })
     }
 

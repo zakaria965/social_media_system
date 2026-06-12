@@ -2,6 +2,7 @@ import mongoose from "mongoose"
 import { connectDB } from "./db"
 import { Workspace, IWorkspace } from "./models/workspace"
 import { WorkspaceMember } from "./models/workspace-member"
+import { WorkspaceInvitation } from "./models/workspace-invitation"
 import { CustomRole } from "./models/custom-role"
 import { ActivityLog } from "./models/activity"
 import { Post } from "./models/post"
@@ -42,7 +43,7 @@ export async function getOrCreateDefaultWorkspace(userEmail: string, userName?: 
     workspaceId: newWorkspace._id,
     email: userEmail,
     name: displayName,
-    role: "owner",
+    role: "Workspace Owner",
     status: "active",
     joinedAt: new Date(),
     lastActive: new Date(),
@@ -85,6 +86,12 @@ export async function verifyMemberPermission(
 ): Promise<{ allowed: boolean; role?: string; error?: string; member?: any }> {
   await connectDB()
 
+  // 1. Verify workspace is not suspended
+  const ws = await Workspace.findById(workspaceId)
+  if (ws && ws.status === "SUSPENDED") {
+    return { allowed: false, error: "This workspace has been suspended by the platform administrator." }
+  }
+
   const member = await WorkspaceMember.findOne({
     workspaceId,
     email: userEmail,
@@ -95,16 +102,34 @@ export async function verifyMemberPermission(
     return { allowed: false, error: "You are not an active member of this workspace" }
   }
 
-  const role = member.role
+  // Normalize legacy role names
+  let role = member.role
+  if (role === "owner") role = "Workspace Owner";
+  if (role === "admin") role = "Admin";
+  if (role === "editor") role = "Content Manager";
+  if (role === "viewer") role = "Analyst";
 
-  // Owner always has full permissions
-  if (role === "owner") {
+  // Workspace Owner always has full permissions
+  if (role === "Workspace Owner") {
     return { allowed: true, role, member }
   }
 
   // Pre-defined static roles permissions
   const staticPermissions: Record<string, string[]> = {
-    admin: [
+    "Workspace Owner": [
+      "dashboard",
+      "posts",
+      "scheduling",
+      "analytics",
+      "ai-assistant",
+      "media-library",
+      "channels",
+      "inbox",
+      "team",
+      "settings",
+      "billing",
+    ],
+    "Admin": [
       "dashboard",
       "posts",
       "scheduling",
@@ -116,7 +141,7 @@ export async function verifyMemberPermission(
       "team",
       "settings",
     ],
-    editor: [
+    "Content Manager": [
       "dashboard",
       "posts",
       "scheduling",
@@ -124,7 +149,12 @@ export async function verifyMemberPermission(
       "ai-assistant",
       "media-library",
     ],
-    viewer: [
+    "Designer": [
+      "dashboard",
+      "posts",
+      "media-library",
+    ],
+    "Analyst": [
       "dashboard",
       "analytics",
       "inbox",
@@ -192,7 +222,7 @@ export async function getWorkspaceStats(workspaceId: string | mongoose.Types.Obj
     mediaFiles,
   ] = await Promise.all([
     WorkspaceMember.countDocuments({ workspaceId, status: "active" }),
-    WorkspaceMember.countDocuments({ workspaceId, status: "pending" }),
+    WorkspaceInvitation.countDocuments({ workspaceId }),
     SocialAccount.countDocuments({ workspaceId, status: "connected" }),
     Post.countDocuments({ workspaceId, status: "published" }),
     Post.countDocuments({ workspaceId, status: "scheduled" }),
@@ -203,7 +233,7 @@ export async function getWorkspaceStats(workspaceId: string | mongoose.Types.Obj
   const storageUsageBytes = mediaFiles.reduce((sum, f) => sum + (f.size || 0), 0)
 
   // Workspace owner
-  const owner = await WorkspaceMember.findOne({ workspaceId, role: "owner" }).lean()
+  const owner = await WorkspaceMember.findOne({ workspaceId, role: { $in: ["owner", "Workspace Owner"] } }).lean()
 
   // Collaboration insights
   const approvalsCompleted = await Post.countDocuments({ workspaceId, approvalStatus: "approved" })

@@ -14,7 +14,7 @@ const CustomRoleSchema = new Schema<ICustomRole>(
     name: { type: String, required: true },
     permissions: [{ type: String }],
   },
-  { timestamps: true }
+  { timestamps: true, collection: "team_roles" }
 )
 
 if (mongoose.models && mongoose.models.CustomRole) {
@@ -22,4 +22,4 @@ if (mongoose.models && mongoose.models.CustomRole) {
 }
 
 export const CustomRole: Model<ICustomRole> =
-  mongoose.models.CustomRole ?? mongoose.model<ICustomRole>("CustomRole", CustomRoleSchema)
+  mongoose.models.CustomRole ?? mongoose.model<ICustomRole>("CustomRole", CustomRoleSchema, "team_roles")

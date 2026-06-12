@@ -27,17 +27,17 @@ const WorkspaceMemberSchema = new Schema<IWorkspaceMember>(
     status: {
       type: String,
       enum: ["active", "pending", "declined"],
-      default: "pending",
+      default: "active",
       index: true,
     },
-    joinedAt: { type: Date, default: null },
-    lastActive: { type: Date, default: null },
+    joinedAt: { type: Date, default: Date.now },
+    lastActive: { type: Date, default: Date.now },
     customPermissions: [{ type: String }],
     invitedBy: { type: String, default: null },
     inviteToken: { type: String, default: null, index: true },
     inviteExpiresAt: { type: Date, default: null },
   },
-  { timestamps: true }
+  { timestamps: true, collection: "team_members" }
 )
 
 if (mongoose.models && mongoose.models.WorkspaceMember) {
@@ -46,4 +46,4 @@ if (mongoose.models && mongoose.models.WorkspaceMember) {
 
 export const WorkspaceMember: Model<IWorkspaceMember> =
   mongoose.models.WorkspaceMember ??
-  mongoose.model<IWorkspaceMember>("WorkspaceMember", WorkspaceMemberSchema)
+  mongoose.model<IWorkspaceMember>("WorkspaceMember", WorkspaceMemberSchema, "team_members")

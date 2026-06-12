@@ -80,6 +80,7 @@ const navigationItems: SidebarLink[] = [
   { id: "channels", href: "/dashboard/channels", label: "Channels", icon: "Link2" },
   { id: "inbox", href: "/dashboard/inbox", label: "Inbox", icon: "MessageSquare", badgeType: "inbox" },
   { id: "notifications", href: "/dashboard/notifications", label: "Notifications", icon: "Megaphone", badgeType: "notifications" },
+  { id: "team", href: "/team", label: "Team", icon: "Users" },
 ]
 
 export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
