@@ -8,6 +8,7 @@ export interface QuotaCheckResult {
   allowed: boolean
   error?: string
   limitReached?: boolean
+  userPlan?: "FREE" | "PRO"
 }
 
 function firstDayOfNextMonth(): Date {
@@ -24,17 +25,17 @@ export async function checkAIQuota(userId: string): Promise<QuotaCheckResult> {
   // 1. Load user
   const user = await User.findById(userId)
   if (!user) {
-    return { allowed: false, error: "User record not found." }
+    return { allowed: false, error: "User record not found.", userPlan: "FREE" }
   }
 
   // 2. Check suspended status
   if (user.status === "SUSPENDED") {
-    return { allowed: false, error: "Your account has been suspended." }
+    return { allowed: false, error: "Your account has been suspended.", userPlan: user.plan || "FREE" }
   }
 
   // 3. Check user AI enabled status
   if (user.aiEnabled === false) {
-    return { allowed: false, error: "AI features have been disabled for your account by an administrator." }
+    return { allowed: false, error: "AI features have been disabled for your account by an administrator.", userPlan: user.plan || "FREE" }
   }
 
   // 4. Load platform settings
@@ -53,7 +54,7 @@ export async function checkAIQuota(userId: string): Promise<QuotaCheckResult> {
 
   // 5. Check platform emergency shutdown (Kill Switch)
   if (settings.openaiEmergencyShutdown) {
-    return { allowed: false, error: "AI services are temporarily disabled by the administrator." }
+    return { allowed: false, error: "AI services are temporarily disabled by the administrator.", userPlan: user.plan || "FREE" }
   }
 
   // 6. Check Platform Monthly Budget limit
@@ -67,7 +68,7 @@ export async function checkAIQuota(userId: string): Promise<QuotaCheckResult> {
   const globalMonthCost = allMonthLogs.reduce((acc, l) => acc + (l.cost || 0), 0)
 
   if (globalMonthCost >= settings.openaiMonthlyBudget) {
-    return { allowed: false, error: "SaaS AI monthly budget exhausted." }
+    return { allowed: false, error: "SaaS AI monthly budget exhausted.", userPlan: user.plan || "FREE" }
   }
 
   // 7. Reset user quota statistics if reset date has passed
@@ -75,16 +76,14 @@ export async function checkAIQuota(userId: string): Promise<QuotaCheckResult> {
   const resetDate = user.resetDate || firstDayOfNextMonth()
   if (now >= resetDate) {
     user.tokensUsed = 0
-    if (user.plan === "PRO") {
-      user.requestsUsed = 0
-    }
+    user.requestsUsed = 0
     user.resetDate = firstDayOfNextMonth()
     await user.save()
   }
 
-  // Admin and Pro users have unlimited access and bypass user checks
+  // Admin and Pro users have unlimited access and bypass all quota checks
   if (user.role === "ADMIN" || user.plan === "PRO") {
-    return { allowed: true }
+    return { allowed: true, userPlan: user.plan || "PRO" }
   }
 
   // 8. Enforce user quota limits
@@ -98,14 +97,14 @@ export async function checkAIQuota(userId: string): Promise<QuotaCheckResult> {
   const requestsUsed = user.requestsUsed || 0
 
   if (effectiveRequestLimit !== -1 && requestsUsed >= effectiveRequestLimit) {
-    return { allowed: false, error: "You have reached your AI limit.", limitReached: true }
+    return { allowed: false, error: "You've used all 5 free AI generations. Upgrade to GrowWave Pro for unlimited AI access.", limitReached: true, userPlan: "FREE" }
   }
 
   if (effectiveTokenLimit !== -1 && tokensUsed >= effectiveTokenLimit) {
-    return { allowed: false, error: "You have reached your monthly AI limit.", limitReached: true }
+    return { allowed: false, error: "You've used all 5 free AI generations. Upgrade to GrowWave Pro for unlimited AI access.", limitReached: true, userPlan: "FREE" }
   }
 
-  return { allowed: true }
+  return { allowed: true, userPlan: user.plan || "FREE" }
 }
 
 export async function recordAIUsage(params: {

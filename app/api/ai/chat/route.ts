@@ -108,6 +108,7 @@ export async function POST(request: NextRequest) {
             error: quotaCheck.error || "AI Limit Reached",
             apiStatus: quotaCheck.limitReached ? 429 : 403,
             errorCode: quotaCheck.limitReached ? "QUOTA_EXCEEDED" : "UNAUTHORIZED",
+            userPlan: quotaCheck.userPlan,
             timestamp: new Date().toISOString()
           }),
           status: "failed",
@@ -116,8 +117,14 @@ export async function POST(request: NextRequest) {
         console.error("Failed to log AI activity:", logErr)
       }
 
+      console.log(`[AI REQUEST] BLOCKED\nUser: ${dbUser._id.toString()}\nPlan: ${quotaCheck.userPlan || "FREE"}\nReason: ${quotaCheck.error}`)
+
       return NextResponse.json(
-        { errorCode: quotaCheck.limitReached ? "QUOTA_EXCEEDED" : "UNAUTHORIZED", error: quotaCheck.error || "Your AI usage limit has been reached." },
+        {
+          errorCode: quotaCheck.limitReached ? "QUOTA_EXCEEDED" : "UNAUTHORIZED",
+          error: quotaCheck.error || "Your AI usage limit has been reached.",
+          userPlan: quotaCheck.userPlan
+        },
         { status: quotaCheck.limitReached ? 429 : 403 }
       )
     }

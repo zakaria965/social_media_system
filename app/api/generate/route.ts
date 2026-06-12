@@ -7,8 +7,6 @@ import { checkAIQuota, recordAIUsage } from "@/lib/ai-quota"
 import { AIGeneration } from "@/lib/models/ai-generation"
 
 
-type Provider = "openai" | "gemini" | "anthropic" | "xai"
-
 type Action =
   | "generate-caption"
   | "rewrite-text"
@@ -17,97 +15,10 @@ type Action =
   | "content-ideas"
   | "improve-grammar"
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
-const XAI_API_KEY = process.env.XAI_API_KEY
+const ZAI_API_KEY = process.env.ZAI_API_KEY
 
-async function callOpenAI(systemPrompt: string, userPrompt: string): Promise<string> {
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      max_tokens: 1024,
-    }),
-  })
-  const data = await res.json()
-  return data.choices?.[0]?.message?.content ?? ""
-}
-
-async function callGemini(systemPrompt: string, userPrompt: string): Promise<string> {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }],
-          },
-        ],
-        generationConfig: { maxOutputTokens: 1024 },
-      }),
-    }
-  )
-  const data = await res.json()
-  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? ""
-}
-
-async function callAnthropic(systemPrompt: string, userPrompt: string): Promise<string> {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY!,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }],
-    }),
-  })
-  const data = await res.json()
-  return data.content?.[0]?.text ?? ""
-}
-
-async function callXAI(systemPrompt: string, userPrompt: string): Promise<string> {
-  const res = await fetch("https://api.x.ai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${XAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: "grok-2-1212",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      max_tokens: 1024,
-    }),
-  })
-  const data = await res.json()
-  return data.choices?.[0]?.message?.content ?? ""
-}
-
-const providerMap: Record<Provider, (sys: string, user: string) => Promise<string>> = {
-  openai: callOpenAI,
-  gemini: callGemini,
-  anthropic: callAnthropic,
-  xai: callXAI,
-}
+// Provider functions removed — executeAIOperation handles Gemini and Z.ai providers directly
 
 function getSystemPrompt(action: Action, tone?: string): string {
   const toneInstruction = tone ? `Use a ${tone} tone.` : ""
@@ -153,8 +64,9 @@ export async function POST(request: NextRequest) {
 
     const quotaCheck = await checkAIQuota(userId)
     if (!quotaCheck.allowed) {
+      console.log(`[AI REQUEST] BLOCKED\nUser: ${userId}\nPlan: ${quotaCheck.userPlan || "FREE"}\nReason: ${quotaCheck.error}`)
       return NextResponse.json(
-        { error: quotaCheck.error || "AI Limit Reached", errorCode: quotaCheck.limitReached ? "QUOTA_EXCEEDED" : undefined },
+        { error: quotaCheck.error || "Your AI usage limit has been reached.", errorCode: quotaCheck.limitReached ? "QUOTA_EXCEEDED" : undefined, userPlan: quotaCheck.userPlan },
         { status: quotaCheck.limitReached ? 429 : 403 }
       )
     }
@@ -248,7 +160,7 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     message: "Generate API route is available.",
-    providers: ["openai", "gemini", "anthropic", "xai"],
+    providers: ["gemini", "zai"],
     actions: [
       "generate-caption",
       "rewrite-text",

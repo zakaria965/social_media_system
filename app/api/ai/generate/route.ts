@@ -4,11 +4,15 @@ import { authOptions } from "@/lib/auth.config"
 import { connectDB } from "@/lib/db"
 import { User } from "@/lib/models/user"
 import { AIGeneration } from "@/lib/models/ai-generation"
+import { checkAIQuota, recordAIUsage } from "@/lib/ai-quota"
 import { generateGeminiContent } from "@/lib/ai/gemini"
+import OpenAI from "openai"
 
 export const dynamic = "force-dynamic"
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now()
+
   try {
     const session = await getServerSession(authOptions)
     if (!session || !session.user || !session.user.email) {
@@ -22,27 +26,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    // Initialize credits if not set
-    if (user.aiCreditsRemaining === undefined || user.aiCreditsRemaining === null) {
-      user.aiCreditsRemaining = 5
-      user.aiCreditsUsed = 0
-      await user.save()
-    }
+    const userId = user._id.toString()
 
-    const isFreePlan = user.plan !== "PRO"
+    // Use the unified checkAIQuota — Pro users get unlimited, Free users get 5
+    const quotaCheck = await checkAIQuota(userId)
+    if (!quotaCheck.allowed) {
+      console.log(`[AI REQUEST] BLOCKED\nUser: ${userId}\nPlan: ${user.plan || "FREE"}\nReason: ${quotaCheck.error}`)
 
-    // Quota verification
-    if (isFreePlan && user.aiCreditsRemaining <= 0) {
       return NextResponse.json(
-        { error: "AI Limit Reached", errorCode: "QUOTA_EXCEEDED" },
-        { status: 403 }
+        {
+          error: quotaCheck.error || "Your AI usage limit has been reached.",
+          errorCode: quotaCheck.limitReached ? "QUOTA_EXCEEDED" : "UNAUTHORIZED",
+          userPlan: quotaCheck.userPlan
+        },
+        { status: quotaCheck.limitReached ? 429 : 403 }
       )
     }
 
     const body = await request.json()
-    const { prompt, history } = body as {
+    const { prompt, history, model = "gemini" } = body as {
       prompt: string
       history?: any[]
+      model?: "gemini" | "zai"
     }
 
     if (!prompt || !prompt.trim()) {
@@ -50,39 +55,115 @@ export async function POST(request: NextRequest) {
     }
 
     const plan = user.plan?.toLowerCase() || "free"
-    const quota = (plan === "pro" || user.role === "ADMIN") ? "unlimited" : `${Math.max(0, user.aiCreditsRemaining || 0)}`
+    const providerName = model === "zai" ? "Z.ai" : "Gemini"
 
-    // Log request initiation
-    console.log(`[AI]\nUser: ${user._id.toString()}\nPlan: ${plan}\nQuota: ${quota}\nGemini: initiated`)
+    console.log(`[AI REQUEST]\nUser: ${userId}\nPlan: ${plan}\nProvider: ${providerName}\nUsage: ${user.requestsUsed || 0}`)
 
     try {
-      // Call Gemini API
-      const responseText = await generateGeminiContent(prompt, history || [])
+      let responseText = ""
 
-      // Log response success
-      console.log(`[AI]\nUser: ${user._id.toString()}\nPlan: ${plan}\nQuota: ${quota}\nGemini: success`)
+      if (model === "zai") {
+        // Z.ai provider
+        const zaiApiKey = process.env.ZAI_API_KEY
+        if (!zaiApiKey) {
+          throw new Error("ZAI_API_KEY is not configured")
+        }
 
-      // Log the request to database
+        const zaiClient = new OpenAI({
+          apiKey: zaiApiKey,
+          baseURL: "https://api.z.ai/api/paas/v4"
+        })
+
+        const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
+          { role: "system", content: "You are GrowWave's helpful, professional social media assistant AI. Write engaging captions, copy, hashtags, or answer marketing strategy questions. Keep responses optimized for digital channels." },
+          { role: "user", content: prompt }
+        ]
+
+        const response = await zaiClient.chat.completions.create({
+          model: "glm-5-turbo",
+          messages,
+          max_tokens: 2048
+        })
+
+        responseText = response.choices[0]?.message?.content || ""
+      } else {
+        // Gemini provider (default)
+        responseText = await generateGeminiContent(prompt, history || [])
+      }
+
+      const responseTime = Date.now() - startTime
+      const promptTokens = Math.ceil(prompt.length / 4)
+      const completionTokens = Math.ceil(responseText.length / 4)
+
+      console.log(`[AI RESPONSE]\nProvider: ${providerName}\nDuration: ${(responseTime / 1000).toFixed(1)}s\nTokens: ${promptTokens + completionTokens}`)
+
+      // Record usage via the unified system
+      await recordAIUsage({
+        userId,
+        workspaceId: null,
+        feature: "AI Generate",
+        provider: model === "zai" ? "ZAI" : "GEMINI",
+        model: model === "zai" ? "glm-5-turbo" : "gemini-2.5-flash",
+        promptTokens,
+        completionTokens,
+        responseTime,
+        status: "success"
+      })
+
+      // Store in AI generations
       await AIGeneration.create({
-        userId: user._id.toString(),
-        prompt: prompt,
+        userId,
+        prompt,
         response: responseText,
-        model: "gemini",
+        model: model === "zai" ? "zai" : "gemini",
         createdAt: new Date(),
       })
 
-      // Update credits for FREE users
-      if (isFreePlan) {
-        user.aiCreditsRemaining = Math.max(0, user.aiCreditsRemaining - 1)
-        user.aiCreditsUsed = (user.aiCreditsUsed || 0) + 1
-        await user.save()
-      }
-
       return NextResponse.json({ response: responseText })
     } catch (err: any) {
-      // Log response failed
-      console.log(`[AI]\nUser: ${user._id.toString()}\nPlan: ${plan}\nQuota: ${quota}\nGemini: failed`)
-      throw err
+      const responseTime = Date.now() - startTime
+      const errMsg = err?.message?.toLowerCase() || ""
+
+      let errorCode = "SERVICE_UNAVAILABLE"
+      let errorMessage = ""
+      let httpStatus = 500
+
+      if (model === "gemini" || model !== "zai") {
+        if (errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("resource_exhausted")) {
+          errorCode = "QUOTA_EXCEEDED"
+          errorMessage = "Gemini quota limit reached. Please try again later or switch to Z.ai."
+          httpStatus = 429
+        } else {
+          errorMessage = `Gemini error: ${err.message || "Unknown error"}`
+        }
+      } else {
+        if (errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("balance") || errMsg.includes("recharge")) {
+          errorCode = "QUOTA_EXCEEDED"
+          errorMessage = "Z.ai is temporarily unavailable. Please try again later."
+          httpStatus = 429
+        } else {
+          errorMessage = `Z.ai is temporarily unavailable. Please try again later.`
+        }
+      }
+
+      console.error(`[AI ERROR]\nProvider: ${providerName}\nReason: ${err.message || err}`)
+
+      await recordAIUsage({
+        userId,
+        workspaceId: null,
+        feature: "AI Generate",
+        provider: model === "zai" ? "ZAI" : "GEMINI",
+        model: model === "zai" ? "glm-5-turbo" : "gemini-2.5-flash",
+        promptTokens: 0,
+        completionTokens: 0,
+        responseTime,
+        status: "failed"
+      })
+
+      return NextResponse.json(
+        { error: errorMessage, errorCode },
+        { status: httpStatus }
+      )
     }
   } catch (err: any) {
     console.error("AI Generate API error:", err)

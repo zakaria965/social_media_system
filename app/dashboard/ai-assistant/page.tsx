@@ -504,15 +504,21 @@ export default function AIAssistantPage() {
         try {
           const errJson = await res.json()
           errMsg = errJson.error || errMsg
-          if (errJson.errorCode === "QUOTA_EXCEEDED" || res.status === 429 || res.status === 403) {
+          if (errJson.errorCode === "QUOTA_EXCEEDED") {
             errCode = "QUOTA_EXCEEDED"
-            errMsg = "Your AI usage limit has been reached."
+            // Use the server-provided message which is plan-aware
           } else if (errJson.errorCode === "CONFIG_INCOMPLETE" || res.status === 400) {
             errCode = "CONFIG_INCOMPLETE"
-            errMsg = "AI service configuration is incomplete."
+            errMsg = errJson.error || "AI service configuration is incomplete."
+          } else if (res.status === 429) {
+            errCode = "QUOTA_EXCEEDED"
+            // Use the server-provided message
+          } else {
+            errCode = "SERVICE_UNAVAILABLE"
+            // Use the server-provided error message (provider-specific)
           }
         } catch (_) {
-          if (res.status === 429 || res.status === 403) {
+          if (res.status === 429) {
             errCode = "QUOTA_EXCEEDED"
             errMsg = "Your AI usage limit has been reached."
           }
@@ -1208,7 +1214,7 @@ export default function AIAssistantPage() {
                                 <h4 className="font-bold text-xs text-destructive">
                                   {msg.errorType === "QUOTA_EXCEEDED" && "AI Limit Reached"}
                                   {msg.errorType === "CONFIG_INCOMPLETE" && "Configuration Incomplete"}
-                                  {msg.errorType === "SERVICE_UNAVAILABLE" && "Service Unavailable"}
+                                  {msg.errorType === "SERVICE_UNAVAILABLE" && "Temporarily Unavailable"}
                                 </h4>
                                 <p className="text-xs text-[#64748B] mt-1 leading-normal font-medium">
                                   {msg.content}
@@ -1221,12 +1227,12 @@ export default function AIAssistantPage() {
                                   variant="outline"
                                   size="xs"
                                   className="h-7 text-[10.5px] border-primary/20 hover:border-primary/40 text-primary hover:bg-primary/5 font-semibold bg-[#FFFFFF]"
-                                  onClick={() => router.push("/dashboard/settings")}
+                                  onClick={() => router.push("/pricing")}
                                 >
-                                  Upgrade Plan
+                                  Upgrade to Pro
                                 </Button>
                               )}
-                              {msg.errorType === "SERVICE_UNAVAILABLE" && (
+                              {(msg.errorType === "SERVICE_UNAVAILABLE" || msg.errorType === "QUOTA_EXCEEDED") && (
                                 <Button
                                   variant="outline"
                                   size="xs"
