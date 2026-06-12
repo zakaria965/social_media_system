@@ -19,16 +19,8 @@ export async function executeAIOperation(
   const startTime = Date.now()
   const providersToTry: { name: string; getProvider: () => AIProvider }[] = []
 
-  if (selection === "openai") {
-    providersToTry.push({ name: "OPENAI", getProvider: getOpenAIProvider })
-  } else if (selection === "gemini") {
-    providersToTry.push({ name: "GEMINI", getProvider: getGeminiProvider })
-    providersToTry.push({ name: "OPENAI", getProvider: getOpenAIProvider }) // Fallback
-  } else {
-    // auto
-    providersToTry.push({ name: "GEMINI", getProvider: getGeminiProvider })
-    providersToTry.push({ name: "OPENAI", getProvider: getOpenAIProvider }) // Fallback
-  }
+  // Enforce Gemini API as the sole provider
+  providersToTry.push({ name: "GEMINI", getProvider: getGeminiProvider })
 
   let lastError: any = null
 
@@ -72,7 +64,7 @@ export async function executeAIOperation(
         workspaceId: options.workspaceId,
         feature: options.feature,
         provider: prov.name,
-        model: prov.name === "GEMINI" ? "gemini-2.0-flash" : "gpt-4o-mini",
+        model: prov.name === "GEMINI" ? "gemini-2.5-flash" : "gpt-4o-mini",
         promptTokens: 0,
         completionTokens: 0,
         responseTime,

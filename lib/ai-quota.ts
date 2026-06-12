@@ -82,14 +82,14 @@ export async function checkAIQuota(userId: string): Promise<QuotaCheckResult> {
     await user.save()
   }
 
-  // Admin users have unlimited access and bypass user checks
-  if (user.role === "ADMIN") {
+  // Admin and Pro users have unlimited access and bypass user checks
+  if (user.role === "ADMIN" || user.plan === "PRO") {
     return { allowed: true }
   }
 
   // 8. Enforce user quota limits
-  const monthlyTokenLimit = user.monthlyTokenLimit ?? (user.plan === "PRO" ? 5000000 : 50000)
-  const monthlyRequestLimit = user.plan === "PRO" ? -1 : 5
+  const monthlyTokenLimit = user.monthlyTokenLimit ?? ((user.plan as string) === "PRO" ? 5000000 : 50000)
+  const monthlyRequestLimit = (user.plan as string) === "PRO" ? -1 : 5
 
   const effectiveTokenLimit = monthlyTokenLimit + (user.bonusTokens || 0)
   const effectiveRequestLimit = monthlyRequestLimit + (user.bonusRequests || 0)

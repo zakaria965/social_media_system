@@ -15,7 +15,7 @@ export class GeminiProvider implements AIProvider {
 
   async generateText(prompt: string, systemPrompt?: string): Promise<AIResult> {
     const client = this.getClient()
-    const modelName = "gemini-2.0-flash"
+    const modelName = "gemini-2.5-flash"
     
     // Set system instruction if provided
     const model = client.getGenerativeModel({

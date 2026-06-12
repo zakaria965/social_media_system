@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     // Verify that at least one API key is available based on selected provider
     const platformSettings = await PlatformSettings.findOne()
-    const selection = platformSettings?.aiProvider || "gemini"
+    const selection = "gemini"
 
     const openAiApiKey = process.env.OPENAI_API_KEY
     const geminiApiKey = process.env.GEMINI_API_KEY
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     const aiLanguage = settings.aiLanguage || "English (US)"
 
     // Plan check
-    dbUser = await User.findOne({ email }).select("_id status")
+    dbUser = await User.findOne({ email })
     if (!dbUser) {
       return NextResponse.json({ error: "User record not found" }, { status: 401 })
     }
@@ -250,6 +250,10 @@ export async function POST(request: NextRequest) {
       chatId?: string
     }
 
+    const prompt = messages[messages.length - 1]?.content || ""
+    console.log("Request received");
+    console.log(prompt);
+
     if (!chatId) {
       return NextResponse.json({ error: "chatId is required" }, { status: 400 })
     }
@@ -330,6 +334,10 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
     let fallbackInitiated = false
 
     if (selection === "gemini" || selection === "auto") {
+      const userPlan = dbUser.plan?.toLowerCase() || "free"
+      const quota = (userPlan === "pro" || dbUser.role === "ADMIN") ? "unlimited" : `${Math.max(0, 5 - (dbUser.requestsUsed || 0))}`
+      console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\nGemini: initiated`)
+
       try {
         if (!geminiApiKey) {
           throw new Error("GEMINI_API_KEY is not configured")
@@ -347,7 +355,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
           }))
 
         const geminiModel = genAI.getGenerativeModel({ 
-          model: "gemini-2.0-flash",
+          model: "gemini-2.5-flash",
           systemInstruction: systemMsg
         })
 
@@ -357,9 +365,9 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
         })
         providerName = "GEMINI"
       } catch (err: any) {
-        console.error("Gemini stream creation failed, trying fallback to OpenAI:", err)
-        fallbackInitiated = true
-        providerName = "OPENAI"
+        console.error("Gemini stream creation failed:", err)
+        console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\nGemini: failed`)
+        throw err
       }
     } else {
       providerName = "OPENAI"
@@ -432,6 +440,9 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
                 controller.enqueue(encoder.encode(text))
               }
             }
+            const userPlan = dbUser.plan?.toLowerCase() || "free"
+            const quota = (userPlan === "pro" || dbUser.role === "ADMIN") ? "unlimited" : `${Math.max(0, 5 - (dbUser.requestsUsed || 0))}`
+            console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\nGemini: success`)
           } else {
             for await (const chunk of responseStream) {
               const text = chunk.choices[0]?.delta?.content || ""
@@ -478,7 +489,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
                 workspaceId,
                 feature,
                 provider: providerName,
-                model: providerName === "GEMINI" ? "gemini-2.0-flash" : "gpt-4o-mini",
+                model: providerName === "GEMINI" ? "gemini-2.5-flash" : "gpt-4o-mini",
                 promptTokens,
                 completionTokens,
                 responseTime,
@@ -512,6 +523,10 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
           console.error("Error reading response stream:", streamErr)
           controller.error(streamErr)
 
+          const userPlan = dbUser.plan?.toLowerCase() || "free"
+          const quota = (userPlan === "pro" || dbUser.role === "ADMIN") ? "unlimited" : `${Math.max(0, 5 - (dbUser.requestsUsed || 0))}`
+          console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\nGemini: failed`)
+
           // Log failure
           try {
             await ActivityLog.create({
@@ -536,7 +551,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
               workspaceId,
               feature: "AI Chat",
               provider: providerName,
-              model: providerName === "GEMINI" ? "gemini-2.0-flash" : "gpt-4o-mini",
+              model: providerName === "GEMINI" ? "gemini-2.5-flash" : "gpt-4o-mini",
               promptTokens: 0,
               completionTokens: 0,
               responseTime: Date.now() - startTime,
@@ -557,6 +572,12 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
   } catch (err: unknown) {
     console.error("AI Chat API Route error:", err)
     const msg = err instanceof Error ? err.message : "Internal Server Error"
+    
+    if (dbUser) {
+      const userPlan = dbUser.plan?.toLowerCase() || "free"
+      const quota = (userPlan === "pro" || dbUser.role === "ADMIN") ? "unlimited" : `${Math.max(0, 5 - (dbUser.requestsUsed || 0))}`
+      console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\nGemini: failed`)
+    }
     
     // Log failure internally
     if (email) {
@@ -584,7 +605,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
         workspaceId,
         feature: "AI Chat",
         provider: providerName,
-        model: providerName === "GEMINI" ? "gemini-2.0-flash" : "gpt-4o-mini",
+        model: providerName === "GEMINI" ? "gemini-2.5-flash" : "gpt-4o-mini",
         promptTokens: 0,
         completionTokens: 0,
         responseTime: Date.now() - startTime,
@@ -592,9 +613,11 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
       })
     }
 
+    console.error("GEMINI ERROR:", err)
+
     return NextResponse.json(
-      { errorCode: "SERVICE_UNAVAILABLE", error: "AI Assistant is temporarily unavailable. Please try again in a few moments." },
-      { status: 505 } // Change status slightly to avoid client-side cached checks or keep 500
+      { errorCode: "SERVICE_UNAVAILABLE", error: err instanceof Error ? err.message : String(err) },
+      { status: 500 }
     )
   }
 }

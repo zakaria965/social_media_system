@@ -1,6 +1,15 @@
 import mongoose from "mongoose"
 import { initScheduler } from "./scheduler"
 
+if (!process.env.GEMINI_API_KEY) {
+  try {
+    const dotenv = require("dotenv")
+    dotenv.config()
+  } catch (err) {
+    console.warn("Failed to load dotenv package dynamically", err)
+  }
+}
+
 const MONGODB_URL = process.env.MONGODB_URL
 
 if (!MONGODB_URL) {

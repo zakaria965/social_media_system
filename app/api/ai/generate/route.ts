@@ -49,26 +49,41 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 })
     }
 
-    // Call Gemini API
-    const responseText = await generateGeminiContent(prompt, history || [])
+    const plan = user.plan?.toLowerCase() || "free"
+    const quota = (plan === "pro" || user.role === "ADMIN") ? "unlimited" : `${Math.max(0, user.aiCreditsRemaining || 0)}`
 
-    // Log the request to database
-    await AIGeneration.create({
-      userId: user._id.toString(),
-      prompt: prompt,
-      response: responseText,
-      model: "gemini",
-      createdAt: new Date(),
-    })
+    // Log request initiation
+    console.log(`[AI]\nUser: ${user._id.toString()}\nPlan: ${plan}\nQuota: ${quota}\nGemini: initiated`)
 
-    // Update credits for FREE users
-    if (isFreePlan) {
-      user.aiCreditsRemaining = Math.max(0, user.aiCreditsRemaining - 1)
-      user.aiCreditsUsed = (user.aiCreditsUsed || 0) + 1
-      await user.save()
+    try {
+      // Call Gemini API
+      const responseText = await generateGeminiContent(prompt, history || [])
+
+      // Log response success
+      console.log(`[AI]\nUser: ${user._id.toString()}\nPlan: ${plan}\nQuota: ${quota}\nGemini: success`)
+
+      // Log the request to database
+      await AIGeneration.create({
+        userId: user._id.toString(),
+        prompt: prompt,
+        response: responseText,
+        model: "gemini",
+        createdAt: new Date(),
+      })
+
+      // Update credits for FREE users
+      if (isFreePlan) {
+        user.aiCreditsRemaining = Math.max(0, user.aiCreditsRemaining - 1)
+        user.aiCreditsUsed = (user.aiCreditsUsed || 0) + 1
+        await user.save()
+      }
+
+      return NextResponse.json({ response: responseText })
+    } catch (err: any) {
+      // Log response failed
+      console.log(`[AI]\nUser: ${user._id.toString()}\nPlan: ${plan}\nQuota: ${quota}\nGemini: failed`)
+      throw err
     }
-
-    return NextResponse.json({ response: responseText })
   } catch (err: any) {
     console.error("AI Generate API error:", err)
     return NextResponse.json(

@@ -28,7 +28,7 @@ export async function generateGeminiContent(
   try {
     const client = getGeminiClient()
     const model = client.getGenerativeModel({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.5-flash",
       systemInstruction: "You are GrowWave's helpful, professional social media assistant AI. Write engaging captions, copy, hashtags, or answer marketing strategy questions. Keep responses optimized for digital channels."
     })
 

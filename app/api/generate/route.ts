@@ -44,7 +44,7 @@ async function callOpenAI(systemPrompt: string, userPrompt: string): Promise<str
 
 async function callGemini(systemPrompt: string, userPrompt: string): Promise<string> {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
     }
 
     const email = session.user.email.toLowerCase()
-    const dbUser = await User.findOne({ email }).select("_id status")
+    const dbUser = await User.findOne({ email })
     if (!dbUser) {
       return NextResponse.json({ error: "User record not found" }, { status: 401 })
     }
@@ -177,49 +177,64 @@ export async function POST(request: NextRequest) {
       feature = "Content Calendar"
     }
 
-    const result = await executeAIOperation(
-      async (providerInstance) => {
-        if (action === "generate-caption") {
-          return providerInstance.generateCaption(prompt, tone)
-        } else if (action === "rewrite-text") {
-          return providerInstance.generateText(
-            prompt,
-            `You are a professional copywriter. Rewrite the given text to make it more engaging and effective for social media. ${tone ? "Use a " + tone + " tone." : ""} Improve clarity and impact while preserving the core message.`
-          )
-        } else if (action === "change-tone") {
-          return providerInstance.generateText(
-            prompt,
-            `You are a professional copywriter. Rewrite the given text in a ${tone || "different"} tone while preserving the core message.`
-          )
-        } else if (action === "generate-hashtags") {
-          return providerInstance.generateHashtags(prompt)
-        } else if (action === "content-ideas") {
-          return providerInstance.generateCalendar(prompt)
-        } else if (action === "improve-grammar") {
-          return providerInstance.generateText(
-            prompt,
-            `You are a professional editor. Fix grammar, spelling, and punctuation errors in the given text. Preserve the original meaning and style as much as possible.`
-          )
-        } else {
-          return providerInstance.generateText(prompt)
+    const plan = dbUser.plan?.toLowerCase() || "free"
+    const quota = (plan === "pro" || dbUser.role === "ADMIN") ? "unlimited" : `${Math.max(0, 5 - (dbUser.requestsUsed || 0))}`
+
+    // Log request initiation
+    console.log(`[AI]\nUser: ${userId}\nPlan: ${plan}\nQuota: ${quota}\nGemini: initiated`)
+
+    try {
+      const result = await executeAIOperation(
+        async (providerInstance) => {
+          if (action === "generate-caption") {
+            return providerInstance.generateCaption(prompt, tone)
+          } else if (action === "rewrite-text") {
+            return providerInstance.generateText(
+              prompt,
+              `You are a professional copywriter. Rewrite the given text to make it more engaging and effective for social media. ${tone ? "Use a " + tone + " tone." : ""} Improve clarity and impact while preserving the core message.`
+            )
+          } else if (action === "change-tone") {
+            return providerInstance.generateText(
+              prompt,
+              `You are a professional copywriter. Rewrite the given text in a ${tone || "different"} tone while preserving the core message.`
+            )
+          } else if (action === "generate-hashtags") {
+            return providerInstance.generateHashtags(prompt)
+          } else if (action === "content-ideas") {
+            return providerInstance.generateCalendar(prompt)
+          } else if (action === "improve-grammar") {
+            return providerInstance.generateText(
+              prompt,
+              `You are a professional editor. Fix grammar, spelling, and punctuation errors in the given text. Preserve the original meaning and style as much as possible.`
+            )
+          } else {
+            return providerInstance.generateText(prompt)
+          }
+        },
+        {
+          userId,
+          workspaceId: null,
+          feature
         }
-      },
-      {
-        userId,
-        workspaceId: null,
-        feature
+      )
+
+      // Log response success
+      console.log(`[AI]\nUser: ${userId}\nPlan: ${plan}\nQuota: ${quota}\nGemini: success`)
+
+      if (result && result.text) {
+        await AIGeneration.create({
+          userId,
+          prompt,
+          response: result.text,
+        })
       }
-    )
 
-    if (result && result.text) {
-      await AIGeneration.create({
-        userId,
-        prompt,
-        response: result.text,
-      })
+      return NextResponse.json({ result: result.text })
+    } catch (err: unknown) {
+      // Log response failed
+      console.log(`[AI]\nUser: ${userId}\nPlan: ${plan}\nQuota: ${quota}\nGemini: failed`)
+      throw err
     }
-
-    return NextResponse.json({ result: result.text })
   } catch (err: unknown) {
     console.error("Generate API error:", err)
     const message = err instanceof Error ? err.message : "Internal server error"
