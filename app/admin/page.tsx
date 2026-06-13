@@ -39,7 +39,10 @@ import {
   CloudLightning,
   ChevronRight,
   ChevronDown,
-  UserPlus
+  UserPlus,
+  FileText,
+  Download,
+  Calendar
 } from "lucide-react"
 
 // Types matching the API response
@@ -54,6 +57,10 @@ interface Stats {
   monthlyRevenue: number
   newRegistrations: number
   dbStatus: string
+  totalReportsExported?: number
+  reportsThisMonth?: number
+  pdfDownloads?: number
+  mostActiveWorkspace?: string
 }
 
 interface AuditLogItem {
@@ -524,6 +531,37 @@ export default function AdminDashboard() {
                         </div>
                       )
                     })}
+                  </div>
+
+                  {/* PDF Export Analytics Section */}
+                  <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
+                    <h3 className="text-sm font-semibold text-slate-500 mb-4 flex items-center gap-1.5 border-b border-slate-100 pb-3">
+                      <FileText className="size-4 text-emerald-500" /> PDF Report Export Analytics
+                    </h3>
+                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                      {[
+                        { title: "Total Reports Exported", value: overviewStats.totalReportsExported || 0, desc: "Cumulative PDF/email runs", icon: FileText },
+                        { title: "Reports This Month", value: overviewStats.reportsThisMonth || 0, desc: "Current month's volume", icon: Calendar },
+                        { title: "PDF Downloads", value: overviewStats.pdfDownloads || 0, desc: "Direct client device downloads", icon: Download },
+                        { title: "Most Active Workspace", value: overviewStats.mostActiveWorkspace || "None", desc: "Highest exporting workspace", icon: Layers }
+                      ].map((card, idx) => {
+                        const Icon = card.icon
+                        return (
+                          <div key={idx} className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 transition-all duration-300">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-slate-400">{card.title}</span>
+                              <div className="rounded-lg bg-white p-1.5 shadow-sm">
+                                <Icon className="size-3.5 text-slate-400" />
+                              </div>
+                            </div>
+                            <div className="mt-3">
+                              <span className="text-xl font-bold tracking-tight text-slate-800">{card.value}</span>
+                              <p className="mt-1 text-[10px] text-slate-400 leading-normal">{card.desc}</p>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
 
                   {/* SVG Charts Section */}

@@ -3,6 +3,10 @@
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
+import { useWorkspace } from "@/components/dashboard/workspace-provider"
+import { UpgradeModal } from "@/components/free-user/upgrade-modal"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import {
   TrendingUp,
   TrendingDown,
@@ -30,7 +34,10 @@ import {
   HelpCircle,
   ArrowUpRight,
   ExternalLink,
-  ChevronDown
+  ChevronDown,
+  FileText,
+  Download,
+  Mail
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -129,6 +136,8 @@ function AnalyticsStatsCard({ title, value, change, trend, icon: Icon, sparkline
 export default function AnalyticsPage() {
   const router = useRouter()
   const { showToast } = useToast()
+  const { data: session } = useSession()
+  const { activeWorkspace } = useWorkspace()
   
   const [timeframe, setTimeframe] = useState<"7d" | "30d" | "90d" | "12m">("7d")
   const [data, setData] = useState<any>(null)
@@ -136,12 +145,156 @@ export default function AnalyticsPage() {
   const [syncing, setSyncing] = useState(false)
   const [rankingsTab, setRankingsTab] = useState<"mostReach" | "mostEngagement" | "mostClicks" | "mostShares" | "mostSaves" | "mostComments">("mostReach")
 
+  // PDF Export States
+  const [exportModalOpen, setExportModalOpen] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [emailing, setEmailing] = useState(false)
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
+
   // Interactive Chart state
   const [activeChartSeries, setActiveChartSeries] = useState<"reach" | "engagement" | "clicks">("reach")
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 })
   const svgRef = useRef<SVGSVGElement | null>(null)
   const [chartDimensions, setChartDimensions] = useState({ width: 600, height: 300 })
+
+  const getChartImage = (): Promise<string | undefined> => {
+    return new Promise((resolve) => {
+      try {
+        const svgElement = svgRef.current
+        if (!svgElement) {
+          resolve(undefined)
+          return
+        }
+
+        const svgString = new XMLSerializer().serializeToString(svgElement)
+        const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" })
+        const url = URL.createObjectURL(svgBlob)
+        
+        const img = new Image()
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas")
+            canvas.width = svgElement.clientWidth || 600
+            canvas.height = svgElement.clientHeight || 280
+            const ctx = canvas.getContext("2d")
+            if (ctx) {
+              ctx.fillStyle = "#ffffff"
+              ctx.fillRect(0, 0, canvas.width, canvas.height)
+              ctx.drawImage(img, 0, 0)
+              const dataUrl = canvas.toDataURL("image/png")
+              URL.revokeObjectURL(url)
+              resolve(dataUrl)
+            } else {
+              URL.revokeObjectURL(url)
+              resolve(undefined)
+            }
+          } catch (e) {
+            console.error(e)
+            URL.revokeObjectURL(url)
+            resolve(undefined)
+          }
+        }
+        img.onerror = () => {
+          URL.revokeObjectURL(url)
+          resolve(undefined)
+        }
+        img.src = url
+      } catch (err) {
+        console.error("Failed to capture chart SVG:", err)
+        resolve(undefined)
+      }
+    })
+  }
+
+  const handleExportClick = () => {
+    const isPro = session?.user?.plan === "PRO"
+    const isAdmin = session?.user?.role === "ADMIN"
+
+    if (!isPro && !isAdmin) {
+      setUpgradeOpen(true)
+    } else {
+      setExportModalOpen(true)
+    }
+  }
+
+  const handleDownloadPDF = async () => {
+    try {
+      setExporting(true)
+      showToast("Generating PDF report...", "info")
+      
+      const chartImg = await getChartImage()
+      
+      const res = await fetch("/api/analytics/export", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          timeframe,
+          deliveryMethod: "download",
+          chartImage: chartImg,
+        }),
+      })
+
+      if (!res.ok) {
+        const errJson = await res.json()
+        throw new Error(errJson.error || "Failed to download PDF report")
+      }
+
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `GrowWave_Report_${new Date().toISOString().slice(0, 10)}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+
+      showToast("PDF report downloaded successfully!", "success")
+      setExportModalOpen(false)
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || "Could not generate PDF report", "error")
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleEmailReport = async () => {
+    try {
+      setEmailing(true)
+      showToast("Preparing and sending email report...", "info")
+      
+      const chartImg = await getChartImage()
+      
+      const res = await fetch("/api/analytics/export", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          timeframe,
+          deliveryMethod: "email",
+          chartImage: chartImg,
+        }),
+      })
+
+      const json = await res.json()
+      if (!res.ok) {
+        throw new Error(json.error || "Failed to send email report")
+      }
+
+      showToast(`Report emailed to workspace owner: ${json.emailSentTo}`, "success")
+      setExportModalOpen(false)
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || "Could not email PDF report", "error")
+    } finally {
+      setEmailing(false)
+    }
+  }
 
   const fetchAnalytics = async (frame = timeframe) => {
     try {
@@ -482,6 +635,16 @@ export default function AnalyticsPage() {
             <Button onClick={handleSyncAnalytics} disabled={syncing} size="sm" className="rounded-xl font-bold shadow-sm shadow-primary/5">
               <RefreshCw className={cn("size-3.5 mr-1.5", syncing && "animate-spin")} />
               Sync Feeds
+            </Button>
+
+            <Button
+              onClick={handleExportClick}
+              variant="outline"
+              size="sm"
+              className="rounded-xl border border-border/70 bg-white text-slate-800 hover:bg-slate-50 shadow-sm shadow-primary/5 transition-all font-semibold"
+            >
+              <FileText className="size-3.5 mr-1.5 text-emerald-500 fill-emerald-500/10" />
+              📄 Export PDF Report
             </Button>
           </div>
         </div>
@@ -1164,6 +1327,62 @@ export default function AnalyticsPage() {
           </div>
 
         </div>
+
+        {/* Export Modal & Upgrade Modal */}
+        <Dialog open={exportModalOpen} onOpenChange={setExportModalOpen}>
+          <DialogContent className="sm:max-w-[420px] rounded-2xl p-6 bg-card border border-border">
+            <DialogHeader className="pb-3 border-b border-border/40">
+              <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+                <FileText className="size-5 text-emerald-500" /> Export Analytics Report
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Choose your preferred delivery format for the workspace report.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-4 space-y-4">
+              <div className="rounded-xl bg-muted/30 p-3.5 border border-border/40 space-y-1 text-xs">
+                <span className="font-bold text-muted-foreground uppercase text-[9px] tracking-wider block">Report Workspace</span>
+                <p className="font-semibold text-foreground">{activeWorkspace?.name || "Social_media Workspace"}</p>
+                
+                <div className="flex justify-between items-center pt-2 mt-2 border-t border-border/30 text-muted-foreground">
+                  <span>Timeframe:</span>
+                  <span className="font-bold text-foreground capitalize">
+                    {timeframe === "7d" ? "Last 7 Days" : timeframe === "30d" ? "Last 30 Days" : timeframe === "90d" ? "Last 90 Days" : "Last 12 Months"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={handleDownloadPDF}
+                  disabled={exporting || emailing}
+                  className="flex flex-col items-center justify-center p-4 border border-border/60 rounded-xl bg-card hover:bg-muted/40 hover:border-primary/45 transition-all text-center gap-2 group cursor-pointer disabled:opacity-50"
+                >
+                  <div className="p-2.5 rounded-lg bg-primary/10 text-primary group-hover:scale-105 transition-transform">
+                    {exporting ? <RefreshCw className="size-5 animate-spin" /> : <Download className="size-5" />}
+                  </div>
+                  <span className="font-bold text-xs text-foreground">Export PDF</span>
+                  <span className="text-[10px] text-muted-foreground">Download to device</span>
+                </button>
+
+                <button
+                  onClick={handleEmailReport}
+                  disabled={exporting || emailing}
+                  className="flex flex-col items-center justify-center p-4 border border-border/60 rounded-xl bg-card hover:bg-muted/40 hover:border-primary/45 transition-all text-center gap-2 group cursor-pointer disabled:opacity-50"
+                >
+                  <div className="p-2.5 rounded-lg bg-indigo-500/10 text-indigo-500 group-hover:scale-105 transition-transform">
+                    {emailing ? <RefreshCw className="size-5 animate-spin" /> : <Mail className="size-5" />}
+                  </div>
+                  <span className="font-bold text-xs text-foreground">Send Report</span>
+                  <span className="text-[10px] text-muted-foreground">Email Workspace Owner</span>
+                </button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <UpgradeModal isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason="analytics_pro" />
 
       </div>
     </PageTransition>

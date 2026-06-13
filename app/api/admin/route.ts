@@ -16,6 +16,7 @@ import { AIUsage } from "@/lib/models/ai-usage"
 import { WorkspaceMember } from "@/lib/models/workspace-member"
 import { WorkspaceInvitation } from "@/lib/models/workspace-invitation"
 import { ActivityLog } from "@/lib/models/activity"
+import { AnalyticsExport } from "@/lib/models/analytics-export"
 
 // Helper to log admin actions to AuditLog
 async function logAdminAction(actor: string, action: string, resource: string, details: string) {
@@ -82,6 +83,30 @@ export async function GET(request: NextRequest) {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
       const newRegistrations = await User.countDocuments({ createdAt: { $gte: thirtyDaysAgo } })
 
+      // PDF Export Analytics for Admin
+      const startOfMonth = new Date()
+      startOfMonth.setDate(1)
+      startOfMonth.setHours(0, 0, 0, 0)
+
+      const totalReportsExported = await AnalyticsExport.countDocuments()
+      const reportsThisMonth = await AnalyticsExport.countDocuments({ exportedAt: { $gte: startOfMonth } })
+      const pdfDownloads = await AnalyticsExport.countDocuments({ deliveryMethod: "download" })
+
+      // Aggregate most active workspace by count of exports
+      const activeWorkspaceGroup = await AnalyticsExport.aggregate([
+        { $group: { _id: "$workspaceId", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 1 }
+      ])
+
+      let mostActiveWorkspace = "None"
+      if (activeWorkspaceGroup.length > 0) {
+        const ws = await Workspace.findById(activeWorkspaceGroup[0]._id)
+        if (ws) {
+          mostActiveWorkspace = `${ws.name} (${activeWorkspaceGroup[0].count} exports)`
+        }
+      }
+
       // System activity feed
       const activityFeed = await AuditLog.find().sort({ timestamp: -1 }).limit(10)
 
@@ -124,7 +149,12 @@ export async function GET(request: NextRequest) {
           dailyScheduledPosts,
           limitReachedEvents,
           upgradeClicks,
-          upgradeConversionRate
+          upgradeConversionRate,
+          // PDF Report Export Stats
+          totalReportsExported,
+          reportsThisMonth,
+          pdfDownloads,
+          mostActiveWorkspace
         },
         activityFeed,
         chartData
