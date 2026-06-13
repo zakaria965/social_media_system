@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth.config"
 import { connectDB } from "@/lib/db"
 import { User } from "@/lib/models/user"
 import { AIGeneration } from "@/lib/models/ai-generation"
-import { checkAIQuota, recordAIUsage } from "@/lib/ai-quota"
+import { checkAIQuota, recordAIUsage, getTodayAIUsage, AI_LIMIT_REACHED } from "@/lib/ai-quota"
 import { generateGeminiContent } from "@/lib/ai/gemini"
 import OpenAI from "openai"
 
@@ -60,6 +60,13 @@ export async function POST(request: NextRequest) {
     console.log(`[AI REQUEST]\nUser: ${userId}\nPlan: ${plan}\nProvider: ${providerName}\nUsage: ${user.requestsUsed || 0}`)
 
     try {
+      if (plan === "free") {
+        const todayUsage = await getTodayAIUsage(userId)
+        if (todayUsage >= 5) {
+          throw new AI_LIMIT_REACHED()
+        }
+      }
+
       let responseText = ""
 
       if (model === "zai") {
@@ -104,6 +111,7 @@ export async function POST(request: NextRequest) {
         feature: "AI Generate",
         provider: model === "zai" ? "ZAI" : "GEMINI",
         model: model === "zai" ? "glm-5-turbo" : "gemini-2.5-flash",
+        prompt,
         promptTokens,
         completionTokens,
         responseTime,
@@ -121,6 +129,13 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({ response: responseText })
     } catch (err: any) {
+      if (err instanceof AI_LIMIT_REACHED) {
+        return NextResponse.json(
+          { error: err.message, errorCode: "QUOTA_EXCEEDED", userPlan: "FREE" },
+          { status: 429 }
+        )
+      }
+
       const responseTime = Date.now() - startTime
       const errMsg = err?.message?.toLowerCase() || ""
 
@@ -154,6 +169,7 @@ export async function POST(request: NextRequest) {
         feature: "AI Generate",
         provider: model === "zai" ? "ZAI" : "GEMINI",
         model: model === "zai" ? "glm-5-turbo" : "gemini-2.5-flash",
+        prompt,
         promptTokens: 0,
         completionTokens: 0,
         responseTime,

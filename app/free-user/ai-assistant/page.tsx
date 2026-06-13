@@ -246,8 +246,14 @@ export default function FreeAIAssistantPage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F172A]">
                 GrowWave AI Assistant
               </h1>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#E8FAD0] text-[#22C55E] text-xs font-black rounded-full shadow-xs">
-                ✨ {remaining} Credits Remaining
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-black rounded-full shadow-xs ${
+                remaining === 0
+                  ? "bg-[#FEE2E2] text-[#EF4444]"
+                  : remaining === 1
+                  ? "bg-[#FEF3C7] text-[#D97706]"
+                  : "bg-[#E8FAD0] text-[#22C55E]"
+              }`}>
+                ✨ {remaining} AI Request{remaining === 1 ? "" : "s"} Remaining Today
               </span>
             </div>
             <p className="text-xs sm:text-sm text-[#64748B] max-w-lg font-medium leading-relaxed mt-1">
@@ -393,9 +399,14 @@ export default function FreeAIAssistantPage() {
         )}
       </div>
 
-      {/* Composer Area or Limit Reached Upgrade Card */}
       {remaining > 0 ? (
         <div className="bg-white rounded-3xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-slate-100/50 space-y-4">
+          {remaining === 1 && (
+            <div className="bg-[#FEF3C7] border border-[#F59E0B]/20 rounded-2xl p-4 flex items-center gap-2.5 text-[#B45309] text-xs font-bold select-none">
+              <span className="text-sm">⚠</span>
+              <span>You have 1 free AI request remaining today.</span>
+            </div>
+          )}
           {/* Fixed Textarea */}
           <div className="space-y-1">
             <Textarea

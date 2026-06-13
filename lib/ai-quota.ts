@@ -4,6 +4,29 @@ import { PlatformSettings } from "./models/platform-settings"
 import { AIUsage } from "./models/ai-usage"
 import { Notification } from "./models/notification"
 
+export class AI_LIMIT_REACHED extends Error {
+  constructor() {
+    super("You have used all 5 free AI requests available today.")
+    this.name = "AI_LIMIT_REACHED"
+  }
+}
+
+export async function getTodayAIUsage(userId: string): Promise<number> {
+  await connectDB()
+  const startOfDay = new Date()
+  startOfDay.setHours(0, 0, 0, 0)
+  const endOfDay = new Date()
+  endOfDay.setHours(23, 59, 59, 999)
+
+  return await AIUsage.countDocuments({
+    userId,
+    createdAt: {
+      $gte: startOfDay,
+      $lte: endOfDay
+    }
+  })
+}
+
 export interface QuotaCheckResult {
   allowed: boolean
   error?: string
@@ -82,29 +105,20 @@ export async function checkAIQuota(userId: string): Promise<QuotaCheckResult> {
   }
 
   // Admin and Pro users have unlimited access and bypass all quota checks
-  if (user.role === "ADMIN" || user.plan === "PRO") {
-    return { allowed: true, userPlan: user.plan || "PRO" }
+  const plan = (user.plan || "FREE").toUpperCase()
+  if (user.role === "ADMIN" || plan === "PRO") {
+    return { allowed: true, userPlan: "PRO" }
   }
 
   // 8. Enforce user quota limits
-  const monthlyTokenLimit = user.monthlyTokenLimit ?? ((user.plan as string) === "PRO" ? 5000000 : 50000)
-  const monthlyRequestLimit = (user.plan as string) === "PRO" ? -1 : 5
-
-  const effectiveTokenLimit = monthlyTokenLimit + (user.bonusTokens || 0)
-  const effectiveRequestLimit = monthlyRequestLimit + (user.bonusRequests || 0)
-
-  const tokensUsed = user.tokensUsed || 0
-  const requestsUsed = user.requestsUsed || 0
-
-  if (effectiveRequestLimit !== -1 && requestsUsed >= effectiveRequestLimit) {
-    return { allowed: false, error: "You've used all 5 free AI generations. Upgrade to GrowWave Pro for unlimited AI access.", limitReached: true, userPlan: "FREE" }
+  if (plan === "FREE") {
+    const todayUsage = await getTodayAIUsage(userId)
+    if (todayUsage >= 5) {
+      return { allowed: false, error: "You have used all 5 free AI requests available today.", limitReached: true, userPlan: "FREE" }
+    }
   }
 
-  if (effectiveTokenLimit !== -1 && tokensUsed >= effectiveTokenLimit) {
-    return { allowed: false, error: "You've used all 5 free AI generations. Upgrade to GrowWave Pro for unlimited AI access.", limitReached: true, userPlan: "FREE" }
-  }
-
-  return { allowed: true, userPlan: user.plan || "FREE" }
+  return { allowed: true, userPlan: "FREE" }
 }
 
 export async function recordAIUsage(params: {
@@ -113,13 +127,14 @@ export async function recordAIUsage(params: {
   feature: string
   provider?: string
   model: string
+  prompt?: string
   promptTokens: number
   completionTokens: number
   responseTime: number
   status: "success" | "failed"
 }) {
   await connectDB()
-  const { userId, workspaceId, feature, provider, model, promptTokens, completionTokens, responseTime, status } = params
+  const { userId, workspaceId, feature, provider, model, prompt, promptTokens, completionTokens, responseTime, status } = params
 
   const totalTokens = promptTokens + completionTokens
 
@@ -148,6 +163,7 @@ export async function recordAIUsage(params: {
     feature,
     provider: provider || (model.toLowerCase().includes("gemini") ? "GEMINI" : "OPENAI"),
     model: model || "unknown",
+    prompt,
     promptTokens,
     completionTokens,
     totalTokens,

@@ -54,8 +54,17 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    const userObj = user.toObject()
+    const plan = (userObj.plan || "FREE").toUpperCase()
+    if (plan === "FREE") {
+      const { getTodayAIUsage } = await import("@/lib/ai-quota")
+      const todayUsage = await getTodayAIUsage(userObj._id.toString())
+      userObj.requestsUsed = todayUsage
+      userObj.aiCreditsUsed = todayUsage
+    }
+
     return NextResponse.json({
-      user,
+      user: userObj,
       settings,
       workspace,
     })
@@ -247,9 +256,18 @@ export async function PATCH(request: NextRequest) {
       await ActivityLog.insertMany(activityLogsToCreate)
     }
 
+    const userObj = user.toObject()
+    const plan = (userObj.plan || "FREE").toUpperCase()
+    if (plan === "FREE") {
+      const { getTodayAIUsage } = await import("@/lib/ai-quota")
+      const todayUsage = await getTodayAIUsage(userObj._id.toString())
+      userObj.requestsUsed = todayUsage
+      userObj.aiCreditsUsed = todayUsage
+    }
+
     return NextResponse.json({
       success: true,
-      user,
+      user: userObj,
       settings,
       workspace,
     })

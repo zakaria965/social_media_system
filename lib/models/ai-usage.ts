@@ -6,6 +6,7 @@ export interface IAIUsage extends Omit<Document, "model"> {
   feature: string
   provider: string
   model: string
+  prompt?: string
   promptTokens: number
   completionTokens: number
   totalTokens: number
@@ -22,6 +23,7 @@ const AIUsageSchema = new Schema<IAIUsage>(
     feature: { type: String, required: true, index: true },
     provider: { type: String, required: true, default: "OPENAI", index: true },
     model: { type: String, required: true },
+    prompt: { type: String },
     promptTokens: { type: Number, default: 0 },
     completionTokens: { type: Number, default: 0 },
     totalTokens: { type: Number, default: 0 },
@@ -29,7 +31,8 @@ const AIUsageSchema = new Schema<IAIUsage>(
     responseTime: { type: Number, default: 0 }, // in milliseconds
     status: { type: String, enum: ["success", "failed"], default: "success", index: true },
     createdAt: { type: Date, default: Date.now, index: true },
-  }
+  },
+  { collection: "ai_usage_logs" }
 )
 
 // Prevent hot-reload re-compilation errors in development environment
@@ -38,4 +41,4 @@ if (mongoose.models && mongoose.models.AIUsage) {
 }
 
 export const AIUsage: Model<IAIUsage> =
-  mongoose.models.AIUsage ?? mongoose.model<IAIUsage>("AIUsage", AIUsageSchema)
+  mongoose.models.AIUsage ?? mongoose.model<IAIUsage>("AIUsage", AIUsageSchema, "ai_usage_logs")

@@ -12,7 +12,7 @@ import { AIConversation } from "@/lib/models/ai-conversation"
 import { AIGeneration } from "@/lib/models/ai-generation"
 import { getActiveWorkspaceId } from "@/lib/workspaces"
 import { User } from "@/lib/models/user"
-import { checkAIQuota, recordAIUsage } from "@/lib/ai-quota"
+import { checkAIQuota, recordAIUsage, getTodayAIUsage, AI_LIMIT_REACHED } from "@/lib/ai-quota"
 import OpenAI from "openai"
 import { PlatformSettings } from "@/lib/models/platform-settings"
 
@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
   let workspaceId: any = null
   let dbUser: any = null
   let providerName = "GEMINI"
+  let messages: { role: "user" | "assistant" | "system"; content: string }[] = []
 
   try {
     // 1. Authenticate user
@@ -40,12 +41,13 @@ export async function POST(request: NextRequest) {
 
     // Parse incoming request parameters
     const body = await request.json()
-    const { messages = [], action = "", chatId, model = "gemini" } = body as {
+    const { messages: parsedMessages = [], action = "", chatId, model = "gemini" } = body as {
       messages: { role: "user" | "assistant" | "system"; content: string }[]
       action?: string
       chatId?: string
       model?: "gemini" | "zai"
     }
+    messages = parsedMessages
 
     const geminiApiKey = process.env.GEMINI_API_KEY
     const zaiApiKey = process.env.ZAI_API_KEY
@@ -127,6 +129,14 @@ export async function POST(request: NextRequest) {
         },
         { status: quotaCheck.limitReached ? 429 : 403 }
       )
+    }
+
+    const plan = dbUser.plan?.toLowerCase() || "free"
+    if (plan === "free") {
+      const todayUsage = await getTodayAIUsage(dbUser._id.toString())
+      if (todayUsage >= 5) {
+        throw new AI_LIMIT_REACHED()
+      }
     }
 
     // 3. Gather Workspace Context
@@ -546,6 +556,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
                 feature,
                 provider: providerName,
                 model: providerName === "GEMINI" ? "gemini-2.5-flash" : "glm-5-turbo",
+                prompt: messages[messages.length - 1]?.content || "",
                 promptTokens,
                 completionTokens,
                 responseTime,
@@ -622,6 +633,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
               feature: "AI Chat",
               provider: providerName,
               model: providerName === "GEMINI" ? "gemini-2.5-flash" : "glm-5-turbo",
+              prompt: messages[messages.length - 1]?.content || "",
               promptTokens: 0,
               completionTokens: 0,
               responseTime: Date.now() - startTime,
@@ -643,6 +655,13 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
       },
     })
   } catch (err: unknown) {
+    if (err instanceof AI_LIMIT_REACHED || (err && (err as any).name === "AI_LIMIT_REACHED")) {
+      return NextResponse.json(
+        { errorCode: "QUOTA_EXCEEDED", error: (err as Error).message, userPlan: "FREE" },
+        { status: 429 }
+      )
+    }
+
     console.error("AI Chat API Route error:", err)
     const msg = err instanceof Error ? err.message : "Internal Server Error"
     
@@ -679,6 +698,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
         feature: "AI Chat",
         provider: providerName,
         model: providerName === "GEMINI" ? "gemini-2.5-flash" : "glm-5-turbo",
+        prompt: messages[messages.length - 1]?.content || "",
         promptTokens: 0,
         completionTokens: 0,
         responseTime: Date.now() - startTime,

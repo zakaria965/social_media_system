@@ -119,8 +119,16 @@ export function UpgradeModal({ isOpen, onClose, reason = "" }: UpgradeModalProps
     switch (reason) {
       case "ai_quota":
         return {
-          title: "AI Quota Exceeded",
-          description: "You've used all 5 free AI generations. Upgrade to Pro for unlimited AI generation.",
+          title: "Upgrade to GrowWave Pro",
+          description: `You have used all 5 free AI requests available today.
+
+Upgrade to GrowWave Pro for:
+• Unlimited AI generations
+• Advanced AI Assistant
+• Unlimited scheduling
+• Analytics
+• Team collaboration
+• Priority support`,
           icon: Sparkles,
         }
       case "channels_limit":
@@ -331,9 +339,9 @@ export function UpgradeModal({ isOpen, onClose, reason = "" }: UpgradeModalProps
                         className="w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs py-3 rounded-lg flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/10 active:scale-95 transition-all uppercase tracking-wider"
                       >
                         <Zap className="size-4 fill-current" />
-                        Upgrade Now
+                        {reason === "ai_quota" ? "Upgrade to Pro" : "Upgrade Now"}
                       </button>
-                      {reason === "scheduler_limit" ? (
+                      {reason === "scheduler_limit" || reason === "ai_quota" ? (
                         <button
                           type="button"
                           onClick={onClose}

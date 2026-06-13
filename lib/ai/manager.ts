@@ -6,7 +6,7 @@ import { recordAIUsage } from "@/lib/ai-quota"
 
 export async function executeAIOperation(
   operation: (provider: AIProvider) => Promise<AIResult>,
-  options: { userId: string; workspaceId: string | null; feature: string }
+  options: { userId: string; workspaceId: string | null; feature: string; prompt?: string }
 ): Promise<AIResult> {
   const settings = await PlatformSettings.findOne()
   const selection = settings?.aiProvider || "gemini"
@@ -52,6 +52,7 @@ export async function executeAIOperation(
         feature: options.feature,
         provider: prov.name,
         model: result.model,
+        prompt: options.prompt,
         promptTokens: result.promptTokens,
         completionTokens: result.completionTokens,
         responseTime,
@@ -71,6 +72,7 @@ export async function executeAIOperation(
         feature: options.feature,
         provider: prov.name,
         model: prov.name === "GEMINI" ? "gemini-2.5-flash" : "glm-5-turbo",
+        prompt: options.prompt,
         promptTokens: 0,
         completionTokens: 0,
         responseTime,

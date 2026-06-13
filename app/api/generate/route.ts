@@ -126,7 +126,8 @@ export async function POST(request: NextRequest) {
         {
           userId,
           workspaceId: null,
-          feature
+          feature,
+          prompt
         }
       )
 
