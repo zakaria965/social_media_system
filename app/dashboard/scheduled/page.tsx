@@ -425,6 +425,19 @@ export default function ScheduledPostsPage() {
         </Button>
       </div>
 
+      {/* Pro User Active Scheduler Status Card */}
+      <Card className="rounded-2xl border-0 bg-white dark:bg-slate-900 p-5 shadow-sm border border-border/50 hover:shadow-md transition-all mb-6">
+        <CardContent className="p-0 flex items-center justify-between">
+          <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+            Unlimited Scheduling Active
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 select-none">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            GrowWave Pro
+          </span>
+        </CardContent>
+      </Card>
+
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-border/40 pb-2">
           <TabsList className="bg-muted/65 p-0.5 rounded-xl border border-border/50 flex flex-wrap gap-1 md:flex-nowrap">

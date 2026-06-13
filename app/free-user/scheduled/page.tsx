@@ -35,9 +35,10 @@ interface ScheduledPost {
   id: string
   title: string
   content: string
-  status: "scheduled"
+  status?: string
   platforms: string[]
   scheduledAt: string
+  createdAt?: string
 }
 
 export default function FreeScheduledPage() {
@@ -51,11 +52,20 @@ export default function FreeScheduledPage() {
 
   // Upgrade Modal
   const [upgradeOpen, setUpgradeOpen] = useState(false)
-  const [upgradeReason, setUpgradeReason] = useState<"ai_quota" | "channels_limit" | "bulk_scheduling" | "analytics_pro" | "team_feature" | "inbox_feature" | "platform_locked" | "">("")
+  const [upgradeReason, setUpgradeReason] = useState<"ai_quota" | "channels_limit" | "bulk_scheduling" | "analytics_pro" | "team_feature" | "inbox_feature" | "platform_locked" | "scheduler_limit" | "">("")
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [deletePostId, setDeletePostId] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+
+  // Helper to count scheduled posts created today
+  const getTodayScheduledCount = (postsList: any[]) => {
+    const todayStr = new Date().toDateString()
+    return postsList.filter(p => {
+      const createdDate = p.createdAt ? new Date(p.createdAt) : new Date(p.id.includes("dup") ? parseInt(p.id.split("-").pop() || "") : Date.now())
+      return createdDate.toDateString() === todayStr
+    }).length
+  }
 
 
   // Load scheduled posts from localStorage
@@ -100,9 +110,20 @@ export default function FreeScheduledPage() {
 
   // Duplicate Post (checking limit)
   const handleDuplicatePost = (post: ScheduledPost) => {
-    if (posts.length >= 30) {
-      setUpgradeReason("bulk_scheduling")
+    const todayCount = getTodayScheduledCount(posts)
+    if (todayCount >= 5) {
+      setUpgradeReason("scheduler_limit")
       setUpgradeOpen(true)
+      
+      // Track limit reached event
+      fetch("/api/analytics/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "scheduler_limit_reached",
+          details: "Free user reached the daily scheduling limit of 5 posts."
+        })
+      }).catch(err => console.error(err))
       return
     }
 
@@ -110,7 +131,9 @@ export default function FreeScheduledPage() {
       ...post,
       id: "sp-dup-" + Date.now(),
       title: `${post.title} (Copy)`,
-      scheduledAt: new Date(new Date(post.scheduledAt).getTime() + 86400000).toISOString() // Push 1 day forward
+      scheduledAt: new Date(new Date(post.scheduledAt).getTime() + 86400000).toISOString(), // Push 1 day forward
+      createdAt: new Date().toISOString(),
+      status: "scheduled"
     }
 
     savePosts([...posts, newPost])
@@ -167,6 +190,8 @@ export default function FreeScheduledPage() {
     }
   }
 
+  const todayCount = getTodayScheduledCount(posts)
+
   return (
     <div className="space-y-6">
       {/* Title */}
@@ -191,16 +216,22 @@ export default function FreeScheduledPage() {
       <Card className="rounded-2xl border-0 bg-white p-6 shadow-card hover:shadow-card-hover transition-all">
         <CardContent className="p-0 space-y-3">
           <div className="flex items-center justify-between text-xs font-medium">
-            <span className="text-slate-500">Scheduler limits tracker (30 Scheduled Posts)</span>
+            <span className="text-slate-500">Scheduler limits tracker (5 Scheduled Posts Today)</span>
             <span className="text-slate-900 font-bold dark:text-white">
-              {posts.length} / 30 Scheduled
+              {todayCount} / 5 Scheduled Today
             </span>
           </div>
-          <Progress value={(posts.length / 30) * 100} className="h-2 rounded-full bg-slate-100" />
+          <Progress 
+            value={(todayCount / 5) * 100} 
+            className="h-2 rounded-full bg-slate-100" 
+            indicatorClassName={todayCount >= 4 ? "bg-amber-500" : "bg-[var(--brand-primary)]"}
+          />
           <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
             <span>Free Tier Queue</span>
-            {posts.length >= 25 && (
-              <span className="text-emerald-600 dark:text-emerald-400">Approaching limit. Consider upgrading.</span>
+            {todayCount >= 4 && (
+              <span className="text-amber-600 dark:text-amber-500 flex items-center gap-1 normal-case font-extrabold">
+                ⚠ You are close to today's scheduling limit.
+              </span>
             )}
           </div>
         </CardContent>

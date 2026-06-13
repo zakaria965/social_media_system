@@ -56,6 +56,22 @@ export async function GET(request: NextRequest) {
       const postsPublishedToday = await Post.countDocuments({ status: "published", publishedAt: { $gte: startOfDay } })
       const aiRequestsToday = await AILog.countDocuments({ createdAt: { $gte: startOfDay } })
       
+      // Calculate daily scheduled posts count
+      const dailyScheduledPosts = await Post.countDocuments({ status: "scheduled", createdAt: { $gte: startOfDay } })
+      
+      // Calculate daily limit reached events count
+      const limitReachedEvents = await ActivityLog.countDocuments({ action: "scheduler_limit_reached", createdAt: { $gte: startOfDay } })
+      
+      // Calculate daily upgrade clicks count
+      const upgradeClicks = await ActivityLog.countDocuments({ action: "upgrade_click", createdAt: { $gte: startOfDay } })
+      
+      // Calculate overall upgrade conversion rate dynamically
+      const totalClicks = await ActivityLog.countDocuments({ action: "upgrade_click" })
+      const totalSuccess = await ActivityLog.countDocuments({ action: "upgrade_success" })
+      const upgradeConversionRate = totalClicks > 0
+        ? parseFloat(((totalSuccess / totalClicks) * 100).toFixed(1))
+        : 12.8 // default fallback to match previous simulated rate
+
       // Calculate monthly revenue from PRO plans
       // Assuming PRO plan is $15/month
       const activeSubs = await Subscription.countDocuments({ plan: "PRO", status: "ACTIVE" })
@@ -104,7 +120,11 @@ export async function GET(request: NextRequest) {
           aiRequestsToday,
           monthlyRevenue,
           newRegistrations,
-          dbStatus: "Healthy"
+          dbStatus: "Healthy",
+          dailyScheduledPosts,
+          limitReachedEvents,
+          upgradeClicks,
+          upgradeConversionRate
         },
         activityFeed,
         chartData
@@ -193,7 +213,13 @@ export async function GET(request: NextRequest) {
       const arr = mrr * 12
       
       const churnRate = 4.2 // Realistic simulated SaaS churn rate
-      const conversionRate = 12.8 // Simulated conversion rate
+      
+      // Calculate conversion rate dynamically from tracked upgrade clicks and successful conversions
+      const totalClicks = await ActivityLog.countDocuments({ action: "upgrade_click" })
+      const totalSuccess = await ActivityLog.countDocuments({ action: "upgrade_success" })
+      const conversionRate = totalClicks > 0
+        ? parseFloat(((totalSuccess / totalClicks) * 100).toFixed(1))
+        : 12.8 // default fallback to match previous simulated rate
 
       return NextResponse.json({
         payments,

@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth.config"
 import { connectDB } from "@/lib/db"
 import { User } from "@/lib/models/user"
 import { Subscription } from "@/lib/models/subscription"
+import { ActivityLog } from "@/lib/models/activity"
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,6 +26,15 @@ export async function POST(request: NextRequest) {
     user.plan = "PRO"
     user.subscriptionStatus = "ACTIVE"
     await user.save()
+
+    // Log successful upgrade event for conversion analytics
+    await ActivityLog.create({
+      userId: email,
+      workspaceId: null,
+      action: "upgrade_success",
+      details: "Successfully upgraded to GrowWave Pro",
+      status: "success",
+    })
 
     // Upsert subscription record details
     await Subscription.findOneAndUpdate(

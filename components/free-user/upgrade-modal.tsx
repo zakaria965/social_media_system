@@ -10,7 +10,7 @@ import { useToast } from "@/components/toast-provider"
 interface UpgradeModalProps {
   isOpen: boolean
   onClose: () => void
-  reason?: "ai_quota" | "channels_limit" | "bulk_scheduling" | "analytics_pro" | "team_feature" | "inbox_feature" | "platform_locked" | ""
+  reason?: "ai_quota" | "channels_limit" | "bulk_scheduling" | "analytics_pro" | "team_feature" | "inbox_feature" | "platform_locked" | "scheduler_limit" | ""
 }
 
 type UpgradeStep = "benefits" | "checkout" | "success"
@@ -159,6 +159,12 @@ export function UpgradeModal({ isOpen, onClose, reason = "" }: UpgradeModalProps
           description: "Reply to comments, DMs, and mentions from Facebook, Instagram, and LinkedIn in one single stream.",
           icon: MessageSquare,
         }
+      case "scheduler_limit":
+        return {
+          title: "Upgrade to GrowWave Pro",
+          description: "You've reached your free scheduling limit.\n\nFree users can schedule up to 5 posts per day.\n\nUpgrade to GrowWave Pro for unlimited scheduling, AI tools, analytics, and team collaboration.",
+          icon: Zap,
+        }
       default:
         return {
           title: "Upgrade to GrowWave Pro",
@@ -227,7 +233,7 @@ export function UpgradeModal({ isOpen, onClose, reason = "" }: UpgradeModalProps
                     <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mt-0.5">
                       {details.title}
                     </h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-lg">
+                    <p className="whitespace-pre-line text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-lg">
                       {details.description}
                     </p>
                   </div>
@@ -311,16 +317,36 @@ export function UpgradeModal({ isOpen, onClose, reason = "" }: UpgradeModalProps
 
                     <div className="mt-6 space-y-2.5">
                       <button
-                        onClick={() => setStep("checkout")}
+                        onClick={() => {
+                          fetch("/api/analytics/track", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              action: "upgrade_click",
+                              details: `User clicked Upgrade Now in the upgrade modal (Reason: ${reason || "general"}).`
+                            })
+                          }).catch(err => console.error("Failed to track upgrade click:", err))
+                          setStep("checkout")
+                        }}
                         className="w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs py-3 rounded-lg flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/10 active:scale-95 transition-all uppercase tracking-wider"
                       >
                         <Zap className="size-4 fill-current" />
                         Upgrade Now
                       </button>
-                      <p className="text-[10px] text-center text-slate-400 flex items-center justify-center gap-1">
-                        <Shield className="size-3" />
-                        30-Day Money Back Guarantee
-                      </p>
+                      {reason === "scheduler_limit" ? (
+                        <button
+                          type="button"
+                          onClick={onClose}
+                          className="w-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 font-extrabold text-xs py-3 rounded-lg flex items-center justify-center transition-all uppercase tracking-wider border border-slate-200 dark:border-slate-700"
+                        >
+                          Maybe Later
+                        </button>
+                      ) : (
+                        <p className="text-[10px] text-center text-slate-400 flex items-center justify-center gap-1">
+                          <Shield className="size-3" />
+                          30-Day Money Back Guarantee
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

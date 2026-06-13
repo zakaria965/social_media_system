@@ -2,10 +2,35 @@ import { NextRequest, NextResponse } from "next/server"
 import { connectDB } from "@/lib/db"
 import { Post } from "@/lib/models/post"
 import { ActivityLog } from "@/lib/models/activity"
+import { User } from "@/lib/models/user"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth.config"
 import { QueueJob } from "@/lib/models/queue"
 import { getActiveWorkspaceId, verifyMemberPermission, logWorkspaceActivity } from "@/lib/workspaces"
+
+class SchedulerLimitError extends Error {
+  constructor() {
+    super("SchedulerLimitError")
+    this.name = "SchedulerLimitError"
+  }
+}
+
+async function getTodayScheduledCount(userId: string) {
+  const startOfDay = new Date()
+  startOfDay.setHours(0, 0, 0, 0)
+
+  const endOfDay = new Date()
+  endOfDay.setHours(23, 59, 59, 999)
+
+  return await Post.countDocuments({
+    userId,
+    status: "scheduled",
+    createdAt: {
+      $gte: startOfDay,
+      $lte: endOfDay
+    }
+  })
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -107,6 +132,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "At least one platform is required" }, { status: 400 })
     }
 
+    // Free User Scheduling Limit Validation
+    const dbUser = await User.findOne({ email: session.user.email })
+    if (dbUser && dbUser.plan?.toLowerCase() === "free" && status === "scheduled") {
+      const todayCount = await getTodayScheduledCount(session.user.email)
+      if (todayCount >= 5) {
+        throw new SchedulerLimitError()
+      }
+    }
+
     // Role Enforcement / Approval Workflow trigger:
     // If the role is Editor or Custom and doesn't have owner/admin rights, they cannot schedule or publish directly.
     // They must request review, and the post status is set as draft/pending review.
@@ -164,6 +198,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ post }, { status: 201 })
   } catch (err: unknown) {
     console.error("POST /api/posts error:", err)
+    if (err instanceof Error && err.name === "SchedulerLimitError") {
+      return NextResponse.json({ error: "SchedulerLimitError" }, { status: 403 })
+    }
     const message = err instanceof Error ? err.message : "Internal error"
     return NextResponse.json({ error: message }, { status: 500 })
   }
@@ -192,6 +229,21 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Post ID is required" }, { status: 400 })
     }
 
+    // Find the existing post first to check its current status
+    const existingPost = await Post.findOne({ _id: id, workspaceId })
+    if (!existingPost) {
+      return NextResponse.json({ error: "Post not found in active workspace" }, { status: 404 })
+    }
+
+    // Free User Scheduling Limit Validation
+    const dbUser = await User.findOne({ email: session.user.email })
+    if (dbUser && dbUser.plan?.toLowerCase() === "free" && updates.status === "scheduled" && existingPost.status !== "scheduled") {
+      const todayCount = await getTodayScheduledCount(session.user.email)
+      if (todayCount >= 5) {
+        throw new SchedulerLimitError()
+      }
+    }
+
     // Secure workspace isolating check
     const post = await Post.findOneAndUpdate(
       { _id: id, workspaceId },
@@ -206,6 +258,9 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ post })
   } catch (err: unknown) {
     console.error("PATCH /api/posts error:", err)
+    if (err instanceof Error && err.name === "SchedulerLimitError") {
+      return NextResponse.json({ error: "SchedulerLimitError" }, { status: 403 })
+    }
     const message = err instanceof Error ? err.message : "Internal error"
     return NextResponse.json({ error: message }, { status: 500 })
   }

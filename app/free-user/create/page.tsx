@@ -193,7 +193,7 @@ function CreateContent() {
 
   // Upgrades
   const [upgradeOpen, setUpgradeOpen] = useState(false)
-  const [upgradeReason, setUpgradeReason] = useState<"ai_quota" | "channels_limit" | "platform_locked" | "">("")
+  const [upgradeReason, setUpgradeReason] = useState<"ai_quota" | "channels_limit" | "platform_locked" | "scheduler_limit" | "">("")
   const [publishingIdea, setPublishingIdea] = useState<IdeaItem | null>(null)
 
   // Onboarding Checklist Integration
@@ -201,6 +201,16 @@ function CreateContent() {
   const [channels, setChannels] = useState<any[]>([])
   const [connectedCount, setConnectedCount] = useState(0)
   const [scheduledCount, setScheduledCount] = useState(0)
+
+  // Helper to count scheduled posts created today
+  const getTodayScheduledCount = (postsList: any[]) => {
+    const todayStr = new Date().toDateString()
+    return postsList.filter(p => {
+      if (p.status !== "scheduled" && p.status !== "ready") return false
+      const createdDate = p.createdAt ? new Date(p.createdAt) : new Date(p.id.includes("dup") ? parseInt(p.id.split("-").pop() || "") : Date.now())
+      return createdDate.toDateString() === todayStr
+    }).length
+  }
 
   // File Input Ref
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -367,7 +377,8 @@ function CreateContent() {
           status: postStatus,
           platforms: [idea.platform || "facebook"],
           scheduledAt: new Date(Date.now() + 86400000).toISOString(),
-          publishedAt: postStatus === "published" ? new Date().toISOString() : undefined
+          publishedAt: postStatus === "published" ? new Date().toISOString() : undefined,
+          createdAt: new Date().toISOString()
         }
 
         if (existingIndex > -1) {
@@ -377,7 +388,8 @@ function CreateContent() {
             content: postData.content,
             status: postData.status,
             platforms: postData.platforms,
-            publishedAt: postData.publishedAt ?? scheduledList[existingIndex].publishedAt
+            publishedAt: postData.publishedAt ?? scheduledList[existingIndex].publishedAt,
+            createdAt: scheduledList[existingIndex].createdAt || postData.createdAt
           }
         } else {
           scheduledList.push(postData)
@@ -422,6 +434,28 @@ function CreateContent() {
     e.preventDefault()
     const cardId = e.dataTransfer.getData("text/plain") || draggedCardId
     if (cardId) {
+      const targetCard = ideas.find((i) => i.id === cardId)
+      if (columnName === "Ready To Publish" && targetCard && targetCard.column !== "Ready To Publish") {
+        const savedScheduled = localStorage.getItem("growwave-lite-scheduled")
+        const scheduledList: any[] = savedScheduled ? JSON.parse(savedScheduled) : []
+        const todayCount = getTodayScheduledCount(scheduledList)
+        if (todayCount >= 5) {
+          setUpgradeReason("scheduler_limit")
+          setUpgradeOpen(true)
+          
+          // Track limit reached event
+          fetch("/api/analytics/track", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "scheduler_limit_reached",
+              details: "Free user reached the daily scheduling limit of 5 posts."
+            })
+          }).catch(err => console.error(err))
+          return
+        }
+      }
+
       // Optimistic update
       const updated = ideas.map((i) => (i.id === cardId ? { ...i, column: columnName } : i))
       setIdeas(updated)
@@ -622,6 +656,33 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
     }
 
     const targetColumn = customStatus || newIdeaStatus
+    
+    // Check scheduler limit if saving or editing to Ready To Publish column
+    if (targetColumn === "Ready To Publish") {
+      const savedScheduled = localStorage.getItem("growwave-lite-scheduled")
+      const scheduledList: any[] = savedScheduled ? JSON.parse(savedScheduled) : []
+      const isEditingReadyToPublish = editingIdea && editingIdea.column === "Ready To Publish"
+      
+      if (!isEditingReadyToPublish) {
+        const todayCount = getTodayScheduledCount(scheduledList)
+        if (todayCount >= 5) {
+          setUpgradeReason("scheduler_limit")
+          setUpgradeOpen(true)
+          
+          // Track limit reached event
+          fetch("/api/analytics/track", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "scheduler_limit_reached",
+              details: "Free user reached the daily scheduling limit of 5 posts."
+            })
+          }).catch(err => console.error(err))
+          return
+        }
+      }
+    }
+
     const dbStatus = mapUiColumnToDbStatus(targetColumn)
 
     const payload = {
