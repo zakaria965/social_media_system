@@ -10,7 +10,7 @@ import { useToast } from "@/components/toast-provider"
 interface UpgradeModalProps {
   isOpen: boolean
   onClose: () => void
-  reason?: "ai_quota" | "channels_limit" | "bulk_scheduling" | "analytics_pro" | "team_feature" | "inbox_feature" | "platform_locked" | "scheduler_limit" | ""
+  reason?: "ai_quota" | "channels_limit" | "bulk_scheduling" | "analytics_pro" | "team_feature" | "inbox_feature" | "platform_locked" | "scheduler_limit" | "publish_limit" | ""
 }
 
 type UpgradeStep = "benefits" | "checkout" | "success"
@@ -171,6 +171,12 @@ Upgrade to GrowWave Pro for:
         return {
           title: "Upgrade to GrowWave Pro",
           description: "You've reached your free scheduling limit.\n\nFree users can schedule up to 5 posts per day.\n\nUpgrade to GrowWave Pro for unlimited scheduling, AI tools, analytics, and team collaboration.",
+          icon: Zap,
+        }
+      case "publish_limit":
+        return {
+          title: "Upgrade to GrowWave Pro",
+          description: "You have reached your daily publishing limit.\n\nFree Plan includes:\n• 3 published posts per day\n\nUpgrade to GrowWave Pro for:\n• Unlimited publishing\n• Unlimited scheduling\n• Unlimited AI generations\n• Advanced analytics\n• Team collaboration\n• Priority support",
           icon: Zap,
         }
       default:
@@ -339,9 +345,9 @@ Upgrade to GrowWave Pro for:
                         className="w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs py-3 rounded-lg flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/10 active:scale-95 transition-all uppercase tracking-wider"
                       >
                         <Zap className="size-4 fill-current" />
-                        {reason === "ai_quota" ? "Upgrade to Pro" : "Upgrade Now"}
+                        {reason === "ai_quota" || reason === "publish_limit" ? "Upgrade to Pro" : "Upgrade Now"}
                       </button>
-                      {reason === "scheduler_limit" || reason === "ai_quota" ? (
+                      {reason === "scheduler_limit" || reason === "ai_quota" || reason === "publish_limit" ? (
                         <button
                           type="button"
                           onClick={onClose}

@@ -52,7 +52,10 @@ export default function FreeScheduledPage() {
 
   // Upgrade Modal
   const [upgradeOpen, setUpgradeOpen] = useState(false)
-  const [upgradeReason, setUpgradeReason] = useState<"ai_quota" | "channels_limit" | "bulk_scheduling" | "analytics_pro" | "team_feature" | "inbox_feature" | "platform_locked" | "scheduler_limit" | "">("")
+  const [upgradeReason, setUpgradeReason] = useState<"ai_quota" | "channels_limit" | "bulk_scheduling" | "analytics_pro" | "team_feature" | "inbox_feature" | "platform_locked" | "scheduler_limit" | "publish_limit" | "">("")
+
+  const [publishedTodayCount, setPublishedTodayCount] = useState(0)
+  const [userPlan, setUserPlan] = useState("FREE")
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [deletePostId, setDeletePostId] = useState<string | null>(null)
@@ -80,7 +83,22 @@ export default function FreeScheduledPage() {
     }
   }
 
+  const fetchPublishedCount = () => {
+    fetch("/api/publish")
+      .then(res => res.json())
+      .then(data => {
+        if (typeof data.count === "number") {
+          setPublishedTodayCount(data.count)
+        }
+        if (data.plan) {
+          setUserPlan(data.plan)
+        }
+      })
+      .catch(err => console.error("Failed to load published count:", err))
+  }
+
   useEffect(() => {
+    fetchPublishedCount()
     loadPosts()
   }, [])
 
@@ -144,10 +162,43 @@ export default function FreeScheduledPage() {
   const handlePublishNow = (id: string) => {
     const post = posts.find(p => p.id === id)
     if (post) {
-      // Move to published logs in history (simulated by deleting from queue and alerting)
-      const updated = posts.filter(p => p.id !== id)
-      savePosts(updated)
-      showToast("✓ Post Published", "success")
+      fetch("/api/accounts")
+        .then(res => res.json())
+        .then(data => {
+          const fbAccount = data.accounts?.find((a: any) => a.platform === "facebook" && a.status === "connected")
+          const targetPlatform = fbAccount ? "facebook" : "facebook"
+          
+          fetch("/api/publish", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              content: post.content,
+              platforms: [targetPlatform],
+              media: []
+            })
+          })
+          .then(async (publishRes) => {
+            const resData = await publishRes.json()
+            if (publishRes.ok && resData.results?.[targetPlatform]?.success) {
+              const updated = posts.filter(p => p.id !== id)
+              savePosts(updated)
+              showToast("✓ Post Published", "success")
+              fetchPublishedCount()
+            } else {
+              if (publishRes.status === 403 || resData.error === "PUBLISH_LIMIT_REACHED" || resData.error?.includes("limit")) {
+                setUpgradeReason("publish_limit")
+                setUpgradeOpen(true)
+              } else {
+                const err = resData.results?.[targetPlatform]?.error || resData.error || "Publishing failed"
+                showToast(`⚠️ Error publishing: ${err}`, "error")
+              }
+            }
+          })
+          .catch(err => {
+            console.error("Publishing error:", err)
+            showToast("⚠️ Network error: failed to publish", "error")
+          })
+        })
     }
   }
 
@@ -352,12 +403,32 @@ export default function FreeScheduledPage() {
                         Reschedule
                       </button>
 
-                      <button
-                        onClick={() => handlePublishNow(post.id)}
-                        className="bg-slate-900 hover:bg-slate-950 text-white font-extrabold text-[10px] py-2 px-3 rounded-xl uppercase tracking-wider transition-all"
-                      >
-                        Publish Now
-                      </button>
+                      {userPlan.toUpperCase() === "FREE" && publishedTodayCount >= 3 ? (
+                        <>
+                          <button
+                            disabled
+                            className="bg-slate-100 text-slate-400 font-extrabold text-[10px] py-2 px-3.5 rounded-xl uppercase tracking-wider select-none cursor-not-allowed border border-slate-200 dark:bg-slate-800 dark:border-slate-700"
+                          >
+                            Daily Limit Reached
+                          </button>
+                          <button
+                            onClick={() => {
+                              setUpgradeReason("publish_limit")
+                              setUpgradeOpen(true)
+                            }}
+                            className="bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-[10px] py-2 px-3.5 rounded-xl uppercase tracking-wider transition-all shadow-card"
+                          >
+                            Upgrade to Pro
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => handlePublishNow(post.id)}
+                          className="bg-slate-900 hover:bg-slate-950 text-white font-extrabold text-[10px] py-2 px-3 rounded-xl uppercase tracking-wider transition-all"
+                        >
+                          Publish Now
+                        </button>
+                      )}
                     </div>
                   </div>
 

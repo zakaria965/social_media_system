@@ -29,6 +29,7 @@ import {
 } from "@/components/social-brand-icons"
 import { useToast } from "@/components/toast-provider"
 import { GrowWaveModal } from "@/components/growwave-modal"
+import { UpgradeModal } from "@/components/free-user/upgrade-modal"
 
 
 interface PostItem {
@@ -58,9 +59,28 @@ export default function FreePublishPage() {
   const [deletePostId, setDeletePostId] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
+  const [publishedTodayCount, setPublishedTodayCount] = useState(0)
+  const [userPlan, setUserPlan] = useState("FREE")
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
+
+
+  const fetchPublishedCount = () => {
+    fetch("/api/publish")
+      .then(res => res.json())
+      .then(data => {
+        if (typeof data.count === "number") {
+          setPublishedTodayCount(data.count)
+        }
+        if (data.plan) {
+          setUserPlan(data.plan)
+        }
+      })
+      .catch(err => console.error("Failed to load published count:", err))
+  }
 
   // Load posts and channels
   useEffect(() => {
+    fetchPublishedCount()
     const savedScheduled = localStorage.getItem("growwave-lite-scheduled")
     const scheduledList: any[] = savedScheduled ? JSON.parse(savedScheduled) : []
 
@@ -209,13 +229,72 @@ export default function FreePublishPage() {
             Review your drafts, scheduled queues, published posts, and failed delivery alerts.
           </p>
         </div>
+
+        {userPlan.toUpperCase() === "FREE" && (
+          <div className="flex flex-col items-start sm:items-end bg-slate-50 dark:bg-slate-800/40 px-4 py-2 rounded-xl border border-slate-100 dark:border-slate-800 shadow-card">
+            <span className="text-[9px] font-black uppercase text-slate-400">
+              Publishing Usage
+            </span>
+            <span className="text-xs font-black text-slate-800 dark:text-slate-100">
+              {publishedTodayCount} / 3 Published Today
+            </span>
+            <span className="text-[9px] text-slate-400 mt-0.5">
+              Free Plan Daily Limit
+            </span>
+          </div>
+        )}
+
         <Link href="/free-user/create">
-          <Button className="bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs rounded-xl uppercase tracking-wider flex items-center gap-1">
+          <Button 
+            disabled={userPlan.toUpperCase() === "FREE" && publishedTodayCount >= 3}
+            className="bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs rounded-xl uppercase tracking-wider flex items-center gap-1"
+          >
             <Plus className="size-3.5" />
             Compose Post
           </Button>
         </Link>
       </div>
+
+      {/* Daily Publishing Usage Card (Free Plan only) */}
+      {userPlan.toUpperCase() === "FREE" && (
+        <Card className="rounded-2xl border-0 bg-white p-5 shadow-card">
+          <CardContent className="p-0 space-y-3">
+            <div className="flex justify-between items-center text-xs font-medium">
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800 dark:text-white">Daily Publishing Usage</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Your daily publishing resets at 12:00 AM.</p>
+              </div>
+              <span className="text-sm font-extrabold text-slate-800 dark:text-white">
+                {publishedTodayCount} / 3 Published Today
+              </span>
+            </div>
+            
+            {/* Progress bar: Green -> Orange -> Red */}
+            <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div 
+                className={`h-full transition-all duration-500 rounded-full ${
+                  publishedTodayCount === 1 
+                    ? "bg-emerald-500" 
+                    : publishedTodayCount === 2 
+                      ? "bg-amber-500" 
+                      : publishedTodayCount >= 3 
+                        ? "bg-rose-500" 
+                        : "bg-slate-250"
+                }`}
+                style={{ width: `${Math.min((publishedTodayCount / 3) * 105, 100)}%` }}
+              />
+            </div>
+
+            {/* Warning Banner */}
+            {publishedTodayCount === 2 && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-955/20 border border-amber-200 dark:border-amber-900/50 rounded-xl text-xs font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                <span>⚠️</span>
+                <span>You have 1 publish remaining today.</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="grid gap-3 sm:grid-cols-12 bg-white p-4 rounded-2xl border-0 shadow-card">
@@ -356,14 +435,31 @@ export default function FreePublishPage() {
                   )}
 
                   {post.status === "ready" && (
-                    <>
-                      <button
-                        onClick={() => setPublishingPost(post)}
-                        className="bg-slate-900 hover:bg-slate-950 text-white font-extrabold text-[10px] py-2 px-3.5 rounded-xl uppercase tracking-wider transition-all shadow-card"
-                      >
-                        Publish Now
-                      </button>
-                    </>
+                    <div className="flex items-center gap-2">
+                      {userPlan.toUpperCase() === "FREE" && publishedTodayCount >= 3 ? (
+                        <>
+                          <button
+                            disabled
+                            className="bg-slate-100 text-slate-400 font-extrabold text-[10px] py-2 px-3.5 rounded-xl uppercase tracking-wider select-none cursor-not-allowed border border-slate-200 dark:bg-slate-800 dark:border-slate-700"
+                          >
+                            Daily Limit Reached
+                          </button>
+                          <button
+                            onClick={() => setUpgradeModalOpen(true)}
+                            className="bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-[10px] py-2 px-3.5 rounded-xl uppercase tracking-wider transition-all shadow-card"
+                          >
+                            Upgrade to Pro
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => setPublishingPost(post)}
+                          className="bg-slate-900 hover:bg-slate-950 text-white font-extrabold text-[10px] py-2 px-3.5 rounded-xl uppercase tracking-wider transition-all shadow-card"
+                        >
+                          Publish Now
+                        </button>
+                      )}
+                    </div>
                   )}
 
                   {post.status === "failed" && (
@@ -471,9 +567,14 @@ export default function FreePublishPage() {
                           updatePostsInStorage(updated)
                           setActiveTab("published")
                           showToast("✓ Post Published", "success")
+                          fetchPublishedCount()
                         } else {
-                          const err = resData.results?.[targetPlatform]?.error || resData.error || "Publishing failed"
-                          showToast(`⚠️ Error publishing: ${err}`, "error")
+                          if (publishRes.status === 403 || resData.error === "PUBLISH_LIMIT_REACHED" || resData.error?.includes("limit")) {
+                            setUpgradeModalOpen(true)
+                          } else {
+                            const err = resData.results?.[targetPlatform]?.error || resData.error || "Publishing failed"
+                            showToast(`⚠️ Error publishing: ${err}`, "error")
+                          }
                         }
                       })
                       .catch(err => {
@@ -512,6 +613,8 @@ export default function FreePublishPage() {
         loading={deleteLoading}
         loadingText="Deleting..."
       />
+
+      <UpgradeModal isOpen={upgradeModalOpen} onClose={() => setUpgradeModalOpen(false)} reason="publish_limit" />
     </div>
   )
 }

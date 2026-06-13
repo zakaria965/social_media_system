@@ -5,6 +5,8 @@ import { ActivityLog } from "./models/activity"
 import { QueueJob } from "./models/queue"
 import { Notification } from "./models/notification"
 import { publisherMap } from "./publisher"
+import { User } from "./models/user"
+import { PublishedPost } from "./models/published-post"
 
 let isChecking = false
 let schedulerInterval: NodeJS.Timeout | null = null
@@ -148,6 +150,29 @@ export async function checkScheduleQueue() {
           }
         }
 
+        const dbUser = await User.findOne({ email: post.userId })
+        if (dbUser && (dbUser.plan || "FREE").toUpperCase() === "FREE") {
+          const startOfDay = new Date()
+          startOfDay.setHours(0, 0, 0, 0)
+          const endOfDay = new Date()
+          endOfDay.setHours(23, 59, 59, 999)
+
+          const count = await PublishedPost.countDocuments({
+            $or: [
+              { userId: dbUser._id.toString() },
+              { userId: dbUser.email }
+            ],
+            publishedAt: {
+              $gte: startOfDay,
+              $lte: endOfDay
+            }
+          })
+
+          if (count >= 3) {
+            throw new Error("Daily publishing limit reached")
+          }
+        }
+
         // Run publisher
         const publisher = publisherMap[job.platform]
         if (!publisher) {
@@ -169,6 +194,16 @@ export async function checkScheduleQueue() {
           status: "completed",
         })
         await job.save()
+
+        if (dbUser) {
+          await PublishedPost.create({
+            userId: dbUser._id.toString(),
+            workspaceId: post.workspaceId ? post.workspaceId.toString() : null,
+            postId: post._id.toString(),
+            channel: job.platform,
+            publishedAt: new Date()
+          })
+        }
 
         // Handle Facebook metadata if applicable
         const fbMetadata: Record<string, any> = {}

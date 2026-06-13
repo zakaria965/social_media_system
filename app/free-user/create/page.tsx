@@ -193,8 +193,11 @@ function CreateContent() {
 
   // Upgrades
   const [upgradeOpen, setUpgradeOpen] = useState(false)
-  const [upgradeReason, setUpgradeReason] = useState<"ai_quota" | "channels_limit" | "platform_locked" | "scheduler_limit" | "">("")
+  const [upgradeReason, setUpgradeReason] = useState<"ai_quota" | "channels_limit" | "platform_locked" | "scheduler_limit" | "publish_limit" | "">("")
   const [publishingIdea, setPublishingIdea] = useState<IdeaItem | null>(null)
+
+  const [publishedTodayCount, setPublishedTodayCount] = useState(0)
+  const [userPlan, setUserPlan] = useState("FREE")
 
   // Onboarding Checklist Integration
   const [checklistOpen, setChecklistOpen] = useState(true)
@@ -301,7 +304,22 @@ function CreateContent() {
     }
   }
 
+  const fetchPublishedCount = () => {
+    fetch("/api/publish")
+      .then(res => res.json())
+      .then(data => {
+        if (typeof data.count === "number") {
+          setPublishedTodayCount(data.count)
+        }
+        if (data.plan) {
+          setUserPlan(data.plan)
+        }
+      })
+      .catch(err => console.error("Failed to load published count:", err))
+  }
+
   useEffect(() => {
+    fetchPublishedCount()
     // Check onboarding dismissed state
     const onboardingDismissed = localStorage.getItem("growwave-lite-create-onboard")
     if (onboardingDismissed === "dismissed") {
@@ -1419,12 +1437,32 @@ Each object must contain these keys:
                             Create Post
                           </button>
                         ) : idea.column === "Drafts" || idea.column === "Ready To Publish" ? (
-                          <button
-                            onClick={() => setPublishingIdea(idea)}
-                            className="w-full text-center bg-[#22C55E] hover:bg-[#16A34A] text-white font-extrabold text-[9.5px] py-2 rounded-xl uppercase tracking-wider transition-all duration-300 select-none cursor-pointer"
-                          >
-                            Publish Now
-                          </button>
+                          userPlan.toUpperCase() === "FREE" && publishedTodayCount >= 3 ? (
+                            <div className="flex flex-col gap-1.5 w-full">
+                              <button
+                                disabled
+                                className="w-full text-center bg-slate-100 text-slate-400 font-extrabold text-[9.5px] py-2 rounded-xl uppercase tracking-wider select-none cursor-not-allowed border border-slate-200"
+                              >
+                                Daily Limit Reached
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setUpgradeReason("publish_limit")
+                                  setUpgradeOpen(true)
+                                }}
+                                className="w-full text-center bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-[9.5px] py-2 rounded-xl uppercase tracking-wider transition-all duration-300 select-none cursor-pointer"
+                              >
+                                Upgrade to Pro
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setPublishingIdea(idea)}
+                              className="w-full text-center bg-[#22C55E] hover:bg-[#16A34A] text-white font-extrabold text-[9.5px] py-2 rounded-xl uppercase tracking-wider transition-all duration-300 select-none cursor-pointer"
+                            >
+                              Publish Now
+                            </button>
+                          )
                         ) : (
                           <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-widest leading-none select-none w-full text-center">
                             {idea.column}
@@ -1993,7 +2031,12 @@ Each object must contain these keys:
                         const resData = await publishRes.json()
                         if (!publishRes.ok || !resData.results?.[targetPlatform]?.success) {
                           const err = resData.results?.[targetPlatform]?.error || resData.error || "Publishing failed"
-                          showToast(`⚠️ Facebook Publish Failed: ${err}`, "error")
+                          if (publishRes.status === 403 || err === "PUBLISH_LIMIT_REACHED" || err.toLowerCase().includes("limit")) {
+                            setUpgradeReason("publish_limit")
+                            setUpgradeOpen(true)
+                          } else {
+                            showToast(`⚠️ Facebook Publish Failed: ${err}`, "error")
+                          }
                           setPublishingIdea(null)
                           return
                         }
@@ -2011,6 +2054,7 @@ Each object must contain these keys:
                           showToast("✓ Post published successfully")
                           setPublishingIdea(null)
                           await fetchIdeas()
+                          fetchPublishedCount()
                         } else {
                           showToast("⚠️ Failed to update post status in workspace", "error")
                         }

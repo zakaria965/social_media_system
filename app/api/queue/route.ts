@@ -8,6 +8,8 @@ import { SocialAccount } from "@/lib/models/account"
 import { ActivityLog } from "@/lib/models/activity"
 import { Notification } from "@/lib/models/notification"
 import { publisherMap } from "@/lib/publisher"
+import { User } from "@/lib/models/user"
+import { PublishedPost } from "@/lib/models/published-post"
 
 export async function GET(request: NextRequest) {
   try {
@@ -112,6 +114,41 @@ export async function POST(request: NextRequest) {
         throw new Error(`Connection error: ${job.platform} account connection is unhealthy (${account.status})`)
       }
 
+      const dbUser = await User.findOne({ email: post.userId })
+      if (dbUser && (dbUser.plan || "FREE").toUpperCase() === "FREE") {
+        const startOfDay = new Date()
+        startOfDay.setHours(0, 0, 0, 0)
+        const endOfDay = new Date()
+        endOfDay.setHours(23, 59, 59, 999)
+
+        const count = await PublishedPost.countDocuments({
+          $or: [
+            { userId: dbUser._id.toString() },
+            { userId: dbUser.email }
+          ],
+          publishedAt: {
+            $gte: startOfDay,
+            $lte: endOfDay
+          }
+        })
+
+        if (count >= 3) {
+          job.status = "failed"
+          job.executionLogs.push({
+            timestamp: new Date(),
+            message: `Execution blocked: daily publishing limit reached`,
+            status: "failed",
+          })
+          await job.save()
+
+          post.status = "failed"
+          post.errorMessage = "Daily publishing limit reached"
+          await post.save()
+
+          return NextResponse.json({ error: "PUBLISH_LIMIT_REACHED", message: "You have reached your daily publishing limit." }, { status: 403 })
+        }
+      }
+
       const publisher = publisherMap[job.platform]
       if (!publisher) {
         throw new Error(`Unsupported platform: ${job.platform}`)
@@ -131,6 +168,16 @@ export async function POST(request: NextRequest) {
         status: "completed",
       })
       await job.save()
+
+      if (dbUser) {
+        await PublishedPost.create({
+          userId: dbUser._id.toString(),
+          workspaceId: post.workspaceId ? post.workspaceId.toString() : null,
+          postId: post._id.toString(),
+          channel: job.platform,
+          publishedAt: new Date()
+        })
+      }
 
       // Metadata sync
       const fbMetadata: Record<string, any> = {}

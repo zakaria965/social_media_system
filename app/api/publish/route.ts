@@ -6,6 +6,9 @@ import { SocialAccount, type SocialPlatform } from "@/lib/models/account"
 import { Post } from "@/lib/models/post"
 import { ActivityLog } from "@/lib/models/activity"
 import { publisherMap } from "@/lib/publisher"
+import { User } from "@/lib/models/user"
+import { PublishedPost } from "@/lib/models/published-post"
+import { getActiveWorkspaceId } from "@/lib/workspaces"
 
 interface PublishResult {
   success: boolean
@@ -29,6 +32,33 @@ export async function POST(request: NextRequest) {
     await connectDB()
     const body: PublishBody = await request.json()
     const { postId, content, platforms, media } = body
+
+    const dbUser = await User.findOne({ email: session.user.email })
+    if (!dbUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    if ((dbUser.plan || "FREE").toUpperCase() === "FREE") {
+      const startOfDay = new Date()
+      startOfDay.setHours(0, 0, 0, 0)
+      const endOfDay = new Date()
+      endOfDay.setHours(23, 59, 59, 999)
+
+      const count = await PublishedPost.countDocuments({
+        $or: [
+          { userId: dbUser._id.toString() },
+          { userId: dbUser.email }
+        ],
+        publishedAt: {
+          $gte: startOfDay,
+          $lte: endOfDay
+        }
+      })
+
+      if (count >= 3) {
+        return NextResponse.json({ error: "PUBLISH_LIMIT_REACHED", message: "You have reached your daily publishing limit." }, { status: 403 })
+      }
+    }
 
     if (!content || !platforms || platforms.length === 0) {
       return NextResponse.json({ error: "Content and platforms are required" }, { status: 400 })
@@ -68,6 +98,15 @@ export async function POST(request: NextRequest) {
         const pubRes = await publisher(content, media || [], account.accessToken, account.platformAccountId)
         results[platform] = { success: true }
         allFailed = false
+
+        const workspaceId = await getActiveWorkspaceId(session.user.email, request)
+        await PublishedPost.create({
+          userId: dbUser._id.toString(),
+          workspaceId: workspaceId ? workspaceId.toString() : null,
+          postId: postId || null,
+          channel: platform,
+          publishedAt: new Date()
+        })
 
         if (platform === "facebook" && pubRes) {
           const fbPostId = (pubRes as any).post_id || (pubRes as any).id
@@ -154,6 +193,43 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ results })
   } catch (err: unknown) {
     console.error("Publish API error:", err)
+    const message = err instanceof Error ? err.message : "Internal error"
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    await connectDB()
+    const dbUser = await User.findOne({ email: session.user.email })
+    if (!dbUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    const startOfDay = new Date()
+    startOfDay.setHours(0, 0, 0, 0)
+    const endOfDay = new Date()
+    endOfDay.setHours(23, 59, 59, 999)
+
+    const count = await PublishedPost.countDocuments({
+      $or: [
+        { userId: dbUser._id.toString() },
+        { userId: dbUser.email }
+      ],
+      publishedAt: {
+        $gte: startOfDay,
+        $lte: endOfDay
+      }
+    })
+
+    return NextResponse.json({ count, plan: dbUser.plan || "FREE" })
+  } catch (err: unknown) {
+    console.error("GET /api/publish count error:", err)
     const message = err instanceof Error ? err.message : "Internal error"
     return NextResponse.json({ error: message }, { status: 500 })
   }
