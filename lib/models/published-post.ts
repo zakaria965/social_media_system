@@ -5,6 +5,11 @@ export interface IPublishedPost extends Document {
   workspaceId: string | null
   postId: string | null
   channel: string
+  platform: string | null
+  content: string | null
+  mediaUrls: string[]
+  status: string
+  socialPostId: string | null
   publishedAt: Date
   createdAt: Date
   updatedAt: Date
@@ -16,6 +21,11 @@ const PublishedPostSchema = new Schema<IPublishedPost>(
     workspaceId: { type: String, default: null, index: true },
     postId: { type: String, default: null, index: true },
     channel: { type: String, required: true },
+    platform: { type: String, default: null },
+    content: { type: String, default: null },
+    mediaUrls: [{ type: String }],
+    status: { type: String, default: "published" },
+    socialPostId: { type: String, default: null },
     publishedAt: { type: Date, default: Date.now, index: true },
   },
   { collection: "published_posts", timestamps: true }

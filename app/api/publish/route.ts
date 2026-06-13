@@ -8,6 +8,7 @@ import { ActivityLog } from "@/lib/models/activity"
 import { publisherMap } from "@/lib/publisher"
 import { User } from "@/lib/models/user"
 import { PublishedPost } from "@/lib/models/published-post"
+import { WorkspaceMember } from "@/lib/models/workspace-member"
 import { getActiveWorkspaceId } from "@/lib/workspaces"
 
 interface PublishResult {
@@ -36,6 +37,36 @@ export async function POST(request: NextRequest) {
     const dbUser = await User.findOne({ email: session.user.email })
     if (!dbUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    const workspaceId = await getActiveWorkspaceId(session.user.email, request)
+    if (!workspaceId) {
+      return NextResponse.json({ error: "Active workspace not found" }, { status: 400 })
+    }
+
+    const member = await WorkspaceMember.findOne({
+      workspaceId,
+      email: session.user.email,
+      status: "active",
+    })
+
+    if (!member) {
+      return NextResponse.json({ error: "You are not an active member of this workspace" }, { status: 403 })
+    }
+
+    // Normalize roles as done in lib/workspaces.ts
+    let role = member.role
+    if (role === "owner") role = "Workspace Owner";
+    if (role === "admin") role = "Admin";
+    if (role === "editor") role = "Content Manager";
+    if (role === "viewer") role = "Analyst";
+
+    const allowedRoles = ["Workspace Owner", "Admin", "Content Manager"]
+    if (!allowedRoles.includes(role)) {
+      return NextResponse.json({
+        error: "ROLE_UNAUTHORIZED",
+        message: "Your role does not have permission to publish directly."
+      }, { status: 403 })
     }
 
     if ((dbUser.plan || "FREE").toUpperCase() === "FREE") {
@@ -100,11 +131,17 @@ export async function POST(request: NextRequest) {
         allFailed = false
 
         const workspaceId = await getActiveWorkspaceId(session.user.email, request)
+        const socialPostId = pubRes ? (pubRes.post_id || pubRes.id || pubRes.urn || null) : null
         await PublishedPost.create({
           userId: dbUser._id.toString(),
           workspaceId: workspaceId ? workspaceId.toString() : null,
           postId: postId || null,
           channel: platform,
+          platform: platform,
+          content: content,
+          mediaUrls: media || [],
+          status: "published",
+          socialPostId: socialPostId ? String(socialPostId) : null,
           publishedAt: new Date()
         })
 

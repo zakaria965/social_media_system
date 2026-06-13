@@ -66,6 +66,7 @@ function CreatePostContent() {
   const searchParams = useSearchParams()
   const editId = searchParams.get("edit")
   const { role: userRole, permissions: userPermissions } = useWorkspace()
+  const canPublishDirectly = ["owner", "admin", "editor", "Workspace Owner", "Admin", "Content Manager"].includes(userRole || "")
 
   const { showToast } = useToast()
   const [caption, setCaption] = useState("")
@@ -82,6 +83,17 @@ function CreatePostContent() {
   const [aiSuggestions, setAiSuggestions] = useState<any[]>([])
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
   const [previewPlatform, setPreviewPlatform] = useState("facebook")
+  const [noChannelOpen, setNoChannelOpen] = useState(false)
+  const [successDetails, setSuccessDetails] = useState<{
+    platform: string;
+    date: string;
+    time: string;
+    postId: string;
+  } | null>(null)
+  const [publishError, setPublishError] = useState<{
+    platform: string;
+    reason: string;
+  } | null>(null)
 
   const fetchSuggestions = useCallback(async () => {
     if (selectedPlatforms.length === 0) return
@@ -415,18 +427,27 @@ function CreatePostContent() {
     return true
   }
 
+  const checkConnection = () => {
+    if (connectedAccounts.length === 0) {
+      setNoChannelOpen(true)
+      return false
+    }
+    return true
+  }
+
   const handlePublishNow = async () => {
+    if (!checkConnection()) return
     if (!caption || selectedPlatforms.length === 0) {
       showToast("Add content and select at least one platform", "error")
       return
     }
     if (!validateChannels()) return
 
-    const isOwnerOrAdmin = ["owner", "admin"].includes(userRole || "")
+    const canPublishDirectly = ["owner", "admin", "editor", "Workspace Owner", "Admin", "Content Manager"].includes(userRole || "")
 
     setSaving(true)
     try {
-      if (!isOwnerOrAdmin) {
+      if (!canPublishDirectly) {
         // Save as draft and request review
         const post = await savePost("draft")
         if (post) {
@@ -469,26 +490,38 @@ function CreatePostContent() {
           .map(([p, r]: any) => {
             let errMsg = r.error || "Unknown error"
             try {
-              if (errMsg.includes("failed: {")) {
-                const rawJson = errMsg.substring(errMsg.indexOf("{"))
+              const jsonStartIndex = errMsg.indexOf("{")
+              if (jsonStartIndex !== -1) {
+                const rawJson = errMsg.substring(jsonStartIndex)
                 const parsed = JSON.parse(rawJson)
                 if (parsed.error && parsed.error.message) {
-                  errMsg = `${parsed.error.message} (Code: ${parsed.error.code}, Subcode: ${parsed.error.error_subcode || "none"})`
+                  errMsg = parsed.error.message
                 }
               }
             } catch {}
-            return `${p.toUpperCase()}: ${errMsg}`
+            return { platform: p, reason: errMsg }
           })
-          .join(" | ")
 
-        showToast(`Publishing failed: ${errorDetails}`, "error")
+        const firstFail = errorDetails[0]
+        setPublishError({
+          platform: firstFail.platform,
+          reason: firstFail.reason
+        })
       } else {
-        showToast("Published successfully on all channels!", "success")
-        router.push("/dashboard/scheduled")
+        const now = new Date()
+        setSuccessDetails({
+          platform: selectedPlatforms.map(p => platformMeta.find(m => m.id === p)?.label || p).join(", "),
+          date: now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+          time: now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+          postId: post._id,
+        })
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Publish failed"
-      showToast(message, "error")
+      setPublishError({
+        platform: selectedPlatforms.join(", "),
+        reason: message
+      })
     } finally {
       setSaving(false)
     }
@@ -507,6 +540,7 @@ function CreatePostContent() {
   }
 
   const handleSchedule = async () => {
+    if (!checkConnection()) return
     if (!caption || selectedPlatforms.length === 0) {
       showToast("Add content and select at least one platform", "error")
       return
@@ -517,11 +551,11 @@ function CreatePostContent() {
       return
     }
     const scheduledAt = `${scheduleDate}T${scheduleTime}:00`
-    const isOwnerOrAdmin = ["owner", "admin"].includes(userRole || "")
+    const canPublishDirectly = ["owner", "admin", "editor", "Workspace Owner", "Admin", "Content Manager"].includes(userRole || "")
 
     setSaving(true)
     try {
-      if (!isOwnerOrAdmin) {
+      if (!canPublishDirectly) {
         // Save as draft and request review
         const post = await savePost("draft", scheduledAt)
         if (post) {
@@ -550,6 +584,7 @@ function CreatePostContent() {
   }
 
   const openScheduleDialog = () => {
+    if (!checkConnection()) return
     if (!caption || selectedPlatforms.length === 0) {
       showToast("Add content and select at least one platform", "error")
       return
@@ -987,42 +1022,43 @@ function CreatePostContent() {
             </CardHeader>
             <CardContent className="space-y-3 pt-4">
               <Button
-                className="w-full rounded-xl flex items-center justify-center gap-1.5 text-xs py-5"
-                onClick={openScheduleDialog}
-                disabled={saving || !caption || selectedPlatforms.length === 0 || hasWarnings}
-              >
-                {saving ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : ["owner", "admin"].includes(userRole || "") ? (
-                  <><Calendar className="size-4" /> Schedule Post</>
-                ) : (
-                  <><Calendar className="size-4" /> Request Scheduling Approval</>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full rounded-xl flex items-center justify-center gap-1.5 text-xs py-5 border-border/60 hover:bg-muted"
+                variant="default"
+                className="w-full rounded-xl flex items-center justify-center gap-1.5 text-xs py-6 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md hover:shadow-lg transition-all font-bold cursor-pointer"
                 onClick={handlePublishNow}
                 disabled={saving || !caption || selectedPlatforms.length === 0 || hasWarnings}
               >
                 {saving ? (
                   <Loader2 className="size-4 animate-spin" />
-                ) : ["owner", "admin"].includes(userRole || "") ? (
-                  <><Globe className="size-4" /> Publish Now</>
+                ) : canPublishDirectly ? (
+                  <>🚀 Publish Now</>
                 ) : (
-                  <><Globe className="size-4" /> Request Publishing Approval</>
+                  <>🚀 Request Publishing Approval</>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full rounded-xl flex items-center justify-center gap-1.5 text-xs py-5 border-border/60 hover:bg-muted font-semibold cursor-pointer"
+                onClick={openScheduleDialog}
+                disabled={saving || !caption || selectedPlatforms.length === 0 || hasWarnings}
+              >
+                {saving ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : canPublishDirectly ? (
+                  <>📅 Schedule Post</>
+                ) : (
+                  <>📅 Request Scheduling Approval</>
                 )}
               </Button>
               <Button
                 variant="ghost"
-                className="w-full rounded-xl text-xs py-5 text-muted-foreground hover:bg-muted/30"
+                className="w-full rounded-xl text-xs py-5 text-muted-foreground hover:bg-muted/30 font-medium cursor-pointer"
                 onClick={handleSaveDraft}
                 disabled={saving || !caption}
               >
                 {saving ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
-                  editId ? "Update Draft" : "Save as Draft"
+                  editId ? "💾 Update Draft" : "💾 Save Draft"
                 )}
               </Button>
             </CardContent>
@@ -1187,6 +1223,94 @@ function CreatePostContent() {
             </Button>
             <Button size="sm" className="rounded-lg text-xs" onClick={handleSchedule} disabled={saving || !scheduleDate || !scheduleTime}>
               {saving ? <Loader2 className="size-4 animate-spin" /> : "Add to Schedule"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* No Channel Connected Dialog */}
+      <Dialog open={noChannelOpen} onOpenChange={setNoChannelOpen}>
+        <DialogContent className="max-w-md rounded-2xl p-6 border-border/60 shadow-xl bg-card text-center space-y-4">
+          <div className="mx-auto size-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-xl font-bold">
+            !
+          </div>
+          <DialogHeader>
+            <DialogTitle className="text-center text-lg font-bold text-foreground">
+              No Channel Connected
+            </DialogTitle>
+            <DialogDescription className="text-center text-xs text-muted-foreground mt-2">
+              Connect a Facebook, Instagram, LinkedIn, X, or TikTok account before publishing.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-center sm:justify-center pt-2 gap-2">
+            <Button variant="outline" className="rounded-xl px-5" onClick={() => setNoChannelOpen(false)}>
+              Cancel
+            </Button>
+            <Button className="rounded-xl px-5 bg-emerald-600 hover:bg-emerald-500 text-white" onClick={() => { setNoChannelOpen(false); router.push("/dashboard/channels"); }}>
+              Connect Channel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Published Successfully Dialog */}
+      <Dialog open={successDetails !== null} onOpenChange={(open) => { if (!open) { setSuccessDetails(null); router.push("/dashboard/scheduled"); } }}>
+        <DialogContent className="max-w-md rounded-2xl p-6 border-border/60 shadow-xl bg-card text-center space-y-4">
+          <div className="mx-auto size-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-xl font-bold">
+            ✓
+          </div>
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-center text-lg font-bold text-foreground">
+              ✅ Published Successfully
+            </DialogTitle>
+          </DialogHeader>
+          {successDetails && (
+            <div className="space-y-2 text-sm text-muted-foreground bg-muted/20 p-4 rounded-xl border border-border/30">
+              <p className="font-bold text-foreground capitalize">Published to {successDetails.platform}</p>
+              <div className="flex justify-center gap-4 text-xs mt-1">
+                <span>{successDetails.date}</span>
+                <span>·</span>
+                <span>{successDetails.time}</span>
+              </div>
+              <p className="text-[10px] font-mono mt-2 pt-2 border-t border-border/30">Post ID: {successDetails.postId}</p>
+            </div>
+          )}
+          <DialogFooter className="flex justify-center sm:justify-center pt-2">
+            <Button className="rounded-xl px-6 bg-emerald-600 hover:bg-emerald-500 text-white" onClick={() => { setSuccessDetails(null); router.push("/dashboard/scheduled"); }}>
+              Go to Scheduled Posts
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Failed Publish Handling Dialog */}
+      <Dialog open={publishError !== null} onOpenChange={(open) => { if (!open) setPublishError(null); }}>
+        <DialogContent className="max-w-md rounded-2xl p-6 border-border/60 shadow-xl bg-card space-y-4">
+          <div className="mx-auto size-12 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 text-xl font-bold font-mono">
+            !
+          </div>
+          <DialogHeader>
+            <DialogTitle className="text-center text-lg font-bold text-foreground">
+              Publishing Error
+            </DialogTitle>
+          </DialogHeader>
+          {publishError && (
+            <div className="space-y-3 text-xs leading-relaxed">
+              <p className="font-semibold text-foreground capitalize">
+                {publishError.platform} rejected the request.
+              </p>
+              <div className="bg-rose-500/[0.03] border border-rose-500/20 p-3.5 rounded-xl text-rose-600 font-mono whitespace-pre-wrap">
+                <span className="font-bold text-rose-700 block mb-1">Reason:</span>
+                {publishError.reason}
+              </div>
+            </div>
+          )}
+          <DialogFooter className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" className="rounded-xl text-xs" onClick={() => setPublishError(null)}>
+              Dismiss
+            </Button>
+            <Button className="rounded-xl text-xs bg-emerald-600 hover:bg-emerald-500 text-white" onClick={() => { setPublishError(null); router.push("/dashboard/channels"); }}>
+              Manage Channels
             </Button>
           </DialogFooter>
         </DialogContent>

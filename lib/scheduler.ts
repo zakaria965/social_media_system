@@ -196,11 +196,17 @@ export async function checkScheduleQueue() {
         await job.save()
 
         if (dbUser) {
+          const socialPostId = pubRes ? (pubRes.post_id || pubRes.id || pubRes.urn || null) : null
           await PublishedPost.create({
             userId: dbUser._id.toString(),
             workspaceId: post.workspaceId ? post.workspaceId.toString() : null,
             postId: post._id.toString(),
             channel: job.platform,
+            platform: job.platform,
+            content: post.content,
+            mediaUrls: post.media || [],
+            status: "published",
+            socialPostId: socialPostId ? String(socialPostId) : null,
             publishedAt: new Date()
           })
         }
