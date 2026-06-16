@@ -1279,6 +1279,19 @@ export default function SettingsCenter() {
                     <Badge variant="outline" className="rounded-lg">{workspaceInfo.ownerEmail}</Badge>
                   </div>
 
+                  <div className="flex justify-between items-center text-xs pt-4 border-t border-border/60">
+                    <div>
+                      <p className="font-semibold">Workspace Status</p>
+                      <p className="text-[10px] text-muted-foreground">Current administrative operational status.</p>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={`rounded-lg px-2 py-0.5 select-none font-bold uppercase text-[9px] tracking-wider ${(workspaceInfo.status || "ACTIVE") === "ACTIVE" ? "bg-[#DCFCE7] text-[#22C55E] border-[#DCFCE7]" : "bg-rose-50 text-rose-600 border-rose-100"}`}
+                    >
+                      {workspaceInfo.status || "ACTIVE"}
+                    </Badge>
+                  </div>
+
                   <Button onClick={handleSaveWorkspace} className="rounded-xl" disabled={savingSection === "workspace"}>
                     {savingSection === "workspace" && <Loader2 className="mr-2 size-3 animate-spin" />}
                     Save workspace settings
@@ -1934,7 +1947,7 @@ export default function SettingsCenter() {
                 <CardContent className="space-y-6">
                   <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 p-4">
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold text-primary uppercase tracking-wider">Current Tier: {wsSettings.currentPlan.toUpperCase()}</p>
+                      <p className="text-xs font-semibold text-primary uppercase tracking-wider">Current Plan: {wsSettings.currentPlan === "pro" ? "GrowWave Pro" : "GrowWave Free"}</p>
                       <p className="text-[10px] text-primary/80">Next billing cycle renovates on July 1, 2026.</p>
                     </div>
                     {wsSettings.currentPlan === "free" && (

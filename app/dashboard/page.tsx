@@ -137,14 +137,6 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse select-none">
-        {/* Header Skeleton */}
-        <div className="flex flex-col gap-2">
-          <div className="h-8 w-64 bg-muted/65 rounded-lg" />
-          <div className="h-4 w-96 bg-muted/50 rounded-md" />
-        </div>
-
-        {/* AI strategist card skeleton */}
-        <div className="h-16 w-full bg-muted/40 rounded-xl border border-muted/50" />
 
         {/* Stats card grid skeleton */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
@@ -186,7 +178,7 @@ export default function DashboardPage() {
   }
 
   // Destructure real Aggregated Data
-  const { stats, timeseries, accounts, posts, activities, workspaceHealth, aiGreeting } = data
+  const { stats, timeseries, accounts, posts, activities, workspaceHealth } = data
   const { today, tomorrow, thisWeek } = getGroupedScheduledPosts(posts)
 
   // Map platform details
@@ -201,56 +193,6 @@ export default function DashboardPage() {
   return (
     <PageTransition>
       <div className="space-y-6">
-        {/* Personalized Welcome Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4 bg-[#FFFFFF] rounded-2xl px-5 py-3.5 shadow-card">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-[#111827]">
-              Welcome back, {data.user.name.split(" ")[0]} 🚀
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center gap-6 text-xs text-[#64748B]">
-            <div className="flex items-center gap-1.5">
-              <span className="inline-block w-2 h-2 rounded-full bg-[#22C55E]" />
-              <span>Workspace Status: <strong className="text-[#111827] font-semibold">Active</strong></span>
-            </div>
-            <div className="h-4 w-px bg-[#EEF2F7]" />
-            <div>
-              Connected Channels: <strong className="text-[#111827] font-semibold">{accounts.filter((a: any) => a.status === "connected").length} Connected</strong>
-            </div>
-            <div className="h-4 w-px bg-[#EEF2F7]" />
-            <div>
-              Current Plan: <strong className="text-[#111827] font-semibold">GrowWave Pro</strong>
-            </div>
-          </div>
-          <Button onClick={fetchSummary} variant="outline" size="sm" className="h-8 gap-1.5 rounded-lg text-xs font-semibold px-2.5 border-[#EEF2F7] hover:bg-[#FCFAF6]">
-            <RefreshCw className="size-3" />
-            Sync Dashboard
-          </Button>
-        </div>
-
-        {/* Small AI Insight Strip */}
-        <div className="flex h-[72px] items-center justify-between rounded-2xl bg-[#FFFFFF] px-4 py-2 shadow-card">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#22C55E] shrink-0">
-              <Sparkles className="size-4" />
-            </div>
-            <div className="min-w-0">
-              <span className="text-[10px] font-bold text-[#22C55E] uppercase tracking-wider block leading-none">AI Insight</span>
-              <p className="text-xs text-[#111827] font-medium truncate mt-1">
-                {aiGreeting || "Facebook engagement increased 12% this week."}
-              </p>
-            </div>
-          </div>
-          <Button
-            onClick={() => router.push("/dashboard/analytics")}
-            variant="ghost"
-            size="sm"
-            className="text-xs font-semibold text-[#22C55E] hover:text-[#4ADE80] hover:bg-[#F0FDF4] shrink-0 h-8 px-3 rounded-lg"
-          >
-            View Analysis
-            <ChevronRight className="size-3 ml-0.5" />
-          </Button>
-        </div>
 
         {/* Performance Overview KPI Cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">

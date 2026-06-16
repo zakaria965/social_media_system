@@ -1118,17 +1118,17 @@ export default function AnalyticsPage() {
                   <div className="p-1 rounded-md bg-indigo-500/10 text-indigo-500 shrink-0 animate-pulse">
                     <Brain className="size-4 shrink-0" />
                   </div>
-                  AI Intelligence Strategist
+                  AI Insights & Recommendations
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Decisions recommendations generated via OpenAI analysis.
+                  AI-generated recommendations and performance insights.
                 </CardDescription>
               </CardHeader>
 
               <CardContent className="pt-4 space-y-4 relative">
                 {/* Pulse glowing micro actions info */}
                 <div className="space-y-3">
-                  <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider block">Observational Diagnostics</span>
+                  <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider block">AI Insights</span>
                   {aiIntelligence.map((ins: string, idx: number) => (
                     <div key={idx} className="flex gap-2.5 p-3 rounded-lg border border-border/50 bg-card text-xs leading-relaxed font-semibold">
                       <div className="size-5 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 font-bold">
@@ -1140,7 +1140,7 @@ export default function AnalyticsPage() {
                 </div>
 
                 <div className="border-t border-border/30 pt-4 space-y-3">
-                  <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider block">Tactical Recommendations</span>
+                  <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider block">AI Recommendations</span>
                   {contentRecommendations.map((rec: any, idx: number) => (
                     <div key={idx} className="p-3 rounded-lg border border-border/60 bg-muted/10 space-y-1.5 text-xs font-semibold">
                       <div className="flex items-center justify-between">
