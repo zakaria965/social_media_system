@@ -182,6 +182,8 @@ export default function AdminDashboard() {
 
   // Navigation active tab state
   const [activeTab, setActiveTab] = useState("overview")
+  const [unreadContactCount, setUnreadContactCount] = useState(0)
+  const [showNotificationDropdown, setShowNotificationDropdown] = useState(false)
 
   // Common UI indicators
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null)
@@ -195,6 +197,49 @@ export default function AdminDashboard() {
     }, 1000)
     return () => clearInterval(interval)
   }, [])
+
+  // Sync tab with URL search parameter
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search)
+      const tab = params.get("tab")
+      if (tab) {
+        setActiveTab(tab)
+      }
+    }
+  }, [])
+
+  // Fetch unread notifications for badge counts
+  useEffect(() => {
+    async function fetchUnreadNotifications() {
+      try {
+        const res = await fetch("/api/admin/notifications")
+        if (res.ok) {
+          const data = await res.json()
+          setUnreadContactCount(data.unreadCount || 0)
+        }
+      } catch (err) {
+        console.error("Failed to fetch unread contact notifications:", err)
+      }
+    }
+    
+    // Initial fetch
+    fetchUnreadNotifications()
+    
+    // Poll every 30 seconds
+    const interval = setInterval(fetchUnreadNotifications, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const changeTab = (tabId: string) => {
+    setSelectedTicket(null)
+    setActiveTab(tabId)
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href)
+      url.searchParams.set("tab", tabId)
+      window.history.pushState({}, "", url.toString())
+    }
+  }
 
   // Section States
   const [overviewStats, setOverviewStats] = useState<Stats | null>(null)
@@ -428,6 +473,7 @@ export default function AdminDashboard() {
             { id: "ai-usage", label: "AI Usage", icon: Cpu },
             { id: "channels", label: "Channels", icon: Share2 },
             { id: "tickets", label: "Support Center", icon: HelpCircle },
+            { id: "contact-messages", label: "Contact Center", icon: Mail },
             { id: "notifications", label: "Notifications", icon: Bell },
             { id: "monitoring", label: "System Monitoring", icon: Activity },
             { id: "audit-logs", label: "Audit Logs", icon: History },
@@ -440,17 +486,27 @@ export default function AdminDashboard() {
               <button
                 key={item.id}
                 onClick={() => {
-                  setSelectedTicket(null)
-                  setActiveTab(item.id)
+                  if (item.id === "contact-messages") {
+                    router.push("/admin/contact-messages")
+                  } else {
+                    changeTab(item.id)
+                  }
                 }}
-                className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
+                className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
                   isActive
                     ? "bg-[#F0FDF4] text-[#22C55E] font-semibold"
                     : "text-slate-600 hover:bg-[#F0FDF4]/50 hover:text-[#111111]"
                 }`}
               >
-                <IconComponent className={`size-4 ${isActive ? "text-[#22C55E]" : "text-slate-400"}`} />
-                {item.label}
+                <div className="flex items-center gap-3">
+                  <IconComponent className={`size-4 ${isActive ? "text-[#22C55E]" : "text-slate-400"}`} />
+                  <span>{item.label}</span>
+                </div>
+                {item.id === "contact-messages" && unreadContactCount > 0 && (
+                  <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white leading-none">
+                    {unreadContactCount}
+                  </span>
+                )}
               </button>
             )
           })}
@@ -490,6 +546,68 @@ export default function AdminDashboard() {
           </div>
           
           <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
+            {/* Notification Bell Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowNotificationDropdown(!showNotificationDropdown)}
+                className="relative p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-105 rounded-lg transition-colors cursor-pointer flex items-center justify-center"
+                aria-label="Admin Alerts"
+              >
+                <Bell className="size-4.5" />
+                {unreadContactCount > 0 && (
+                  <span className="absolute top-0.5 right-0.5 flex size-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full size-2 bg-red-500"></span>
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Popover Dropdown content */}
+              {showNotificationDropdown && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-20 cursor-default" 
+                    onClick={() => setShowNotificationDropdown(false)} 
+                  />
+                  <div className="absolute right-0 mt-2 z-30 w-72 rounded-2xl border border-[#EEF2F7] bg-white p-4 shadow-xl animate-fade-in-up text-left">
+                    <div className="flex items-center justify-between border-b border-[#EEF2F7] pb-2 mb-2">
+                      <span className="font-bold text-xs text-[#111111]">Admin Alerts</span>
+                      {unreadContactCount > 0 && (
+                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[9px] font-semibold text-red-600">
+                          {unreadContactCount} New
+                        </span>
+                      )}
+                    </div>
+                    {unreadContactCount > 0 ? (
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        <div 
+                          onClick={() => {
+                            setShowNotificationDropdown(false)
+                            router.push("/admin/contact-messages")
+                          }}
+                          className="flex flex-col gap-1 rounded-xl p-2.5 hover:bg-slate-50 transition-colors cursor-pointer border border-[#EEF2F7]/60"
+                        >
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                            <span>🔔</span>
+                            <span>New Contact Message</span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-medium">
+                            Unread: {unreadContactCount}
+                          </p>
+                          <p className="text-[9px] text-slate-400 mt-0.5 font-normal">
+                            Click to open Contact Center
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="py-4 text-center text-xs text-slate-455">No new contact messages</p>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <span className="h-4 w-px bg-slate-200" />
             <span>Server: localhost:3000</span>
             <span className="h-4 w-px bg-slate-200" />
             <span>Time: {mounted ? timeString : ""}</span>
