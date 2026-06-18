@@ -1,14 +1,17 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { LoginForm } from "@/components/auth/login-form"
 import { motion } from "framer-motion"
+import { Suspense } from "react"
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
   const { data: session, status } = useSession()
+  const searchParams = useSearchParams()
+  const message = searchParams.get("message")
 
   React.useEffect(() => {
     if (session?.user) {
@@ -67,15 +70,38 @@ export default function LoginPage() {
             <h1 className="font-display text-2xl font-semibold text-foreground">
               Welcome back
             </h1>
-            <p className="mt-1.5 text-sm text-muted-foreground">
+            <p className="mt-1.5 text-sm text-muted-foreground mb-6">
               Sign in to your GrowWave account
             </p>
           </div>
-          <div className="mt-8">
+          
+          {message && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-center text-xs font-semibold text-emerald-800 shadow-sm"
+            >
+              {message}
+            </motion.div>
+          )}
+
+          <div className="mt-2">
             <LoginForm />
           </div>
         </motion.div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   )
 }

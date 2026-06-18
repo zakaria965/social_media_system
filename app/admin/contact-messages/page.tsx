@@ -28,9 +28,12 @@ import {
   User,
   Clock,
   ExternalLink,
-  MessageSquare
+  MessageSquare,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { GrowWaveModal } from "@/components/growwave-modal"
 
 interface ContactMessageItem {
   _id: string
@@ -60,6 +63,29 @@ export default function AdminContactMessages() {
   const [timeString, setTimeString] = useState("")
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [showDropdown, setShowDropdown] = useState(false)
+
+  const handleLogout = async () => {
+    try {
+      // Clear localStorage
+      localStorage.removeItem("growwave-active-workspace-id")
+      
+      // Clear cookies
+      const cookies = document.cookie.split(";")
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i]
+        const eqPos = cookie.indexOf("=")
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim()
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+      }
+      
+      // Sign out next-auth session and redirect to /login with message
+      await signOut({ callbackUrl: "/login?message=Successfully%20logged%20out" })
+    } catch (error) {
+      console.error("Error during logout:", error)
+    }
+  }
   
   // Navigation sidebar list (contact-messages is active)
   const activeTab = "contact-messages"
@@ -291,23 +317,56 @@ export default function AdminContactMessages() {
           })}
         </nav>
 
-        {/* Footer Admin log out */}
-        <div className="p-4 flex flex-col gap-2">
-          <div className="flex items-center gap-3 px-2 py-1.5">
-            <div className="size-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-700">
-              {session?.user?.name ? session.user.name.slice(0, 2).toUpperCase() : "AD"}
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <p className="truncate text-xs font-semibold">{session?.user?.name || "Administrator"}</p>
-              <p className="truncate text-[10px] text-slate-400">{session?.user?.email || "admin@growwave.com"}</p>
-            </div>
-          </div>
+        {/* Footer Admin Profile Card */}
+        <div className="relative p-4 mt-auto">
+          {/* Dropdown Menu */}
+          {showDropdown && (
+            <>
+              {/* Overlay for closing when clicking outside */}
+              <div 
+                className="fixed inset-0 z-20 bg-slate-900/10 backdrop-blur-[1px] md:bg-transparent md:backdrop-blur-none"
+                onClick={() => setShowDropdown(false)}
+              />
+              
+              <div 
+                className="fixed bottom-0 left-0 right-0 z-30 rounded-t-3xl border-t border-[#EEF2F7] bg-[#FCFAF6] p-6 pb-8 shadow-2xl animate-fade-in-up md:absolute md:bottom-[76px] md:left-4 md:right-4 md:top-auto md:rounded-2xl md:border md:p-1.5 md:pb-1.5 md:shadow-lg"
+                style={{ animationDuration: '200ms' }}
+              >
+                {/* Mobile Handle Bar */}
+                <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200 md:hidden" />
+                
+                <button
+                  onClick={() => {
+                    setShowDropdown(false)
+                    setShowLogoutConfirm(true)
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold text-[#EF4444] hover:bg-[rgba(239,68,68,0.08)] transition-all text-left cursor-pointer md:text-xs"
+                >
+                  <LogOut className="size-4 text-[#EF4444] md:size-3.5" />
+                  Logout
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Profile Card Button */}
           <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="flex w-full items-center gap-2 rounded-xl border border-[#EEF2F7] bg-white hover:bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 transition-colors cursor-pointer"
+            onClick={() => setShowDropdown(!showDropdown)}
+            className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[#EEF2F7] bg-white p-3.5 shadow-sm hover:bg-slate-50 transition-colors text-left cursor-pointer"
           >
-            <LogOut className="size-3.5" />
-            Log out
+            <div className="flex items-center gap-3">
+              <div className="size-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-[#0F172A]">
+                {session?.user?.name ? session.user.name.slice(0, 2).toUpperCase() : "AD"}
+              </div>
+              <span className="truncate text-xs font-bold text-[#0F172A]">
+                {session?.user?.name || "GrowWave Admin"}
+              </span>
+            </div>
+            {showDropdown ? (
+              <ChevronUp className="size-3.5 text-slate-400" />
+            ) : (
+              <ChevronDown className="size-3.5 text-slate-400" />
+            )}
           </button>
         </div>
       </aside>
@@ -730,6 +789,18 @@ export default function AdminContactMessages() {
           </div>
         </div>
       )}
+
+      {/* Logout Confirmation Modal */}
+      <GrowWaveModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        title="Logout"
+        message="Are you sure you want to logout from GrowWave Admin?"
+        confirmText="Logout"
+        cancelText="Cancel"
+        onConfirm={handleLogout}
+        variant="danger"
+      />
     </div>
   )
 }
