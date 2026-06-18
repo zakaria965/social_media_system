@@ -2,7 +2,7 @@ import mongoose, { Schema, Document, Model } from "mongoose"
 
 export interface ISubscription extends Document {
   userId: mongoose.Types.ObjectId
-  plan: "FREE" | "PRO"
+  plan: "FREE" | "PRO" | "AGENCY"
   status: "ACTIVE" | "CANCELLED" | "EXPIRED"
   billingCycle: "monthly" | "yearly" | "free"
   startedAt: Date
@@ -16,7 +16,7 @@ export interface ISubscription extends Document {
 const SubscriptionSchema = new Schema<ISubscription>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    plan: { type: String, enum: ["FREE", "PRO"], default: "FREE" },
+    plan: { type: String, enum: ["FREE", "PRO", "AGENCY"], default: "FREE" },
     status: { type: String, enum: ["ACTIVE", "CANCELLED", "EXPIRED"], default: "ACTIVE" },
     billingCycle: { type: String, enum: ["monthly", "yearly", "free"], default: "free" },
     startedAt: { type: Date, default: Date.now },

@@ -5,7 +5,7 @@ declare module "next-auth" {
   interface Session {
     user: {
       id?: string
-      plan?: "FREE" | "PRO"
+      plan?: "FREE" | "PRO" | "AGENCY"
       subscriptionStatus?: "ACTIVE" | "CANCELLED" | "EXPIRED"
       role?: "USER" | "ADMIN"
       status?: "ACTIVE" | "SUSPENDED"
@@ -13,7 +13,7 @@ declare module "next-auth" {
   }
 
   interface User extends DefaultUser {
-    plan?: "FREE" | "PRO"
+    plan?: "FREE" | "PRO" | "AGENCY"
     subscriptionStatus?: "ACTIVE" | "CANCELLED" | "EXPIRED"
     role?: "USER" | "ADMIN"
     status?: "ACTIVE" | "SUSPENDED"
@@ -23,7 +23,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id?: string
-    plan?: "FREE" | "PRO"
+    plan?: "FREE" | "PRO" | "AGENCY"
     subscriptionStatus?: "ACTIVE" | "CANCELLED" | "EXPIRED"
     role?: "USER" | "ADMIN"
     status?: "ACTIVE" | "SUSPENDED"

@@ -65,7 +65,8 @@ export default function FreeAIAssistantPage() {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   
   // Real DB state
-  const [requestsUsed, setRequestsUsed] = useState(0)
+  const [aiCredits, setAiCredits] = useState(5)
+  const [aiUsedCredits, setAiUsedCredits] = useState(0)
   const [messages, setMessages] = useState<ChatMessage[]>([])
 
   // Upgrade Modal triggers
@@ -93,11 +94,8 @@ export default function FreeAIAssistantPage() {
         if (settingsRes.ok) {
           const settingsData = await settingsRes.json()
           if (settingsData.user) {
-            setRequestsUsed(
-              settingsData.user.aiCreditsUsed !== undefined
-                ? settingsData.user.aiCreditsUsed
-                : settingsData.user.requestsUsed || 0
-            )
+            setAiCredits(settingsData.user.aiCredits !== undefined ? settingsData.user.aiCredits : 5)
+            setAiUsedCredits(settingsData.user.aiUsedCredits !== undefined ? settingsData.user.aiUsedCredits : 0)
           }
         }
 
@@ -122,7 +120,7 @@ export default function FreeAIAssistantPage() {
     loadData()
   }, [])
 
-  const remaining = Math.max(0, 5 - requestsUsed)
+  const remaining = Math.max(0, aiCredits - aiUsedCredits)
 
   // Generate Action
   const handleGenerate = async (customPrompt?: string) => {
@@ -185,7 +183,7 @@ export default function FreeAIAssistantPage() {
               timestamp: new Date().toISOString() 
             }
           ])
-          setRequestsUsed((prev) => prev + 1)
+          setAiUsedCredits((prev) => prev + 1)
           showToast("AI Content generated successfully!", "success")
         } else {
           throw new Error("Invalid response format")
@@ -253,7 +251,7 @@ export default function FreeAIAssistantPage() {
                   ? "bg-[#FEF3C7] text-[#D97706]"
                   : "bg-[#E8FAD0] text-[#22C55E]"
               }`}>
-                ✨ {remaining} AI Request{remaining === 1 ? "" : "s"} Remaining Today
+                ✨ {remaining} AI Credit{remaining === 1 ? "" : "s"} Remaining
               </span>
             </div>
             <p className="text-xs sm:text-sm text-[#64748B] max-w-lg font-medium leading-relaxed mt-1">
@@ -470,16 +468,16 @@ export default function FreeAIAssistantPage() {
       ) : (
         /* Limit Reached Card replacing the Composer directly in the same location */
         <div className="bg-white rounded-3xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-slate-100 text-center space-y-6 select-none w-full">
-          <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-[#DCFCE7] text-[#22C55E]">
+          <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-red-50 text-red-500">
             <Sparkles className="size-6 fill-current animate-pulse" />
           </div>
           <div className="space-y-2">
-            <h3 className="text-lg font-black text-[#0F172A]">✨ Free Limit Reached</h3>
+            <h3 className="text-lg font-black text-[#0F172A]">AI Credit Limit Reached</h3>
             <p className="text-sm text-[#64748B] max-w-sm mx-auto font-medium">
-              You have used all 5 AI generations. Upgrade to GrowWave Pro for unlimited AI access.
+              You have used all available AI credits. Upgrade your plan or contact your administrator.
             </p>
           </div>
-          <div className="flex justify-center">
+          <div className="flex justify-center gap-3">
             <Button
               onClick={() => {
                 setUpgradeReason("ai_quota")
@@ -487,7 +485,13 @@ export default function FreeAIAssistantPage() {
               }}
               className="bg-[#22C55E] hover:bg-[#16a34a] text-white font-black text-xs uppercase tracking-wider px-8 py-3.5 rounded-full border-0 shadow-sm transition-all cursor-pointer"
             >
-              Upgrade to Pro
+              Upgrade Plan
+            </Button>
+            <Button
+              onClick={() => router.push("/contact")}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs uppercase tracking-wider px-8 py-3.5 rounded-full border border-slate-200 shadow-sm transition-all cursor-pointer font-bold"
+            >
+              Contact Support
             </Button>
           </div>
         </div>

@@ -54,14 +54,16 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Initialize or reset user credits
+    const { initializeOrResetUserCredits } = await import("@/lib/ai-quota")
+    await initializeOrResetUserCredits(user)
+
     const userObj = user.toObject()
     const plan = (userObj.plan || "FREE").toUpperCase()
-    if (plan === "FREE") {
-      const { getTodayAIUsage } = await import("@/lib/ai-quota")
-      const todayUsage = await getTodayAIUsage(userObj._id.toString())
-      userObj.requestsUsed = todayUsage
-      userObj.aiCreditsUsed = todayUsage
-    }
+
+    userObj.aiCredits = user.aiCredits ?? (plan === "PRO" ? 1000 : plan === "AGENCY" ? 5000 : 5)
+    userObj.aiUsedCredits = user.aiUsedCredits ?? 0
+    userObj.totalTokensUsed = user.totalTokensUsed ?? 0
 
     return NextResponse.json({
       user: userObj,

@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import {
   Activity,
@@ -34,6 +33,8 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { GrowWaveModal } from "@/components/growwave-modal"
+import { Sidebar } from "@/components/admin/sidebar"
+import { Topbar } from "@/components/admin/topbar"
 
 interface ContactMessageItem {
   _id: string
@@ -56,43 +57,15 @@ interface KPIStats {
 }
 
 export default function AdminContactMessages() {
-  const { data: session } = useSession()
   const router = useRouter()
   
   const [mounted, setMounted] = useState(false)
   const [timeString, setTimeString] = useState("")
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null)
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-  const [showDropdown, setShowDropdown] = useState(false)
 
-  const handleLogout = async () => {
-    try {
-      // Clear localStorage
-      localStorage.removeItem("growwave-active-workspace-id")
-      
-      // Clear cookies
-      const cookies = document.cookie.split(";")
-      for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i]
-        const eqPos = cookie.indexOf("=")
-        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim()
-        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
-      }
-      
-      // Sign out next-auth session and redirect to /login with message
-      await signOut({ callbackUrl: "/login?message=Successfully%20logged%20out" })
-    } catch (error) {
-      console.error("Error during logout:", error)
-    }
-  }
-  
   // Navigation sidebar list (contact-messages is active)
   const activeTab = "contact-messages"
-  
-  // Notification states
-  const [unreadContactCount, setUnreadContactCount] = useState(0)
-  const [showNotificationDropdown, setShowNotificationDropdown] = useState(false)
 
   // Message page states
   const [messages, setMessages] = useState<ContactMessageItem[]>([])
@@ -116,18 +89,7 @@ export default function AdminContactMessages() {
     return () => clearInterval(interval)
   }, [])
 
-  // Fetch unread notification counts
-  const fetchUnreadNotifications = async () => {
-    try {
-      const res = await fetch("/api/admin/notifications")
-      if (res.ok) {
-        const data = await res.json()
-        setUnreadContactCount(data.unreadCount || 0)
-      }
-    } catch (err) {
-      console.error("Failed to fetch unread contact notifications:", err)
-    }
-  }
+
 
   // Fetch contact messages
   const fetchContactMessages = async () => {
@@ -151,11 +113,7 @@ export default function AdminContactMessages() {
     }
   }
 
-  useEffect(() => {
-    fetchUnreadNotifications()
-    const interval = setInterval(fetchUnreadNotifications, 30000)
-    return () => clearInterval(interval)
-  }, [])
+
 
   useEffect(() => {
     fetchContactMessages()
@@ -181,9 +139,6 @@ export default function AdminContactMessages() {
           setSelectedMessage(prev => prev ? { ...prev, status: nextStatus } : null)
         }
 
-        // Refresh counts
-        fetchUnreadNotifications()
-        
         // Retrieve fresh stats & list
         const resList = await fetch(
           `/api/admin/contact-messages?search=${encodeURIComponent(searchQuery)}&status=${statusFilter}`
@@ -216,9 +171,6 @@ export default function AdminContactMessages() {
         showToast("Spam message deleted successfully", "success")
         setMessages(prev => prev.filter(m => m._id !== id))
         setSelectedMessage(null)
-        
-        // Refresh counts
-        fetchUnreadNotifications()
         
         // Retrieve fresh stats & list
         const resList = await fetch(
@@ -257,200 +209,12 @@ export default function AdminContactMessages() {
       )}
 
       {/* ADMIN SIDEBAR */}
-      <aside className="fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r border-[#EEF2F7] bg-[#FCFAF6] print:hidden">
-        {/* Brand Section */}
-        <div className="flex h-16 items-center gap-3 px-6">
-          <div className="size-6 rounded-lg bg-[var(--brand-primary)] flex items-center justify-center">
-            <Layers className="size-3 text-white" />
-          </div>
-          <span className="font-display text-lg font-semibold tracking-tight">GrowWave Admin</span>
-        </div>
-
-        {/* Navigation Sidebar List */}
-        <nav className="flex-1 space-y-1 px-4 py-6 overflow-y-auto">
-          {[
-            { id: "overview", label: "Overview", icon: Activity },
-            { id: "users", label: "Users", icon: UsersIcon },
-            { id: "workspaces", label: "Workspaces & Teams", icon: Layers },
-            { id: "subscriptions", label: "Subscriptions", icon: ListTodo },
-            { id: "payments", label: "Payments", icon: CreditCard },
-            { id: "ai-usage", label: "AI Usage", icon: Cpu },
-            { id: "channels", label: "Channels", icon: Share2 },
-            { id: "tickets", label: "Support Center", icon: HelpCircle },
-            { id: "contact-messages", label: "Contact Center", icon: Mail },
-            { id: "notifications", label: "Notifications", icon: Bell },
-            { id: "monitoring", label: "System Monitoring", icon: Activity },
-            { id: "audit-logs", label: "Audit Logs", icon: History },
-            { id: "security", label: "Security Center", icon: ShieldAlert },
-            { id: "settings", label: "Platform Settings", icon: Settings },
-          ].map((item) => {
-            const IconComponent = item.icon
-            const isActive = activeTab === item.id
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  if (item.id === "contact-messages") {
-                    // Already here, trigger refresh
-                    fetchContactMessages()
-                  } else {
-                    router.push(`/admin?tab=${item.id}`)
-                  }
-                }}
-                className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
-                  isActive
-                    ? "bg-[#F0FDF4] text-[#22C55E] font-semibold"
-                    : "text-slate-600 hover:bg-[#F0FDF4]/50 hover:text-[#111111]"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <IconComponent className={`size-4 ${isActive ? "text-[#22C55E]" : "text-slate-400"}`} />
-                  <span>{item.label}</span>
-                </div>
-                {item.id === "contact-messages" && unreadContactCount > 0 && (
-                  <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white leading-none">
-                    {unreadContactCount}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </nav>
-
-        {/* Footer Admin Profile Card */}
-        <div className="relative p-4 mt-auto">
-          {/* Dropdown Menu */}
-          {showDropdown && (
-            <>
-              {/* Overlay for closing when clicking outside */}
-              <div 
-                className="fixed inset-0 z-20 bg-slate-900/10 backdrop-blur-[1px] md:bg-transparent md:backdrop-blur-none"
-                onClick={() => setShowDropdown(false)}
-              />
-              
-              <div 
-                className="fixed bottom-0 left-0 right-0 z-30 rounded-t-3xl border-t border-[#EEF2F7] bg-[#FCFAF6] p-6 pb-8 shadow-2xl animate-fade-in-up md:absolute md:bottom-[76px] md:left-4 md:right-4 md:top-auto md:rounded-2xl md:border md:p-1.5 md:pb-1.5 md:shadow-lg"
-                style={{ animationDuration: '200ms' }}
-              >
-                {/* Mobile Handle Bar */}
-                <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200 md:hidden" />
-                
-                <button
-                  onClick={() => {
-                    setShowDropdown(false)
-                    setShowLogoutConfirm(true)
-                  }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold text-[#EF4444] hover:bg-[rgba(239,68,68,0.08)] transition-all text-left cursor-pointer md:text-xs"
-                >
-                  <LogOut className="size-4 text-[#EF4444] md:size-3.5" />
-                  Logout
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* Profile Card Button */}
-          <button
-            onClick={() => setShowDropdown(!showDropdown)}
-            className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[#EEF2F7] bg-white p-3.5 shadow-sm hover:bg-slate-50 transition-colors text-left cursor-pointer"
-          >
-            <div className="flex items-center gap-3">
-              <div className="size-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-[#0F172A]">
-                {session?.user?.name ? session.user.name.slice(0, 2).toUpperCase() : "AD"}
-              </div>
-              <span className="truncate text-xs font-bold text-[#0F172A]">
-                {session?.user?.name || "GrowWave Admin"}
-              </span>
-            </div>
-            {showDropdown ? (
-              <ChevronUp className="size-3.5 text-slate-400" />
-            ) : (
-              <ChevronDown className="size-3.5 text-slate-400" />
-            )}
-          </button>
-        </div>
-      </aside>
+      <Sidebar activeTab={activeTab} />
 
       {/* MAIN CONTENT CONTAINER */}
       <div className="flex-1 pl-64 flex flex-col min-h-screen print:pl-0 bg-[#FCFAF6]">
         {/* TOP BAR */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-[#EEF2F7] bg-[#FCFAF6]/80 backdrop-blur-md px-8 print:hidden">
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Command Center</span>
-            <div className="flex items-center gap-1.5 rounded-full bg-[#F0FDF4] px-2.5 py-1 text-[11px] font-semibold text-[#22C55E]">
-              <div className="size-1.5 rounded-full bg-[#30FC47] animate-pulse" />
-              Platform Online
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
-            {/* Notification Bell Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setShowNotificationDropdown(!showNotificationDropdown)}
-                className="relative p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer flex items-center justify-center"
-                aria-label="Admin Alerts"
-              >
-                <Bell className="size-4.5" />
-                {unreadContactCount > 0 && (
-                  <span className="absolute top-0.5 right-0.5 flex size-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full size-2 bg-red-500"></span>
-                  </span>
-                )}
-              </button>
-
-              {/* Notification Popover Dropdown content */}
-              {showNotificationDropdown && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-20 cursor-default" 
-                    onClick={() => setShowNotificationDropdown(false)} 
-                  />
-                  <div className="absolute right-0 mt-2 z-30 w-72 rounded-2xl border border-[#EEF2F7] bg-white p-4 shadow-xl animate-fade-in-up text-left">
-                    <div className="flex items-center justify-between border-b border-[#EEF2F7] pb-2 mb-2">
-                      <span className="font-bold text-xs text-[#111111]">Admin Alerts</span>
-                      {unreadContactCount > 0 && (
-                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[9px] font-semibold text-red-600">
-                          {unreadContactCount} New
-                        </span>
-                      )}
-                    </div>
-                    {unreadContactCount > 0 ? (
-                      <div className="space-y-2 max-h-60 overflow-y-auto">
-                        <div 
-                          onClick={() => {
-                            setShowNotificationDropdown(false)
-                            fetchContactMessages()
-                          }}
-                          className="flex flex-col gap-1 rounded-xl p-2.5 hover:bg-slate-50 transition-colors cursor-pointer border border-[#EEF2F7]/60"
-                        >
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
-                            <span>🔔</span>
-                            <span>New Contact Message</span>
-                          </div>
-                          <p className="text-[11px] text-slate-500 font-medium">
-                            Unread: {unreadContactCount}
-                          </p>
-                          <p className="text-[9px] text-slate-400 mt-0.5 font-normal">
-                            Click to refresh lists
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="py-4 text-center text-xs text-slate-400">No new contact messages</p>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-
-            <span className="h-4 w-px bg-slate-200" />
-            <span>Server: localhost:3000</span>
-            <span className="h-4 w-px bg-slate-200" />
-            <span>Time: {mounted ? timeString : ""}</span>
-          </div>
-        </header>
+        <Topbar />
 
         {/* CONTAINER CONTENT */}
         <main className="flex-1 p-8 max-w-6xl w-full mx-auto print:p-0">
@@ -790,17 +554,7 @@ export default function AdminContactMessages() {
         </div>
       )}
 
-      {/* Logout Confirmation Modal */}
-      <GrowWaveModal
-        isOpen={showLogoutConfirm}
-        onClose={() => setShowLogoutConfirm(false)}
-        title="Logout"
-        message="Are you sure you want to logout from GrowWave Admin?"
-        confirmText="Logout"
-        cancelText="Cancel"
-        onConfirm={handleLogout}
-        variant="danger"
-      />
+
     </div>
   )
 }

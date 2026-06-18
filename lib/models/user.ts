@@ -42,7 +42,7 @@ export interface IUser extends Document {
   animationsEnabled: boolean
   activeSessions: ISessionHistory[]
   loginHistory: ILoginHistory[]
-  plan?: "FREE" | "PRO"
+  plan?: "FREE" | "PRO" | "AGENCY"
   subscriptionStatus?: "ACTIVE" | "CANCELLED" | "EXPIRED"
   role: "USER" | "ADMIN"
   status: "ACTIVE" | "SUSPENDED"
@@ -53,6 +53,10 @@ export interface IUser extends Document {
   requestsUsed?: number
   aiCreditsRemaining?: number
   aiCreditsUsed?: number
+  aiCredits?: number
+  aiUsedCredits?: number
+  totalTokensUsed?: number
+  lastDailyReset?: Date
   resetDate?: Date
   bonusTokens?: number
   bonusRequests?: number
@@ -103,7 +107,7 @@ const UserSchema = new Schema<IUser>(
     animationsEnabled: { type: Boolean, default: true },
     activeSessions: [SessionHistorySchema],
     loginHistory: [LoginHistorySchema],
-    plan: { type: String, enum: ["FREE", "PRO"], default: "FREE" },
+    plan: { type: String, enum: ["FREE", "PRO", "AGENCY"], default: "FREE" },
     subscriptionStatus: { type: String, enum: ["ACTIVE", "CANCELLED", "EXPIRED"], default: "ACTIVE" },
     role: { type: String, enum: ["USER", "ADMIN"], default: "USER" },
     status: { type: String, enum: ["ACTIVE", "SUSPENDED"], default: "ACTIVE" },
@@ -114,6 +118,10 @@ const UserSchema = new Schema<IUser>(
     requestsUsed: { type: Number, default: 0 },
     aiCreditsRemaining: { type: Number, default: 5 },
     aiCreditsUsed: { type: Number, default: 0 },
+    aiCredits: { type: Number, default: 5 },
+    aiUsedCredits: { type: Number, default: 0 },
+    totalTokensUsed: { type: Number, default: 0 },
+    lastDailyReset: { type: Date },
     resetDate: {
       type: Date,
       default: () => {

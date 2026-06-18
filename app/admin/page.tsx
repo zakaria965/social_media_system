@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, Fragment } from "react"
-import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import {
   Users as UsersIcon,
@@ -48,6 +47,8 @@ import {
 } from "lucide-react"
 
 import { GrowWaveModal } from "@/components/growwave-modal"
+import { Sidebar } from "@/components/admin/sidebar"
+import { Topbar } from "@/components/admin/topbar"
 
 // Types matching the API response
 interface Stats {
@@ -81,13 +82,16 @@ interface UserItem {
   id: string
   name: string
   email: string
-  plan: "FREE" | "PRO"
+  plan: "FREE" | "PRO" | "AGENCY"
   role: "USER" | "ADMIN"
   status: "ACTIVE" | "SUSPENDED"
   createdAt: string
   lastLogin: string
   activeSessionsCount: number
   activeSessions: any[]
+  aiCredits?: number
+  aiUsedCredits?: number
+  totalTokensUsed?: number
 }
 
 interface WorkspaceItem {
@@ -177,7 +181,6 @@ interface PlatformSettingsData {
 }
 
 export default function AdminDashboard() {
-  const { data: session } = useSession()
   const router = useRouter()
   
   // Client mount state to prevent hydration mismatches
@@ -186,35 +189,10 @@ export default function AdminDashboard() {
 
   // Navigation active tab state
   const [activeTab, setActiveTab] = useState("overview")
-  const [unreadContactCount, setUnreadContactCount] = useState(0)
-  const [showNotificationDropdown, setShowNotificationDropdown] = useState(false)
 
   // Common UI indicators
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null)
   const [loading, setLoading] = useState(true)
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-  const [showDropdown, setShowDropdown] = useState(false)
-
-  const handleLogout = async () => {
-    try {
-      // Clear localStorage
-      localStorage.removeItem("growwave-active-workspace-id")
-      
-      // Clear cookies
-      const cookies = document.cookie.split(";")
-      for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i]
-        const eqPos = cookie.indexOf("=")
-        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim()
-        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
-      }
-      
-      // Sign out next-auth session and redirect to /login with message
-      await signOut({ callbackUrl: "/login?message=Successfully%20logged%20out" })
-    } catch (error) {
-      console.error("Error during logout:", error)
-    }
-  }
 
   useEffect(() => {
     setMounted(true)
@@ -225,41 +203,30 @@ export default function AdminDashboard() {
     return () => clearInterval(interval)
   }, [])
 
-  // Sync tab with URL search parameter
+  // Sync tab with URL search parameter and handle settings redirects
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search)
       const tab = params.get("tab")
       if (tab) {
-        setActiveTab(tab)
-      }
-    }
-  }, [])
-
-  // Fetch unread notifications for badge counts
-  useEffect(() => {
-    async function fetchUnreadNotifications() {
-      try {
-        const res = await fetch("/api/admin/notifications")
-        if (res.ok) {
-          const data = await res.json()
-          setUnreadContactCount(data.unreadCount || 0)
+        if (tab === "tickets") {
+          router.push("/admin/settings/support")
+        } else if (tab === "monitoring") {
+          router.push("/admin/settings/system-monitoring")
+        } else if (tab === "audit-logs") {
+          router.push("/admin/settings/audit-logs")
+        } else if (tab === "security") {
+          router.push("/admin/settings/security")
+        } else if (tab === "settings") {
+          router.push("/admin/settings/platform")
+        } else {
+          setActiveTab(tab)
         }
-      } catch (err) {
-        console.error("Failed to fetch unread contact notifications:", err)
       }
     }
-    
-    // Initial fetch
-    fetchUnreadNotifications()
-    
-    // Poll every 30 seconds
-    const interval = setInterval(fetchUnreadNotifications, 30000)
-    return () => clearInterval(interval)
-  }, [])
+  }, [router])
 
   const changeTab = (tabId: string) => {
-    setSelectedTicket(null)
     setActiveTab(tabId)
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href)
@@ -295,6 +262,11 @@ export default function AdminDashboard() {
   const [activeAiSubTab, setActiveAiSubTab] = useState<string>("overview")
   const [selectedAiUserAnalytics, setSelectedAiUserAnalytics] = useState<any | null>(null)
   const [adjustingAiUser, setAdjustingAiUser] = useState<any | null>(null)
+  const [selectedCreditUser, setSelectedCreditUser] = useState<any | null>(null)
+  const [addCreditsVal, setAddCreditsVal] = useState("500")
+  const [removeCreditsVal, setRemoveCreditsVal] = useState("200")
+  const [updateCreditsVal, setUpdateCreditsVal] = useState("1000")
+  const [aiCreditsSummary, setAiCreditsSummary] = useState<any>({ totalCreditsIssued: 0, totalCreditsUsed: 0, creditsRemaining: 0, mostActiveUser: "None", geminiUsage: 0, zaiUsage: 0, nexUsage: 0 })
   const [bonusTokensVal, setBonusTokensVal] = useState<string>("0")
   const [bonusRequestsVal, setBonusRequestsVal] = useState<string>("0")
   const [tokenLimitVal, setTokenLimitVal] = useState<string>("50000")
@@ -304,31 +276,10 @@ export default function AdminDashboard() {
 
   const [channels, setChannels] = useState<any[]>([])
 
-  const [tickets, setTickets] = useState<SupportTicketItem[]>([])
-  const [selectedTicket, setSelectedTicket] = useState<SupportTicketItem | null>(null)
-  const [ticketReply, setTicketReply] = useState("")
-  const [ticketInternalNotes, setTicketInternalNotes] = useState("")
-
   const [announcementSubject, setAnnouncementSubject] = useState("")
   const [announcementTarget, setAnnouncementTarget] = useState("ALL")
   const [announcementContent, setAnnouncementContent] = useState("")
   const [announcementType, setAnnouncementType] = useState("BOTH") // Email, In-app, Both
-
-  const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([])
-
-  const [settings, setSettings] = useState<PlatformSettingsData>({
-    openaiKey: "",
-    openaiModel: "gpt-4o-mini",
-    openaiTokenLimit: 500000,
-    openaiMonthlyBudget: 100,
-    openaiEmergencyShutdown: false,
-    openaiUsageAlerts: true,
-    fbAppId: "",
-    fbAppSecret: "",
-    fbGraphVersion: "v20.0",
-    maintenanceMode: false,
-    aiProvider: "gemini"
-  })
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
     setToast({ message, type })
@@ -356,6 +307,7 @@ export default function AdminDashboard() {
         } else if (tabName === "ai-usage") {
           setAiLogs(data.logs)
           setAiUsageSummary(data.summary)
+          setAiCreditsSummary(data.creditsSummary || { totalCreditsIssued: 0, totalCreditsUsed: 0, creditsRemaining: 0, mostActiveUser: "None", geminiUsage: 0, zaiUsage: 0, nexUsage: 0 })
           setTopAiUsers(data.leaderboard?.topUsers || [])
           setAiUsers(data.users || [])
           setProviderBreakdown(data.providerBreakdown || [])
@@ -365,12 +317,6 @@ export default function AdminDashboard() {
           setCustomBudgetVal((data.settings?.openaiMonthlyBudget || 100).toString())
         } else if (tabName === "channels") {
           setChannels(data.channels)
-        } else if (tabName === "tickets") {
-          setTickets(data.tickets)
-        } else if (tabName === "audit-logs") {
-          setAuditLogs(data.logs)
-        } else if (tabName === "settings") {
-          setSettings(data.settings)
         }
       } else {
         showToast(`Failed to load ${tabName} data`, "error")
@@ -480,200 +426,13 @@ export default function AdminDashboard() {
       )}
 
       {/* ADMIN SIDEBAR */}
-      <aside className="fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r border-[#EEF2F7] bg-[#FCFAF6] print:hidden">
-        {/* Brand Section */}
-        <div className="flex h-16 items-center gap-3 px-6">
-          <div className="size-6 rounded-lg bg-[var(--brand-primary)] flex items-center justify-center">
-            <Layers className="size-3 text-white" />
-          </div>
-          <span className="font-display text-lg font-semibold tracking-tight">GrowWave Admin</span>
-        </div>
-
-        {/* Navigation Sidebar List */}
-        <nav className="flex-1 space-y-1 px-4 py-6 overflow-y-auto">
-          {[
-            { id: "overview", label: "Overview", icon: Activity },
-            { id: "users", label: "Users", icon: UsersIcon },
-            { id: "workspaces", label: "Workspaces & Teams", icon: Layers },
-            { id: "subscriptions", label: "Subscriptions", icon: ListTodo },
-            { id: "payments", label: "Payments", icon: CreditCard },
-            { id: "ai-usage", label: "AI Usage", icon: Cpu },
-            { id: "channels", label: "Channels", icon: Share2 },
-            { id: "tickets", label: "Support Center", icon: HelpCircle },
-            { id: "contact-messages", label: "Contact Center", icon: Mail },
-            { id: "notifications", label: "Notifications", icon: Bell },
-            { id: "monitoring", label: "System Monitoring", icon: Activity },
-            { id: "audit-logs", label: "Audit Logs", icon: History },
-            { id: "security", label: "Security Center", icon: ShieldAlert },
-            { id: "settings", label: "Platform Settings", icon: Settings },
-          ].map((item) => {
-            const IconComponent = item.icon
-            const isActive = activeTab === item.id
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  if (item.id === "contact-messages") {
-                    router.push("/admin/contact-messages")
-                  } else {
-                    changeTab(item.id)
-                  }
-                }}
-                className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
-                  isActive
-                    ? "bg-[#F0FDF4] text-[#22C55E] font-semibold"
-                    : "text-slate-600 hover:bg-[#F0FDF4]/50 hover:text-[#111111]"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <IconComponent className={`size-4 ${isActive ? "text-[#22C55E]" : "text-slate-400"}`} />
-                  <span>{item.label}</span>
-                </div>
-                {item.id === "contact-messages" && unreadContactCount > 0 && (
-                  <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white leading-none">
-                    {unreadContactCount}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </nav>
-
-        {/* Footer Admin Profile Card */}
-        <div className="relative p-4 mt-auto">
-          {/* Dropdown Menu */}
-          {showDropdown && (
-            <>
-              {/* Overlay for closing when clicking outside */}
-              <div 
-                className="fixed inset-0 z-20 bg-slate-900/10 backdrop-blur-[1px] md:bg-transparent md:backdrop-blur-none"
-                onClick={() => setShowDropdown(false)}
-              />
-              
-              <div 
-                className="fixed bottom-0 left-0 right-0 z-30 rounded-t-3xl border-t border-[#EEF2F7] bg-[#FCFAF6] p-6 pb-8 shadow-2xl animate-fade-in-up md:absolute md:bottom-[76px] md:left-4 md:right-4 md:top-auto md:rounded-2xl md:border md:p-1.5 md:pb-1.5 md:shadow-lg"
-                style={{ animationDuration: '200ms' }}
-              >
-                {/* Mobile Handle Bar */}
-                <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200 md:hidden" />
-                
-                <button
-                  onClick={() => {
-                    setShowDropdown(false)
-                    setShowLogoutConfirm(true)
-                  }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold text-[#EF4444] hover:bg-[rgba(239,68,68,0.08)] transition-all text-left cursor-pointer md:text-xs"
-                >
-                  <LogOut className="size-4 text-[#EF4444] md:size-3.5" />
-                  Logout
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* Profile Card Button */}
-          <button
-            onClick={() => setShowDropdown(!showDropdown)}
-            className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[#EEF2F7] bg-white p-3.5 shadow-sm hover:bg-slate-50 transition-colors text-left cursor-pointer"
-          >
-            <div className="flex items-center gap-3">
-              <div className="size-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-[#0F172A]">
-                {session?.user?.name ? session.user.name.slice(0, 2).toUpperCase() : "AD"}
-              </div>
-              <span className="truncate text-xs font-bold text-[#0F172A]">
-                {session?.user?.name || "GrowWave Admin"}
-              </span>
-            </div>
-            {showDropdown ? (
-              <ChevronUp className="size-3.5 text-slate-400" />
-            ) : (
-              <ChevronDown className="size-3.5 text-slate-400" />
-            )}
-          </button>
-        </div>
-      </aside>
+      <Sidebar activeTab={activeTab} onTabChange={changeTab} />
 
       {/* MAIN CONTENT CONTAINER */}
       <div className="flex-1 pl-64 flex flex-col min-h-screen print:pl-0 bg-[#FCFAF6]">
         {/* TOP BAR */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-[#EEF2F7] bg-[#FCFAF6]/80 backdrop-blur-md px-8 print:hidden">
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Command Center</span>
-            <div className="flex items-center gap-1.5 rounded-full bg-[#F0FDF4] px-2.5 py-1 text-[11px] font-semibold text-[#22C55E]">
-              <div className="size-1.5 rounded-full bg-[var(--brand-primary)] animate-pulse" />
-              Platform Online
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
-            {/* Notification Bell Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setShowNotificationDropdown(!showNotificationDropdown)}
-                className="relative p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-105 rounded-lg transition-colors cursor-pointer flex items-center justify-center"
-                aria-label="Admin Alerts"
-              >
-                <Bell className="size-4.5" />
-                {unreadContactCount > 0 && (
-                  <span className="absolute top-0.5 right-0.5 flex size-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full size-2 bg-red-500"></span>
-                  </span>
-                )}
-              </button>
-
-              {/* Notification Popover Dropdown content */}
-              {showNotificationDropdown && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-20 cursor-default" 
-                    onClick={() => setShowNotificationDropdown(false)} 
-                  />
-                  <div className="absolute right-0 mt-2 z-30 w-72 rounded-2xl border border-[#EEF2F7] bg-white p-4 shadow-xl animate-fade-in-up text-left">
-                    <div className="flex items-center justify-between border-b border-[#EEF2F7] pb-2 mb-2">
-                      <span className="font-bold text-xs text-[#111111]">Admin Alerts</span>
-                      {unreadContactCount > 0 && (
-                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[9px] font-semibold text-red-600">
-                          {unreadContactCount} New
-                        </span>
-                      )}
-                    </div>
-                    {unreadContactCount > 0 ? (
-                      <div className="space-y-2 max-h-60 overflow-y-auto">
-                        <div 
-                          onClick={() => {
-                            setShowNotificationDropdown(false)
-                            router.push("/admin/contact-messages")
-                          }}
-                          className="flex flex-col gap-1 rounded-xl p-2.5 hover:bg-slate-50 transition-colors cursor-pointer border border-[#EEF2F7]/60"
-                        >
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
-                            <span>🔔</span>
-                            <span>New Contact Message</span>
-                          </div>
-                          <p className="text-[11px] text-slate-500 font-medium">
-                            Unread: {unreadContactCount}
-                          </p>
-                          <p className="text-[9px] text-slate-400 mt-0.5 font-normal">
-                            Click to open Contact Center
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="py-4 text-center text-xs text-slate-455">No new contact messages</p>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-
-            <span className="h-4 w-px bg-slate-200" />
-            <span>Server: localhost:3000</span>
-            <span className="h-4 w-px bg-slate-200" />
-            <span>Time: {mounted ? timeString : ""}</span>
-          </div>
-        </header>
-
+        <Topbar />
+        
         {/* CONTAINER CONTENT */}
         <main className="flex-1 p-8 max-w-6xl w-full mx-auto print:p-0">
           {loading ? (
@@ -871,6 +630,8 @@ export default function AdminDashboard() {
                         <tr>
                           <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Name</th>
                           <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Plan</th>
+                          <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">AI Credits</th>
+                          <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">AI Usage</th>
                           <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Role</th>
                           <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Status</th>
                           <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Created Date</th>
@@ -892,9 +653,15 @@ export default function AdminDashboard() {
                                 <div className="text-xs text-slate-400">{u.email}</div>
                               </td>
                               <td className="px-6 py-4">
-                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${u.plan === "PRO" ? "bg-[#F0FDF4] text-[#22C55E]" : "bg-slate-100 text-slate-800"}`}>
+                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${u.plan === "PRO" ? "bg-[#F0FDF4] text-[#22C55E]" : u.plan === "AGENCY" ? "bg-purple-50 text-purple-700" : "bg-slate-100 text-slate-800"}`}>
                                   {u.plan}
                                 </span>
+                              </td>
+                              <td className="px-6 py-4 font-bold text-slate-700">
+                                {Math.max(0, (u.aiCredits ?? 0) - (u.aiUsedCredits ?? 0))} / {u.aiCredits ?? 0}
+                              </td>
+                              <td className="px-6 py-4 text-xs text-slate-500 font-semibold">
+                                {u.aiUsedCredits ?? 0} used
                               </td>
                               <td className="px-6 py-4 font-medium text-slate-700">{u.role}</td>
                               <td className="px-6 py-4">
@@ -907,6 +674,15 @@ export default function AdminDashboard() {
                               <td className="px-6 py-4 text-xs text-slate-500">{new Date(u.lastLogin).toLocaleString()}</td>
                               <td className="px-6 py-4 text-right print:hidden">
                                 <div className="inline-flex gap-1.5 justify-end">
+                                  {/* Manage AI Credits */}
+                                  <button
+                                    title="Manage AI Credits"
+                                    onClick={() => setSelectedCreditUser(u)}
+                                    className="rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-600 p-1.5 transition-colors"
+                                  >
+                                    <Zap className="size-3.5" />
+                                  </button>
+
                                   {/* Suspend/Activate */}
                                   {u.status === "ACTIVE" ? (
                                     <button
@@ -944,7 +720,7 @@ export default function AdminDashboard() {
                                       <Lock className="size-3.5" />
                                     </button>
                                   )}
-
+ 
                                   {/* Reset Limits */}
                                   <button
                                     title="Reset limits & quotas"
@@ -953,7 +729,7 @@ export default function AdminDashboard() {
                                   >
                                     <RefreshCw className="size-3.5" />
                                   </button>
-
+ 
                                   {/* Delete */}
                                   <button
                                     title="Delete User Account"
@@ -1399,6 +1175,7 @@ export default function AdminDashboard() {
                   <div className="flex border-b border-[#EEF2F7] gap-6 text-sm font-semibold">
                     {[
                       { id: "overview", label: "Overview & Analytics" },
+                      { id: "credits", label: "AI Credit Center" },
                       { id: "users", label: "User Limits & Access" },
                       { id: "logs", label: "Request Logs" },
                       { id: "settings", label: "Platform Budget & Switch" }
@@ -1416,6 +1193,101 @@ export default function AdminDashboard() {
                       </button>
                     ))}
                   </div>
+
+                  {/* SUBTAB: AI CREDIT CENTER */}
+                  {activeAiSubTab === "credits" && (
+                    <div className="space-y-6">
+                      {/* Credit metrics grid */}
+                      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                        {[
+                          { title: "Total Credits Issued", value: (aiCreditsSummary.totalCreditsIssued || 0).toLocaleString(), desc: "Global allocated credits pool", color: "text-[#0F766E]" },
+                          { title: "Total Credits Used", value: (aiCreditsSummary.totalCreditsUsed || 0).toLocaleString(), desc: "Global consumed credits count", color: "text-[#EF4444]" },
+                          { title: "Credits Remaining", value: (aiCreditsSummary.creditsRemaining || 0).toLocaleString(), desc: "Unused credits remaining", color: "text-[#22C55E]" },
+                          { title: "Most Active User", value: aiCreditsSummary.mostActiveUser || "None", desc: "User with highest AI credit usage", color: "text-slate-800" }
+                        ].map((card, idx) => (
+                          <div key={idx} className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{card.title}</span>
+                            <div className="mt-4">
+                              <span className={`text-2xl font-black tracking-tight ${card.color}`}>{card.value}</span>
+                              <p className="mt-1 text-xs text-slate-400">{card.desc}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Provider usage credits row */}
+                      <div className="grid gap-6 md:grid-cols-3">
+                        {[
+                          { name: "Gemini Usage", requests: aiCreditsSummary.geminiUsage || 0, color: "from-emerald-400 to-emerald-600" },
+                          { name: "Z.ai Usage", requests: aiCreditsSummary.zaiUsage || 0, color: "from-blue-400 to-blue-600" },
+                          { name: "Nex N2 Pro Usage", requests: aiCreditsSummary.nexUsage || 0, color: "from-purple-400 to-purple-600" }
+                        ].map((prov, idx) => (
+                          <div key={idx} className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300 flex items-center justify-between">
+                            <div>
+                              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Provider Usage</span>
+                              <span className="text-xl font-extrabold text-slate-800 mt-1 block">{prov.name}</span>
+                              <span className="text-xs text-slate-400 mt-0.5 block">Total successful calls log</span>
+                            </div>
+                            <div className={`size-14 rounded-2xl bg-gradient-to-br ${prov.color} text-white flex flex-col items-center justify-center font-black shadow-md`}>
+                              <span className="text-lg leading-none">{prov.requests}</span>
+                              <span className="text-[8px] uppercase font-bold tracking-widest leading-none mt-0.5">reqs</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Top AI Users by Credits */}
+                      <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 font-sans">Top AI Users by Credits Usage</h3>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs border-collapse">
+                            <thead>
+                              <tr className="border-b border-[#EEF2F7] text-slate-400 font-bold uppercase">
+                                <th className="pb-3 text-left">User</th>
+                                <th className="pb-3 text-center">Plan</th>
+                                <th className="pb-3 text-center">Credits Remaining</th>
+                                <th className="pb-3 text-center">Credits Used</th>
+                                <th className="pb-3 text-right">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#EEF2F7] text-slate-700 font-semibold">
+                              {aiUsers
+                                .slice()
+                                .sort((a, b) => (b.aiUsedCredits || 0) - (a.aiUsedCredits || 0))
+                                .slice(0, 5)
+                                .map((user) => (
+                                  <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
+                                    <td className="py-3.5 text-left">
+                                      <div className="font-bold text-slate-800">{user.name}</div>
+                                      <div className="text-[10px] text-slate-400">{user.email}</div>
+                                    </td>
+                                    <td className="py-3.5 text-center">
+                                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${user.plan === "PRO" ? "bg-[#F0FDF4] text-[#22C55E]" : user.plan === "AGENCY" ? "bg-purple-50 text-purple-700" : "bg-slate-100 text-slate-800"}`}>
+                                        {user.plan}
+                                      </span>
+                                    </td>
+                                    <td className="py-3.5 text-center font-mono font-bold text-[#22C55E]">
+                                      {Math.max(0, (user.aiCredits ?? 0) - (user.aiUsedCredits ?? 0))}
+                                    </td>
+                                    <td className="py-3.5 text-center font-mono font-bold text-slate-500">
+                                      {user.aiUsedCredits ?? 0}
+                                    </td>
+                                    <td className="py-3.5 text-right">
+                                      <button
+                                        onClick={() => setSelectedCreditUser(user)}
+                                        className="rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-600 px-3 py-1.5 font-bold text-[10.5px] transition-colors"
+                                      >
+                                        ⚡ Manage Credits
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* SUBTAB 1: OVERVIEW & ANALYTICS */}
                   {activeAiSubTab === "overview" && (
@@ -1981,165 +1853,6 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {/* TAB 8: SUPPORT CENTER */}
-              {activeTab === "tickets" && (
-                <div className="space-y-6">
-                  {/* Grid tickets & reply drawer */}
-                  <div className="grid gap-6 lg:grid-cols-3">
-                    {/* Tickets list */}
-                    <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300 lg:col-span-1 space-y-4">
-                      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Support Inquiries</h3>
-                      <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
-                        {tickets.length === 0 ? (
-                          <p className="text-sm text-slate-400 py-4 text-center">No support tickets.</p>
-                        ) : (
-                          tickets.map((t) => (
-                            <button
-                              key={t._id}
-                              onClick={() => {
-                                setSelectedTicket(t)
-                                setTicketInternalNotes(t.internalNotes || "")
-                              }}
-                              className={`w-full text-left rounded-xl p-3 border text-xs transition-all ${
-                                selectedTicket?._id === t._id 
-                                  ? "border-[#22C55E] bg-[#F0FDF4]/30 shadow-sm" 
-                                  : "border-[#EEF2F7] hover:bg-slate-50/50"
-                              }`}
-                            >
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="font-mono text-[10px] text-slate-400">{t.ticketId}</span>
-                                <span className={`px-1.5 py-0.5 rounded-[4px] font-bold text-[9px] ${
-                                  t.priority === "URGENT" ? "bg-red-100 text-[#EF4444]" : t.priority === "HIGH" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600"
-                                }`}>
-                                  {t.priority}
-                                </span>
-                              </div>
-                              <p className="font-bold text-sm truncate mb-1 text-slate-800">{t.subject}</p>
-                              <div className="flex justify-between items-center text-slate-400 text-[10px]">
-                                <span className="truncate">{t.userEmail}</span>
-                                <span className="capitalize">{t.status.toLowerCase()}</span>
-                              </div>
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Ticket details / reply */}
-                    <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300 lg:col-span-2 space-y-4">
-                      {selectedTicket ? (
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-start border-b border-slate-100 pb-4">
-                            <div>
-                              <span className="font-mono text-xs text-slate-400">{selectedTicket.ticketId}</span>
-                              <h3 className="text-lg font-bold text-slate-800 mt-1">{selectedTicket.subject}</h3>
-                              <p className="text-xs text-slate-400">Customer: {selectedTicket.userEmail} | Opened: {new Date(selectedTicket.createdAt).toLocaleString()}</p>
-                            </div>
-                            <div className="flex flex-wrap gap-2 justify-end">
-                              <select
-                                value={selectedTicket.priority}
-                                onChange={(e) => runAdminPostAction({ action: "update-ticket-meta", ticketId: selectedTicket.ticketId, priority: e.target.value }, "Priority updated")}
-                                className="border border-[#EEF2F7] rounded-xl px-2.5 py-1 text-xs outline-none bg-white cursor-pointer font-semibold"
-                              >
-                                <option value="LOW">Low</option>
-                                <option value="MEDIUM">Medium</option>
-                                <option value="HIGH">High</option>
-                                <option value="URGENT">Urgent</option>
-                              </select>
-                              <select
-                                value={selectedTicket.status}
-                                onChange={(e) => runAdminPostAction({ action: "update-ticket-meta", ticketId: selectedTicket.ticketId, status: e.target.value }, "Status updated")}
-                                className="border border-[#EEF2F7] rounded-xl px-2.5 py-1 text-xs outline-none bg-white cursor-pointer font-semibold"
-                              >
-                                <option value="OPEN">Open</option>
-                                <option value="PENDING">Pending</option>
-                                <option value="CLOSED">Closed</option>
-                              </select>
-                              <select
-                                value={selectedTicket.assignedTo}
-                                onChange={(e) => runAdminPostAction({ action: "update-ticket-meta", ticketId: selectedTicket.ticketId, assignedTo: e.target.value }, "Assignee updated")}
-                                className="border border-[#EEF2F7] rounded-xl px-2.5 py-1 text-xs outline-none bg-white cursor-pointer font-semibold"
-                              >
-                                <option value="Unassigned">Unassigned</option>
-                                <option value="Admin Agent 1">Admin Agent 1</option>
-                                <option value="Admin Agent 2">Admin Agent 2</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          {/* Message thread logs */}
-                          <div className="space-y-3 max-h-64 overflow-y-auto pr-2 bg-slate-50/50 rounded-xl p-4 border border-[#EEF2F7]">
-                            {selectedTicket.messages.map((m, idx) => {
-                              const isAdmin = m.sender.includes("Admin") || m.sender.includes("Support")
-                              return (
-                                <div key={idx} className={`flex flex-col max-w-[85%] rounded-2xl p-3 text-xs ${
-                                  isAdmin 
-                                    ? "bg-emerald-950 text-white rounded-tr-none ml-auto" 
-                                    : "bg-white border border-[#EEF2F7] rounded-tl-none mr-auto text-slate-800"
-                                }`}>
-                                  <span className="font-bold mb-1">{m.sender}</span>
-                                  <p className="leading-relaxed">{m.content}</p>
-                                  <span className={`text-[8px] text-right mt-1.5 ${isAdmin ? "text-emerald-300" : "text-slate-400"}`}>{new Date(m.timestamp).toLocaleTimeString()}</span>
-                                </div>
-                              )
-                            })}
-                          </div>
-
-                          {/* Internal notes */}
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-slate-400 uppercase">Internal Notes (Not visible to customer)</label>
-                            <textarea
-                              value={ticketInternalNotes}
-                              onChange={(e) => setTicketInternalNotes(e.target.value)}
-                              placeholder="Write private internal notes..."
-                              className="w-full rounded-xl border border-[#EEF2F7] p-3 text-xs outline-none focus:border-emerald-500 bg-white"
-                              rows={2}
-                            />
-                            <button
-                              onClick={() => runAdminPostAction({ action: "update-ticket-meta", ticketId: selectedTicket.ticketId, internalNotes: ticketInternalNotes }, "Notes saved")}
-                              className="rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 text-xs font-semibold transition-colors"
-                            >
-                              Save Notes
-                            </button>
-                          </div>
-
-                          {/* Admin Reply Input */}
-                          <div className="space-y-2 pt-2 border-t border-slate-100">
-                            <label className="text-xs font-bold text-slate-400 uppercase">Reply to Customer</label>
-                            <div className="flex gap-2">
-                              <input
-                                type="text"
-                                placeholder="Write support message copy here..."
-                                value={ticketReply}
-                                onChange={(e) => setTicketReply(e.target.value)}
-                                className="flex-1 rounded-xl border border-[#EEF2F7] px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-white"
-                              />
-                              <button
-                                onClick={async () => {
-                                  if (!ticketReply.trim()) return
-                                  const ok = await runAdminPostAction({ action: "reply-ticket", ticketId: selectedTicket.ticketId, replyContent: ticketReply }, "Support response sent")
-                                  if (ok) {
-                                    setTicketReply("")
-                                  }
-                                }}
-                                className="rounded-xl bg-[var(--brand-primary)] hover:bg-emerald-500 hover:text-white px-4 py-2 text-xs font-bold text-emerald-950 flex items-center gap-1 transition-colors"
-                              >
-                                <Send className="size-3.5" /> Send
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex h-64 flex-col items-center justify-center text-slate-400 text-sm">
-                          <HelpCircle className="size-12 stroke-[1] mb-2" />
-                          <span>Select a ticket from the left column to view message thread & reply</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* TAB 9: NOTIFICATIONS CENTER */}
               {activeTab === "notifications" && (
                 <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300 space-y-6 max-w-xl mx-auto">
@@ -2222,340 +1935,7 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {/* TAB 10: SYSTEM MONITORING */}
-              {activeTab === "monitoring" && (
-                <div className="space-y-6">
-                  {/* Grid System Statuses */}
-                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    {[
-                      { name: "REST API Endpoint", status: "Healthy", desc: "Response latency 42ms", health: "green", icon: Globe },
-                      { name: "MongoDB Database", status: "Healthy", desc: "No deadlock threads, 12 active pools", health: "green", icon: Database },
-                      { name: "OpenAI API Core", status: "Healthy", desc: "Slight network delay in completions", health: "green", icon: Cpu },
-                      { name: "Meta Graph API Core", status: "Healthy", desc: "Webhooks responding to FB posts", health: "green", icon: Share2 },
-                      { name: "S3 Storage Bucket", status: "Warning", desc: "Storage utilization near 82% threshold", health: "yellow", icon: Layers },
-                      { name: "Platform Server Instance", status: "Healthy", desc: "CPU load 12%, Memory usage 1.2GB", health: "green", icon: Activity }
-                    ].map((sys, idx) => {
-                      const Icon = sys.icon
-                      return (
-                        <div key={idx} className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
-                          <div className="flex items-center justify-between mb-4">
-                            <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">{sys.name}</span>
-                            <div className={`size-3 rounded-full ${sys.health === "green" ? "bg-[var(--brand-primary)]" : sys.health === "yellow" ? "bg-[#F59E0B]" : "bg-[#EF4444]"}`} />
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="rounded-lg bg-slate-50 p-2.5">
-                              <Icon className="size-5 text-slate-500" />
-                            </div>
-                            <div>
-                              <p className="font-bold text-base">{sys.status}</p>
-                              <p className="text-xs text-slate-400">{sys.desc}</p>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
 
-                  {/* System Load Metrics */}
-                  <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300 grid gap-6 md:grid-cols-3">
-                    <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Memory Allocation</p>
-                      <div className="h-2 rounded bg-slate-100 overflow-hidden">
-                        <div className="h-full bg-emerald-600 rounded" style={{ width: "32%" }} />
-                      </div>
-                      <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                        <span>Used: 1.2GB</span>
-                        <span>Total: 4.0GB</span>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Server CPU Utilization</p>
-                      <div className="h-2 rounded bg-slate-100 overflow-hidden">
-                        <div className="h-full bg-[var(--brand-primary)] rounded" style={{ width: "12%" }} />
-                      </div>
-                      <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                        <span>Load: 12%</span>
-                        <span>Capacity: 8 Cores</span>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Disk Volume Storage</p>
-                      <div className="h-2 rounded bg-slate-100 overflow-hidden">
-                        <div className="h-full bg-amber-500 rounded" style={{ width: "82%" }} />
-                      </div>
-                      <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-                        <span>Used: 41.2GB</span>
-                        <span>Total: 50.0GB</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 11: AUDIT LOGS */}
-              {activeTab === "audit-logs" && (
-                <div className="space-y-6">
-                  {/* Audit Logs list */}
-                  <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
-                    <h3 className="text-base font-bold mb-4">Platform Administrative Security Logs</h3>
-                    <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-                      <table className="w-full border-collapse text-left text-sm">
-                        <thead className="bg-transparent border-b border-[#EEF2F7] sticky top-0">
-                          <tr>
-                            <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Action</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Actor</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Resource</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">IP Address</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Details</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Timestamp</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[#EEF2F7] text-xs">
-                          {auditLogs.length === 0 ? (
-                            <tr>
-                              <td colSpan={6} className="px-6 py-8 text-center text-slate-400">No administrative logs recorded yet.</td>
-                            </tr>
-                          ) : (
-                            auditLogs.map((log) => (
-                              <tr key={log._id} className="hover:bg-slate-50/50 transition-colors">
-                                <td className="px-6 py-4">
-                                  <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">{log.action}</span>
-                                </td>
-                                <td className="px-6 py-4 font-semibold">{log.actor}</td>
-                                <td className="px-6 py-4 capitalize">{log.resource}</td>
-                                <td className="px-6 py-4 font-mono">{log.ipAddress}</td>
-                                <td className="px-6 py-4 max-w-xs truncate" title={log.details}>{log.details}</td>
-                                <td className="px-6 py-4 text-slate-500">{new Date(log.timestamp).toLocaleString()}</td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 12: SECURITY CENTER */}
-              {activeTab === "security" && (
-                <div className="space-y-6">
-                  {/* Security Stats Grid */}
-                  <div className="grid gap-6 sm:grid-cols-3">
-                    <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300 text-center">
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Failed Login Attempts</p>
-                      <p className="text-4xl font-extrabold text-[#EF4444] mt-2">
-                        {users.reduce((acc, curr) => acc + (curr.activeSessions?.filter(s => s.status === "failed")?.length || 0), 0) || 4}
-                      </p>
-                      <span className="text-[10px] text-slate-400">Suspicious activities monitored</span>
-                    </div>
-                    <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300 text-center">
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Blocked IPs</p>
-                      <p className="text-4xl font-extrabold text-slate-800 mt-2">1</p>
-                      <span className="text-[10px] text-[var(--brand-primary)] font-semibold">IP Firewalls active</span>
-                    </div>
-                    <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300 text-center">
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Active Sessions</p>
-                      <p className="text-4xl font-extrabold text-[#22C55E] mt-2">
-                        {users.reduce((acc, curr) => acc + (curr.activeSessionsCount || 0), 0)}
-                      </p>
-                      <span className="text-[10px] text-slate-400">Global open login tokens</span>
-                    </div>
-                  </div>
-
-                  {/* Active login sessions controller */}
-                  <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300">
-                    <h3 className="text-base font-bold mb-4">Active User Session Tokens</h3>
-                    <p className="text-xs text-slate-400 mb-4">View active authentication sessions. Force log out terminals immediately if suspicious actions are detected.</p>
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse text-left text-sm">
-                        <thead className="bg-transparent border-b border-[#EEF2F7]">
-                          <tr>
-                            <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">User Account</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">IP Address</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Device / Browser</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 uppercase text-xs">Last Active</th>
-                            <th className="px-6 py-4 font-bold text-slate-400 text-right uppercase text-xs">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[#EEF2F7] text-xs">
-                          {users.filter(u => u.activeSessionsCount > 0).map(u => 
-                            u.activeSessions.map((sessionItem) => (
-                              <tr key={sessionItem.id} className="hover:bg-slate-50/50 transition-colors">
-                                <td className="px-6 py-4">
-                                  <div className="font-semibold">{u.name}</div>
-                                  <div className="text-[10px] text-slate-400">{u.email}</div>
-                                </td>
-                                <td className="px-6 py-4 font-mono">{sessionItem.ip || "127.0.0.1"}</td>
-                                <td className="px-6 py-4">{sessionItem.device} / {sessionItem.browser}</td>
-                                <td className="px-6 py-4 text-slate-500">{new Date(sessionItem.lastActive).toLocaleString()}</td>
-                                <td className="px-6 py-4 text-right">
-                                  <button
-                                    onClick={() => runAdminPostAction({ action: "force-logout-session", sessionId: sessionItem.id }, `Terminated session for user: ${u.email}`)}
-                                    className="rounded-xl border border-red-200 bg-white hover:bg-red-50 text-[#EF4444] px-2.5 py-1 text-[11px] font-semibold transition-colors"
-                                  >
-                                    Force Log out
-                                  </button>
-                                </td>
-                              </tr>
-                            ))
-                          )}
-                          {users.filter(u => u.activeSessionsCount > 0).length === 0 && (
-                            <tr>
-                              <td colSpan={5} className="px-6 py-8 text-center text-slate-400">No active login sessions monitored.</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 13: PLATFORM SETTINGS */}
-              {activeTab === "settings" && (
-                <div className="rounded-2xl bg-white p-6 shadow-card hover:shadow-card-hover transition-all duration-300 space-y-6 max-w-xl mx-auto">
-                  <h3 className="text-lg font-bold text-slate-800">Global Configuration Settings</h3>
-                  <p className="text-xs text-slate-400">Change operational settings of the platform. Make sure keys and credential fields are correct.</p>
-                  
-                  <div className="space-y-6">
-                    {/* Z.ai settings */}
-                    <div className="space-y-4 border-b border-slate-100 pb-6">
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><Cpu className="size-3.5" /> Z.ai Settings</h4>
-                      
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-600">ZAI_API_KEY</label>
-                        <input
-                          type="password"
-                          value={settings.openaiKey}
-                          onChange={(e) => setSettings({ ...settings, openaiKey: e.target.value })}
-                          placeholder="95517b7591a047949c643d27530a36c5.FShnEkmne1d2YDva"
-                          className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-[#FCFAF6] font-mono"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-600">Active AI Provider</label>
-                        <select
-                          value={settings.aiProvider || "gemini"}
-                          onChange={(e) => setSettings({ ...settings, aiProvider: e.target.value })}
-                          className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-xs outline-none bg-[#FCFAF6] cursor-pointer font-semibold"
-                        >
-                          <option value="openai">Z.ai (GLM)</option>
-                          <option value="gemini">Gemini (Recommended)</option>
-                          <option value="auto">Auto (Gemini with Z.ai Fallback)</option>
-                        </select>
-                      </div>
-
-                      <div className="grid gap-4 grid-cols-2">
-                        <div className="space-y-1">
-                          <label className="text-xs font-bold text-slate-600">Default Model</label>
-                          <select
-                            value={settings.openaiModel}
-                            onChange={(e) => setSettings({ ...settings, openaiModel: e.target.value })}
-                            className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-xs outline-none bg-[#FCFAF6] cursor-pointer"
-                          >
-                            <option value="glm-5-turbo">glm-5-turbo</option>
-                            <option value="glm-5">glm-5</option>
-                            <option value="glm-5.1">glm-5.1</option>
-                          </select>
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-xs font-bold text-slate-600">Token Limits / User / Month</label>
-                          <input
-                            type="number"
-                            value={settings.openaiTokenLimit}
-                            onChange={(e) => setSettings({ ...settings, openaiTokenLimit: Number(e.target.value) })}
-                            className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-[#FCFAF6]"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between py-2 border-t border-slate-50 mt-2">
-                        <div>
-                          <p className="text-xs font-bold text-slate-700">Emergency AI Shutdown</p>
-                          <p className="text-[10px] text-slate-400">Instantly shut down all AI caption and hashtag generators across the platform.</p>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={settings.openaiEmergencyShutdown}
-                          onChange={(e) => setSettings({ ...settings, openaiEmergencyShutdown: e.target.checked })}
-                          className="size-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between py-2">
-                        <div>
-                          <p className="text-xs font-bold text-slate-700">AI Usage Alerts</p>
-                          <p className="text-[10px] text-slate-400">Send notifications to email when monthly OpenAI limits exceed budget.</p>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={settings.openaiUsageAlerts}
-                          onChange={(e) => setSettings({ ...settings, openaiUsageAlerts: e.target.checked })}
-                          className="size-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Meta settings */}
-                    <div className="space-y-4 border-b border-slate-100 pb-6">
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><Share2 className="size-3.5" /> Meta API Settings</h4>
-                      
-                      <div className="grid gap-4 grid-cols-2">
-                        <div className="space-y-1">
-                          <label className="text-xs font-bold text-slate-600">FACEBOOK_APP_ID</label>
-                          <input
-                            type="text"
-                            value={settings.fbAppId}
-                            onChange={(e) => setSettings({ ...settings, fbAppId: e.target.value })}
-                            className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-[#FCFAF6]"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-xs font-bold text-slate-600">FACEBOOK_APP_SECRET</label>
-                          <input
-                            type="password"
-                            value={settings.fbAppSecret}
-                            onChange={(e) => setSettings({ ...settings, fbAppSecret: e.target.value })}
-                            className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-[#FCFAF6]"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-600">Graph API Version</label>
-                        <input
-                          type="text"
-                          value={settings.fbGraphVersion}
-                          onChange={(e) => setSettings({ ...settings, fbGraphVersion: e.target.value })}
-                          className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-xs outline-none focus:border-emerald-500 bg-[#FCFAF6] font-mono"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Maintenance Mode */}
-                    <div className="flex items-center justify-between pb-6 border-b border-slate-100">
-                      <div>
-                        <p className="text-xs font-bold text-slate-700">Maintenance Mode</p>
-                        <p className="text-[10px] text-slate-400">Put the platform in maintenance mode. Only administrators will have dashboard access.</p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={settings.maintenanceMode}
-                        onChange={(e) => setSettings({ ...settings, maintenanceMode: e.target.checked })}
-                        className="size-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                      />
-                    </div>
-
-                    <button
-                      onClick={() => runAdminPostAction({ action: "save-settings", settingsData: settings }, "Global settings saved successfully")}
-                      className="w-full rounded-xl bg-[var(--brand-primary)] hover:bg-emerald-500 hover:text-white py-3 text-sm font-bold text-emerald-950 transition-colors shadow-sm"
-                    >
-                      Save Settings
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </main>
@@ -2774,17 +2154,155 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Logout Confirmation Modal */}
-      <GrowWaveModal
-        isOpen={showLogoutConfirm}
-        onClose={() => setShowLogoutConfirm(false)}
-        title="Logout"
-        message="Are you sure you want to logout from GrowWave Admin?"
-        confirmText="Logout"
-        cancelText="Cancel"
-        onConfirm={handleLogout}
-        variant="danger"
-      />
+      {/* Credit Management Modal */}
+      {selectedCreditUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-modal space-y-6 animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-[#EEF2F7] pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Manage AI Credits</h3>
+                <p className="text-xs text-slate-400">Update credit quotas for user</p>
+              </div>
+              <button
+                onClick={() => setSelectedCreditUser(null)}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <XCircle className="size-6" />
+              </button>
+            </div>
+
+            {/* User Meta Info */}
+            <div className="bg-[#FCFAF6] p-4 rounded-xl flex justify-between items-center text-sm">
+              <div>
+                <span className="text-xs text-slate-400 font-bold uppercase block">User</span>
+                <span className="font-extrabold text-slate-800">{selectedCreditUser.name || selectedCreditUser.email.split("@")[0]}</span>
+                <span className="text-xs text-slate-400 block">{selectedCreditUser.email}</span>
+              </div>
+              <div className="text-right">
+                <span className="text-xs text-slate-400 font-bold uppercase block">Current Plan</span>
+                <span className="inline-flex rounded-full bg-[#F0FDF4] px-2.5 py-0.5 text-xs font-bold text-[#22C55E] capitalize mt-0.5">
+                  {selectedCreditUser.plan}
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-[#FCFAF6] p-4 rounded-xl flex justify-between items-center">
+              <div>
+                <span className="text-xs text-slate-400 font-bold uppercase block">Remaining Credits</span>
+                <span className="text-2xl font-black text-slate-800">
+                  {Math.max(0, (selectedCreditUser.aiCredits ?? 0) - (selectedCreditUser.aiUsedCredits ?? 0))}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-xs text-slate-400 font-bold uppercase block">Total Allocated</span>
+                <span className="text-lg font-bold text-slate-700">{selectedCreditUser.aiCredits ?? 0}</span>
+              </div>
+            </div>
+
+            {/* Admin Controls */}
+            <div className="space-y-4 pt-2">
+              {/* Add Credits */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Add Credits</label>
+                  <input
+                    type="number"
+                    value={addCreditsVal}
+                    onChange={(e) => setAddCreditsVal(e.target.value)}
+                    placeholder="+500"
+                    className="w-full rounded-xl border border-[#EEF2F7] bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 transition-colors"
+                  />
+                </div>
+                <button
+                  onClick={async () => {
+                    const ok = await runAdminPostAction({ action: "add-credits", userId: selectedCreditUser.id, amount: Number(addCreditsVal) }, `Successfully added ${addCreditsVal} credits`)
+                    if (ok) setSelectedCreditUser(null)
+                  }}
+                  className="rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs px-4 py-2.5 mt-5 shadow-sm transition-colors"
+                >
+                  Add Credits
+                </button>
+              </div>
+
+              {/* Remove Credits */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Remove Credits</label>
+                  <input
+                    type="number"
+                    value={removeCreditsVal}
+                    onChange={(e) => setRemoveCreditsVal(e.target.value)}
+                    placeholder="-200"
+                    className="w-full rounded-xl border border-[#EEF2F7] bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 transition-colors"
+                  />
+                </div>
+                <button
+                  onClick={async () => {
+                    const ok = await runAdminPostAction({ action: "remove-credits", userId: selectedCreditUser.id, amount: Number(removeCreditsVal) }, `Successfully removed ${removeCreditsVal} credits`)
+                    if (ok) setSelectedCreditUser(null)
+                  }}
+                  className="rounded-xl bg-[#EF4444] hover:bg-rose-600 text-white font-bold text-xs px-4 py-2.5 mt-5 shadow-sm transition-colors"
+                >
+                  Remove Credits
+                </button>
+              </div>
+
+              {/* Set Exact Amount */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Set Exact Amount</label>
+                  <input
+                    type="number"
+                    value={updateCreditsVal}
+                    onChange={(e) => setUpdateCreditsVal(e.target.value)}
+                    placeholder="1000"
+                    className="w-full rounded-xl border border-[#EEF2F7] bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 transition-colors"
+                  />
+                </div>
+                <button
+                  onClick={async () => {
+                    const ok = await runAdminPostAction({ action: "update-credits", userId: selectedCreditUser.id, amount: Number(updateCreditsVal) }, `Successfully set credits to ${updateCreditsVal}`)
+                    if (ok) setSelectedCreditUser(null)
+                  }}
+                  className="rounded-xl bg-slate-900 hover:bg-slate-950 text-white font-bold text-xs px-4 py-2.5 mt-5 shadow-sm transition-colors"
+                >
+                  Update Credits
+                </button>
+              </div>
+
+              {/* Reset Usage */}
+              <div className="pt-2 border-t border-slate-100 flex justify-between items-center gap-4">
+                <div>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Reset Usage Counters</span>
+                  <span className="text-[10px] text-slate-400">Resets user's credits consumed back to 0</span>
+                </div>
+                <button
+                  onClick={async () => {
+                    const ok = await runAdminPostAction({ action: "reset-usage", userId: selectedCreditUser.id }, "Successfully reset credits usage")
+                    if (ok) setSelectedCreditUser(null)
+                  }}
+                  className="rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold text-xs px-4 py-2.5 transition-colors border border-amber-200/50"
+                >
+                  Reset AI Usage
+                </button>
+              </div>
+            </div>
+
+            {/* Footer Close */}
+            <div className="flex justify-end pt-2 border-t border-slate-100">
+              <button
+                onClick={() => setSelectedCreditUser(null)}
+                className="rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-5 py-2.5 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
     </div>
   )
 }

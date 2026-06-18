@@ -1078,7 +1078,7 @@ export default function AIAssistantPage() {
                             <span className="text-destructive font-bold text-base mt-0.5">⚠️</span>
                             <div>
                               <h4 className="font-bold text-xs text-destructive">
-                                {msg.errorType === "QUOTA_EXCEEDED" && "AI Limit Reached"}
+                                {msg.errorType === "QUOTA_EXCEEDED" && "AI Credit Limit Reached"}
                                 {msg.errorType === "CONFIG_INCOMPLETE" && "Configuration Incomplete"}
                                 {msg.errorType === "SERVICE_UNAVAILABLE" && "Temporarily Unavailable"}
                               </h4>
@@ -1089,16 +1089,26 @@ export default function AIAssistantPage() {
                           </div>
                           <div className="flex gap-2 justify-end mt-1">
                             {msg.errorType === "QUOTA_EXCEEDED" && (
-                              <Button
-                                variant="outline"
-                                size="xs"
-                                className="h-7 text-[10.5px] border-primary/20 hover:border-primary/40 text-primary hover:bg-primary/5 font-semibold bg-[#FFFFFF]"
-                                onClick={() => router.push("/pricing")}
-                              >
-                                Upgrade to Pro
-                              </Button>
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="xs"
+                                  className="h-7 text-[10.5px] border-primary/20 hover:border-primary/40 text-primary hover:bg-primary/5 font-semibold bg-[#FFFFFF]"
+                                  onClick={() => router.push("/pricing")}
+                                >
+                                  Upgrade Plan
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="xs"
+                                  className="h-7 text-[10.5px] border-slate-200 hover:border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold bg-[#FFFFFF]"
+                                  onClick={() => router.push("/contact")}
+                                >
+                                  Contact Support
+                                </Button>
+                              </>
                             )}
-                            {(msg.errorType === "SERVICE_UNAVAILABLE" || msg.errorType === "QUOTA_EXCEEDED") && (
+                            {msg.errorType === "SERVICE_UNAVAILABLE" && (
                               <Button
                                 variant="outline"
                                 size="xs"

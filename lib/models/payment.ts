@@ -6,7 +6,7 @@ export interface IPayment extends Document {
   userEmail: string
   amount: number
   status: "SUCCESS" | "FAILED" | "PENDING" | "REFUNDED"
-  plan: "FREE" | "PRO"
+  plan: "FREE" | "PRO" | "AGENCY"
   billingCycle: "monthly" | "yearly" | "free"
   createdAt: Date
   updatedAt: Date
@@ -19,7 +19,7 @@ const PaymentSchema = new Schema<IPayment>(
     userEmail: { type: String, required: true, index: true },
     amount: { type: Number, required: true },
     status: { type: String, enum: ["SUCCESS", "FAILED", "PENDING", "REFUNDED"], default: "SUCCESS" },
-    plan: { type: String, enum: ["FREE", "PRO"], default: "FREE" },
+    plan: { type: String, enum: ["FREE", "PRO", "AGENCY"], default: "FREE" },
     billingCycle: { type: String, enum: ["monthly", "yearly", "free"], default: "free" },
   },
   { timestamps: true }

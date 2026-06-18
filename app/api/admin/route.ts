@@ -179,7 +179,10 @@ export async function GET(request: NextRequest) {
           createdAt: u.createdAt,
           lastLogin,
           activeSessionsCount: u.activeSessions?.length || 0,
-          activeSessions: u.activeSessions || []
+          activeSessions: u.activeSessions || [],
+          aiCredits: u.aiCredits ?? (u.plan === "PRO" ? 1000 : u.plan === "AGENCY" ? 5000 : 5),
+          aiUsedCredits: u.aiUsedCredits ?? 0,
+          totalTokensUsed: u.totalTokensUsed ?? 0
         }
       })
 
@@ -434,6 +437,11 @@ export async function GET(request: NextRequest) {
         : 0
 
       const dbUsers = await User.find().sort({ createdAt: -1 })
+      let totalCreditsIssued = 0
+      let totalCreditsUsed = 0
+      let creditsRemaining = 0
+      let mostActiveUserObj = { name: "None", email: "", creditsUsed: 0 }
+
       const mappedUsers = dbUsers.map(u => {
         const monthlyTokenLimit = u.monthlyTokenLimit ?? (u.plan === "PRO" ? 5000000 : 50000)
         const monthlyRequestLimit = u.monthlyRequestLimit ?? (u.plan === "PRO" ? -1 : 50)
@@ -459,6 +467,22 @@ export async function GET(request: NextRequest) {
           }
         }
 
+        const plan = (u.plan || "FREE").toUpperCase()
+        const aiCredits = u.aiCredits ?? (plan === "PRO" ? 1000 : plan === "AGENCY" ? 5000 : 5)
+        const aiUsedCredits = u.aiUsedCredits ?? 0
+
+        totalCreditsIssued += aiCredits
+        totalCreditsUsed += aiUsedCredits
+        creditsRemaining += Math.max(0, aiCredits - aiUsedCredits)
+
+        if (aiUsedCredits > mostActiveUserObj.creditsUsed) {
+          mostActiveUserObj = {
+            name: u.name || u.email.split("@")[0],
+            email: u.email,
+            creditsUsed: aiUsedCredits
+          }
+        }
+
         return {
           id: u._id.toString(),
           name: u.name || u.email.split("@")[0],
@@ -471,13 +495,28 @@ export async function GET(request: NextRequest) {
           bonusTokens,
           bonusRequests,
           aiEnabled,
-          status: aiStatus
+          status: aiStatus,
+          aiCredits,
+          aiUsedCredits,
+          totalTokensUsed: u.totalTokensUsed ?? 0
         }
       })
 
+      // Fetch provider usage counts from AIConsumption logs
+      let geminiConsumptions = 0
+      let zaiConsumptions = 0
+      let nexConsumptions = 0
+      try {
+        const AIConsumptionModel = (await import("@/lib/models/ai-consumption")).AIConsumption
+        geminiConsumptions = await AIConsumptionModel.countDocuments({ provider: "GEMINI" })
+        zaiConsumptions = await AIConsumptionModel.countDocuments({ provider: "ZAI" })
+        nexConsumptions = await AIConsumptionModel.countDocuments({ provider: "OPENROUTER" })
+      } catch (err) {
+        console.error("Failed to query provider credit usage:", err)
+      }
+
       const rawLogs = allLogs.slice(0, 200)
       const mappedLogs = await Promise.all(rawLogs.map(async (log) => {
-        const u = userUsageMap[log.userId] || { email: "unknown@user.com" }
         let workspaceName = "Personal"
         if (log.workspaceId) {
           const wsInfo = workspaceUsageMap[log.workspaceId]
@@ -488,11 +527,11 @@ export async function GET(request: NextRequest) {
             workspaceName = wsObj ? wsObj.name : `Workspace ${log.workspaceId.slice(-6)}`
           }
         }
-
+        const userEmail = userUsageMap[log.userId]?.email || "unknown@user.com"
         return {
           id: log._id.toString(),
           timestamp: log.createdAt,
-          user: u.email,
+          user: userEmail,
           workspace: workspaceName,
           feature: log.feature,
           provider: (log.provider || "").toUpperCase().includes("GEMINI") || log.model.toLowerCase().includes("gemini") ? "GEMINI" : (log.provider || "").toUpperCase().includes("OPENROUTER") || log.model.toLowerCase().includes("nex") ? "OPENROUTER" : "ZAI",
@@ -515,6 +554,17 @@ export async function GET(request: NextRequest) {
           totalTokensUsed,
           failedRequests,
           avgResponseTime
+        },
+        creditsSummary: {
+          totalCreditsIssued,
+          totalCreditsUsed,
+          creditsRemaining,
+          mostActiveUser: mostActiveUserObj.creditsUsed > 0
+            ? `${mostActiveUserObj.name} (${mostActiveUserObj.creditsUsed} used)`
+            : "None",
+          geminiUsage: geminiConsumptions,
+          zaiUsage: zaiConsumptions,
+          nexUsage: nexConsumptions
         },
         providerBreakdown: Object.entries(providerStats).map(([name, stats]) => ({
           name: name === "gemini" ? "Gemini" : name === "zai" ? "Z.ai" : "Nex N2 Pro",
@@ -762,6 +812,93 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true })
     }
 
+    if (action === "add-credits") {
+      const { amount } = body
+      const user = await User.findById(userId)
+      if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+      
+      const changeAmount = Number(amount)
+      user.aiCredits = (user.aiCredits ?? 0) + changeAmount
+      await user.save()
+      
+      const targetName = user.username || user.name || user.email.split("@")[0]
+      await logAdminAction(adminEmail, "Credit Added", "User", `Admin added ${changeAmount} credits to ${targetName}`)
+      
+      const NotificationModel = (await import("@/lib/models/notification")).Notification
+      await NotificationModel.create({
+        userId: user._id.toString(),
+        title: "AI Credits Increased",
+        message: `Your AI credits have been increased by ${changeAmount}.`,
+        type: "info"
+      })
+      return NextResponse.json({ success: true })
+    }
+
+    if (action === "remove-credits") {
+      const { amount } = body
+      const user = await User.findById(userId)
+      if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+      
+      const changeAmount = Math.abs(Number(amount))
+      user.aiCredits = Math.max(0, (user.aiCredits ?? 0) - changeAmount)
+      await user.save()
+      
+      const targetName = user.username || user.name || user.email.split("@")[0]
+      await logAdminAction(adminEmail, "Credit Removed", "User", `Admin removed ${changeAmount} credits from ${targetName}`)
+      
+      const NotificationModel = (await import("@/lib/models/notification")).Notification
+      await NotificationModel.create({
+        userId: user._id.toString(),
+        title: "AI Credits Reduced",
+        message: `Your AI credits have been reduced by ${changeAmount}.`,
+        type: "info"
+      })
+      return NextResponse.json({ success: true })
+    }
+
+    if (action === "update-credits") {
+      const { amount } = body
+      const user = await User.findById(userId)
+      if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+      
+      const newAmount = Number(amount)
+      user.aiCredits = newAmount
+      await user.save()
+      
+      const targetName = user.username || user.name || user.email.split("@")[0]
+      await logAdminAction(adminEmail, "Credit Updated", "User", `Admin updated credits to ${newAmount} for ${targetName}`)
+      
+      const NotificationModel = (await import("@/lib/models/notification")).Notification
+      await NotificationModel.create({
+        userId: user._id.toString(),
+        title: "AI Credits Updated",
+        message: `Your AI credits have been updated to ${newAmount}.`,
+        type: "info"
+      })
+      return NextResponse.json({ success: true })
+    }
+
+    if (action === "reset-usage") {
+      const user = await User.findById(userId)
+      if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+      
+      user.aiUsedCredits = 0
+      user.requestsUsed = 0
+      await user.save()
+      
+      const targetName = user.username || user.name || user.email.split("@")[0]
+      await logAdminAction(adminEmail, "Credit Reset", "User", `Admin reset credits usage for ${targetName}`)
+      
+      const NotificationModel = (await import("@/lib/models/notification")).Notification
+      await NotificationModel.create({
+        userId: user._id.toString(),
+        title: "AI Credits Reset",
+        message: `Your AI credits have been reset.`,
+        type: "info"
+      })
+      return NextResponse.json({ success: true })
+    }
+
     if (action === "save-ai-budget") {
       const { monthlyBudget } = body
       let settings = await PlatformSettings.findOne()
@@ -804,6 +941,8 @@ export async function POST(request: NextRequest) {
       user.subscriptionStatus = "ACTIVE"
       user.monthlyTokenLimit = 5000000
       user.monthlyRequestLimit = -1
+      user.aiCredits = 1000
+      user.aiUsedCredits = 0
       await user.save()
 
       // Update or create subscription document
@@ -847,7 +986,9 @@ export async function POST(request: NextRequest) {
       user.plan = "FREE"
       user.subscriptionStatus = "ACTIVE"
       user.monthlyTokenLimit = 50000
-      user.monthlyRequestLimit = 50
+      user.monthlyRequestLimit = 5
+      user.aiCredits = 5
+      user.aiUsedCredits = 0
       await user.save()
 
       let sub = await Subscription.findOne({ userId: user._id })

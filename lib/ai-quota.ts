@@ -3,6 +3,7 @@ import { User } from "./models/user"
 import { PlatformSettings } from "./models/platform-settings"
 import { AIUsage } from "./models/ai-usage"
 import { Notification } from "./models/notification"
+import { AIConsumption } from "./models/ai-consumption"
 
 export class AI_LIMIT_REACHED extends Error {
   constructor() {
@@ -31,7 +32,7 @@ export interface QuotaCheckResult {
   allowed: boolean
   error?: string
   limitReached?: boolean
-  userPlan?: "FREE" | "PRO"
+  userPlan?: "FREE" | "PRO" | "AGENCY"
 }
 
 function firstDayOfNextMonth(): Date {
@@ -40,6 +41,42 @@ function firstDayOfNextMonth(): Date {
   d.setDate(1)
   d.setHours(0, 0, 0, 0)
   return d
+}
+
+export async function initializeOrResetUserCredits(user: any) {
+  const plan = (user.plan || "FREE").toUpperCase()
+  const now = new Date()
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+  let needsSave = false
+
+  // 1. Set missing defaults
+  if (user.aiCredits === undefined || user.aiCredits === null) {
+    user.aiCredits = plan === "PRO" ? 1000 : plan === "AGENCY" ? 5000 : 5
+    needsSave = true
+  }
+  if (user.aiUsedCredits === undefined || user.aiUsedCredits === null) {
+    user.aiUsedCredits = 0
+    needsSave = true
+  }
+  if (user.totalTokensUsed === undefined || user.totalTokensUsed === null) {
+    user.totalTokensUsed = 0
+    needsSave = true
+  }
+
+  // 2. Perform daily reset for FREE plan
+  if (plan === "FREE") {
+    if (!user.lastDailyReset || user.lastDailyReset < todayStart) {
+      user.aiCredits = 5
+      user.aiUsedCredits = 0
+      user.lastDailyReset = now
+      needsSave = true
+    }
+  }
+
+  if (needsSave) {
+    await user.save()
+  }
 }
 
 export async function checkAIQuota(userId: string): Promise<QuotaCheckResult> {
@@ -104,21 +141,25 @@ export async function checkAIQuota(userId: string): Promise<QuotaCheckResult> {
     await user.save()
   }
 
-  // Admin and Pro users have unlimited access and bypass all quota checks
-  const plan = (user.plan || "FREE").toUpperCase()
-  if (user.role === "ADMIN" || plan === "PRO") {
-    return { allowed: true, userPlan: "PRO" }
-  }
+  // Self-heal/Initialize credits
+  await initializeOrResetUserCredits(user)
 
-  // 8. Enforce user quota limits
-  if (plan === "FREE") {
-    const todayUsage = await getTodayAIUsage(userId)
-    if (todayUsage >= 5) {
-      return { allowed: false, error: "You have used all 5 free AI requests available today.", limitReached: true, userPlan: "FREE" }
+  const plan = (user.plan || "FREE").toUpperCase()
+
+  // Enforce credits check for non-admins
+  if (user.role !== "ADMIN") {
+    const remainingCredits = (user.aiCredits ?? 0) - (user.aiUsedCredits ?? 0)
+    if (remainingCredits <= 0) {
+      return {
+        allowed: false,
+        error: "AI Credit Limit Reached. You have used all available AI credits. Upgrade your plan or contact your administrator.",
+        limitReached: true,
+        userPlan: plan as any
+      }
     }
   }
 
-  return { allowed: true, userPlan: "FREE" }
+  return { allowed: true, userPlan: plan as any }
 }
 
 export async function recordAIUsage(params: {
@@ -180,9 +221,25 @@ export async function recordAIUsage(params: {
     await User.findByIdAndUpdate(userId, {
       $inc: {
         tokensUsed: totalTokens,
-        requestsUsed: 1
+        requestsUsed: 1,
+        aiUsedCredits: 1,
+        totalTokensUsed: totalTokens
       }
     })
+
+    // Log AI Consumption details
+    try {
+      await AIConsumption.create({
+        userId,
+        provider: provider || (model.toLowerCase().includes("gemini") ? "GEMINI" : "ZAI"),
+        model: model || "unknown",
+        tokensUsed: totalTokens,
+        creditsConsumed: 1,
+        createdAt: new Date()
+      })
+    } catch (err) {
+      console.error("Failed to log AIConsumption details:", err)
+    }
   }
 
   // 3. Platform AI Budget Warning & Alert system check
