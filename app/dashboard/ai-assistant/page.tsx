@@ -903,36 +903,32 @@ export default function AIAssistantPage() {
 
   return (
     <PageTransition>
-      <div className="flex flex-col h-[calc(100vh-140px)] w-full overflow-hidden rounded-[20px] bg-[#FCFAF6] shadow-[0_4px_30px_rgba(0,0,0,0.02)] border border-slate-200/60 relative">
+      <div className="flex flex-col h-[calc(100vh-110px)] md:h-[calc(100vh-130px)] w-full overflow-hidden bg-[#FCFAF6] relative">
         
-        {/* HEADER PANEL */}
-        <div className="px-6 py-4 border-b border-[#EEF2F7] flex items-center justify-between shrink-0 bg-[#FFFFFF] z-30 shadow-2xs">
-          <div className="flex items-center gap-3">
+        {/* FLOATING HEADER ROW */}
+        <div className="flex items-center justify-between px-4 py-3 shrink-0 bg-transparent z-30 select-none">
+          <div className="flex items-center gap-2">
             {/* ☰ History Toggle Button */}
             <Button
               variant="ghost"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 border border-slate-100"
+              size="icon"
+              className="size-8 rounded-lg text-slate-500 hover:bg-slate-200/50 hover:text-slate-800 transition-colors cursor-pointer"
               onClick={() => setLeftSidebarOpen(true)}
+              title="Open History"
             >
-              <Menu className="size-4" />
-              <span>☰ History</span>
+              <Menu className="size-4.5" />
             </Button>
-            
-            {/* Header Title / Brand */}
-            <span className="font-bold text-sm flex items-center gap-1.5 text-[#1E293B] select-none ml-2">
-              <span className="text-primary text-base">✨</span> GrowWave AI
-            </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {/* AI Model Selector */}
             <Select value={selectedModel} onValueChange={(val: "gemini" | "zai" | "openrouter") => setSelectedModel(val)}>
-              <SelectTrigger className="h-9 w-[125px] text-xs rounded-xl border-0 bg-transparent hover:bg-slate-50 font-semibold text-[#374151] flex items-center justify-between gap-1 focus:ring-0 focus:ring-offset-0 px-2.5">
+              <SelectTrigger className="h-8 w-auto text-xs border-0 bg-transparent hover:bg-slate-200/50 font-medium text-slate-700 flex items-center gap-1 focus:ring-0 focus:ring-offset-0 px-2.5 rounded-lg cursor-pointer">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border border-slate-100 bg-[#FFFFFF] shadow-lg">
+              <SelectContent className="rounded-xl border border-slate-200 bg-[#FFFFFF] shadow-lg">
                 <SelectItem value="gemini" className="text-xs focus:bg-emerald-50 focus:text-emerald-900 rounded-lg">Gemini</SelectItem>
-                <SelectItem value="zai" className="text-xs focus:bg-blue-50 focus:text-blue-900 rounded-lg">Z.ai</SelectItem>
+                <SelectItem value="zai" className="text-xs focus:bg-blue-50 focus:text-blue-900 rounded-lg">Z.ai GLM</SelectItem>
                 <SelectItem value="openrouter" className="text-xs focus:bg-purple-50 focus:text-purple-900 rounded-lg">Nex N2 Pro</SelectItem>
               </SelectContent>
             </Select>
@@ -943,20 +939,20 @@ export default function AIAssistantPage() {
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "size-9 rounded-xl border border-slate-100 text-[#64748B] hover:bg-slate-50",
-                  threeDotMenuOpen && "bg-slate-50 text-slate-800"
+                  "size-8 rounded-lg text-slate-500 hover:bg-slate-200/50 hover:text-slate-800 transition-colors cursor-pointer",
+                  threeDotMenuOpen && "bg-slate-200/50 text-slate-800"
                 )}
                 onClick={() => setThreeDotMenuOpen(!threeDotMenuOpen)}
               >
-                <MoreVertical className="size-4.5" />
+                <MoreVertical className="size-4" />
               </Button>
 
               {threeDotMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setThreeDotMenuOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-48 rounded-xl border border-slate-100 bg-[#FFFFFF] p-1.5 shadow-lg z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="absolute right-0 mt-2 w-48 rounded-xl border border-slate-200 bg-[#FFFFFF] p-1.5 shadow-lg z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                     <button
-                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       onClick={() => {
                         setThreeDotMenuOpen(false)
                         if (activeChat) exportChatData(activeChat)
@@ -967,7 +963,7 @@ export default function AIAssistantPage() {
                       <span>Export Logs</span>
                     </button>
                     <button
-                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
                       onClick={() => {
                         setThreeDotMenuOpen(false)
                         setRightSidebarOpen(true)
@@ -990,7 +986,7 @@ export default function AIAssistantPage() {
           {activeMessages.length === 0 ? (
             <div className="h-full flex flex-col justify-center items-center text-center space-y-8 py-12 max-w-2xl mx-auto">
               <div className="space-y-4">
-                <div className="size-16 rounded-[20px] bg-[#FFFFFF] shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex items-center justify-center mx-auto border border-slate-100 animate-bounce">
+                <div className="size-16 rounded-[24px] bg-[#FFFFFF] shadow-md flex items-center justify-center mx-auto border border-slate-100 animate-bounce">
                   <span className="text-3xl">✨</span>
                 </div>
                 <h1 className="text-3xl font-extrabold tracking-tight text-[#111827]">
@@ -1006,7 +1002,7 @@ export default function AIAssistantPage() {
                 {quickActions.map((q, idx) => (
                   <div
                     key={idx}
-                    className="group flex flex-col text-left p-4 rounded-[20px] bg-[#FFFFFF] cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.02)] border border-slate-200/60 hover:border-primary/40"
+                    className="group flex flex-col text-left p-4 rounded-xl bg-[#FFFFFF] cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md border border-slate-200/60 hover:border-primary/40"
                     onClick={() => handleQuickAction(q.label, q.prompt)}
                   >
                     <span className="text-xs font-bold text-[#111827] group-hover:text-primary transition-colors flex items-center justify-between">
@@ -1022,151 +1018,147 @@ export default function AIAssistantPage() {
             </div>
           ) : (
             // MESSAGES TIMELINE Flow
-            <div className="max-w-[900px] mx-auto space-y-6">
+            <div className="max-w-3xl mx-auto space-y-8">
               {activeMessages.map((msg, index) => (
                 <div
                   key={index}
                   className={cn(
-                    "flex flex-col space-y-1.5 w-full",
+                    "flex flex-col space-y-2 w-full",
                     msg.role === "user" ? "items-end" : "items-start"
                   )}
                 >
-                  {/* Model badge and timestamp for Assistant responses */}
-                  {msg.role === "assistant" && (
-                    <div className="flex items-center gap-2 px-1 text-[10px] text-slate-400 font-semibold select-none">
-                      <span className={cn(
-                        "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase border",
-                        msg.model === "zai"
-                          ? "bg-blue-50/80 border-blue-100 text-blue-600"
-                          : msg.model === "openrouter"
-                          ? "bg-purple-50/80 border-purple-100 text-purple-600"
-                          : "bg-emerald-50/80 border-emerald-100 text-emerald-600"
-                      )}>
-                        {msg.model === "zai" ? "🔵 Z.ai" : msg.model === "openrouter" ? "🟣 Nex N2 Pro" : "🟢 Gemini"}
-                      </span>
-                      <span>{msg.timestamp}</span>
-                      <button
-                        className="opacity-0 group-hover/msg:opacity-100 hover:text-primary transition-all p-0.5 cursor-pointer ml-1"
-                        onClick={() => handlePinInsight(msg.content)}
-                        title="Pin Insight to workspace drawer"
-                      >
-                        <Bookmark className="size-3" />
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Message Bubble */}
-                  <div
-                    className={cn(
-                      "p-4.5 rounded-[20px] text-sm leading-relaxed relative group/msg max-w-[82%] border-0 transition-all duration-200",
-                      msg.role === "user"
-                        ? "bg-[#EBFEEB] text-slate-900 rounded-tr-none shadow-[0_2px_12px_rgba(48,252,71,0.04)]"
-                        : "bg-[#FFFFFF] text-slate-900 rounded-tl-none shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-[#F1F5F9]"
-                    )}
-                  >
-                    {msg.role === "user" && (
-                      <div className="flex items-center justify-between gap-6 mb-1 text-[9px] text-slate-500/80 font-bold uppercase select-none">
-                        <span>You</span>
-                        <span>{msg.timestamp}</span>
+                  {/* User Message Bubble */}
+                  {msg.role === "user" ? (
+                    <div className="flex flex-col items-end space-y-1.5 max-w-[75%]">
+                      <div className="bg-[#EBFEEB] text-slate-900 px-4.5 py-3 rounded-2xl rounded-tr-sm shadow-[0_2px_12px_rgba(48,252,71,0.03)] text-sm leading-relaxed border border-emerald-100/30">
+                        {renderMessageContent(msg.content)}
                       </div>
-                    )}
+                      <span className="text-[9px] text-slate-400 font-semibold px-1 select-none">{msg.timestamp}</span>
+                    </div>
+                  ) : (
+                    /* Assistant Message: Floating layout (no box wrapper, no borders) */
+                    <div className="flex flex-col items-start space-y-2 w-full max-w-[75%] group/msg">
+                      {/* Model badge and timestamp for Assistant responses */}
+                      <div className="flex items-center gap-2 px-1 text-[10px] text-slate-400 font-semibold select-none">
+                        <span className={cn(
+                          "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase border",
+                          msg.model === "zai"
+                            ? "bg-blue-50/80 border-blue-100 text-blue-600"
+                            : msg.model === "openrouter"
+                            ? "bg-purple-50/80 border-purple-100 text-purple-600"
+                            : "bg-emerald-50/80 border-emerald-100 text-emerald-600"
+                        )}>
+                          {msg.model === "zai" ? "🔵 Z.ai GLM" : msg.model === "openrouter" ? "🟣 Nex N2 Pro" : "🟢 Gemini"}
+                        </span>
+                        <span>{msg.timestamp}</span>
+                        <button
+                          className="opacity-0 group-hover/msg:opacity-100 hover:text-primary transition-all p-0.5 cursor-pointer ml-1"
+                          onClick={() => handlePinInsight(msg.content)}
+                          title="Pin Insight to workspace drawer"
+                        >
+                          <Bookmark className="size-3" />
+                        </button>
+                      </div>
 
-                    <div className="space-y-2 text-[#1E293B]">
-                      {msg.errorType ? (
-                        <div className="p-4 rounded-xl border bg-destructive/5 border-destructive/20 text-foreground flex flex-col gap-3 w-full">
-                          <div className="flex items-start gap-2.5">
-                            <span className="text-destructive font-bold text-base mt-0.5">⚠️</span>
-                            <div>
-                              <h4 className="font-bold text-xs text-destructive">
-                                {msg.errorType === "QUOTA_EXCEEDED" && "AI Credit Limit Reached"}
-                                {msg.errorType === "CONFIG_INCOMPLETE" && "Configuration Incomplete"}
-                                {msg.errorType === "SERVICE_UNAVAILABLE" && "Temporarily Unavailable"}
-                              </h4>
-                              <p className="text-xs text-[#64748B] mt-1 leading-normal font-medium">
-                                {msg.content}
-                              </p>
+                      {/* Content Area - floating naturally, leading 1.7 */}
+                      <div className="w-full text-slate-900 text-sm leading-[1.7] px-1 font-normal">
+                        {msg.errorType ? (
+                          <div className="p-4 rounded-xl border bg-destructive/5 border-destructive/20 text-foreground flex flex-col gap-3 w-full">
+                            <div className="flex items-start gap-2.5">
+                              <span className="text-destructive font-bold text-base mt-0.5">⚠️</span>
+                              <div>
+                                <h4 className="font-bold text-xs text-destructive">
+                                  {msg.errorType === "QUOTA_EXCEEDED" && "AI Credit Limit Reached"}
+                                  {msg.errorType === "CONFIG_INCOMPLETE" && "Configuration Incomplete"}
+                                  {msg.errorType === "SERVICE_UNAVAILABLE" && "Temporarily Unavailable"}
+                                </h4>
+                                <p className="text-xs text-[#64748B] mt-1 leading-normal font-medium">
+                                  {msg.content}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex gap-2 justify-end mt-1">
-                            {msg.errorType === "QUOTA_EXCEEDED" && (
-                              <>
+                            <div className="flex gap-2 justify-end mt-1">
+                              {msg.errorType === "QUOTA_EXCEEDED" && (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="xs"
+                                    className="h-7 text-[10.5px] border-primary/20 hover:border-primary/40 text-primary hover:bg-primary/5 font-semibold bg-[#FFFFFF]"
+                                    onClick={() => router.push("/pricing")}
+                                  >
+                                    Upgrade Plan
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="xs"
+                                    className="h-7 text-[10.5px] border-slate-200 hover:border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold bg-[#FFFFFF]"
+                                    onClick={() => router.push("/contact")}
+                                  >
+                                    Contact Support
+                                  </Button>
+                                </>
+                              )}
+                              {msg.errorType === "SERVICE_UNAVAILABLE" && (
                                 <Button
                                   variant="outline"
                                   size="xs"
                                   className="h-7 text-[10.5px] border-primary/20 hover:border-primary/40 text-primary hover:bg-primary/5 font-semibold bg-[#FFFFFF]"
-                                  onClick={() => router.push("/pricing")}
+                                  onClick={() => {
+                                    const lastUserMsg = activeMessages
+                                      .slice(0, activeMessages.indexOf(msg))
+                                      .reverse()
+                                      .find((m) => m.role === "user")
+                                    if (lastUserMsg) {
+                                      handleSend(lastUserMsg.content)
+                                    }
+                                  }}
                                 >
-                                  Upgrade Plan
+                                  Retry
                                 </Button>
-                                <Button
-                                  variant="outline"
-                                  size="xs"
-                                  className="h-7 text-[10.5px] border-slate-200 hover:border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold bg-[#FFFFFF]"
-                                  onClick={() => router.push("/contact")}
-                                >
-                                  Contact Support
-                                </Button>
-                              </>
-                            )}
-                            {msg.errorType === "SERVICE_UNAVAILABLE" && (
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          renderMessageContent(msg.content)
+                        )}
+                      </div>
+
+                      {/* Dynamic Context-Aware Action Cards */}
+                      {!msg.errorType && (
+                        <div className="pt-2 border-t border-slate-100 mt-2 flex flex-wrap gap-2 items-center justify-between w-full select-none">
+                          <div className="flex flex-wrap gap-1.5">
+                            {getContextualActions(msg.content).map((act, aIdx) => (
                               <Button
+                                key={aIdx}
                                 variant="outline"
                                 size="xs"
-                                className="h-7 text-[10.5px] border-primary/20 hover:border-primary/40 text-primary hover:bg-primary/5 font-semibold bg-[#FFFFFF]"
-                                onClick={() => {
-                                  const lastUserMsg = activeMessages
-                                    .slice(0, activeMessages.indexOf(msg))
-                                    .reverse()
-                                    .find((m) => m.role === "user")
-                                  if (lastUserMsg) {
-                                    handleSend(lastUserMsg.content)
-                                  }
-                                }}
+                                className="h-6 px-2.5 text-[10px] rounded-lg gap-1 border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-800 transition-all font-semibold bg-[#FFFFFF]"
+                                onClick={() => handleAction(act.type, msg.content)}
                               >
-                                Retry
+                                <act.icon className="size-3 text-slate-500" />
+                                {act.label}
                               </Button>
-                            )}
+                            ))}
+                          </div>
+                          
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              className="h-6 px-2 text-[10px] text-slate-400 hover:text-slate-700 font-semibold"
+                              onClick={() => handleCopyText(msg.content)}
+                            >
+                              <Copy className="size-3 mr-1" /> Copy
+                            </Button>
                           </div>
                         </div>
-                      ) : (
-                        renderMessageContent(msg.content)
                       )}
-                    </div>
-
-                    {/* Dynamic Context-Aware Action Cards */}
-                    {msg.role === "assistant" && !msg.errorType && (
-                      <div className="pt-3 border-t border-slate-100 mt-4 flex flex-wrap gap-2 items-center justify-between select-none">
-                        <div className="flex flex-wrap gap-1.5">
-                          {getContextualActions(msg.content).map((act, aIdx) => (
-                            <Button
-                              key={aIdx}
-                              variant="outline"
-                              size="xs"
-                              className="h-6 px-2.5 text-[10px] rounded-lg gap-1 border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-800 transition-all font-semibold bg-[#FFFFFF]"
-                              onClick={() => handleAction(act.type, msg.content)}
-                            >
-                              <act.icon className="size-3 text-slate-500" />
-                              {act.label}
-                            </Button>
-                          ))}
+                      
+                      {!msg.errorType && (
+                        <div className="text-[10px] text-slate-400 px-1 select-none font-semibold mt-1">
+                          Generated by {msg.model === "zai" ? "Z.ai GLM" : msg.model === "openrouter" ? "Nex N2 Pro" : "Gemini 2.5 Flash"}
                         </div>
-                        
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="xs"
-                            className="h-6 px-2 text-[10px] text-slate-400 hover:text-slate-700 font-semibold"
-                            onClick={() => handleCopyText(msg.content)}
-                          >
-                            <Copy className="size-3" /> Copy
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  {msg.role === "assistant" && !msg.errorType && (
-                    <div className="text-[10px] text-slate-400 px-2 select-none font-semibold mt-1">
-                      Generated by {msg.model === "zai" ? "Z.ai GLM" : msg.model === "openrouter" ? "Nex N2 Pro" : "Gemini 2.5 Flash"}
+                      )}
                     </div>
                   )}
                 </div>
@@ -1174,7 +1166,7 @@ export default function AIAssistantPage() {
 
               {/* Streaming loading phase */}
               {streaming && (
-                <div className="flex flex-col space-y-1.5 w-full items-start">
+                <div className="flex flex-col space-y-2 w-full items-start max-w-[75%]">
                   <div className="flex items-center gap-2 px-1 text-[10px] text-slate-400 font-semibold select-none">
                     <span className={cn(
                       "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase border",
@@ -1192,7 +1184,7 @@ export default function AIAssistantPage() {
                     </span>
                   </div>
 
-                  <div className="p-4.5 rounded-[20px] rounded-tl-none text-sm leading-relaxed bg-[#FFFFFF] text-[#1E293B] shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-[#F1F5F9] w-full max-w-[82%]">
+                  <div className="w-full text-slate-900 text-sm leading-[1.7] px-1 font-normal">
                     {currentResponse ? (
                       renderMessageContent(currentResponse)
                     ) : (
@@ -1201,10 +1193,13 @@ export default function AIAssistantPage() {
                         <span className="italic font-semibold animate-pulse">{generatingText}</span>
                       </div>
                     )}
-                    <span className="inline-block size-2 bg-primary rounded-full animate-ping ml-1" />
+                    {currentResponse && (
+                      <span className="inline-block size-2 bg-primary rounded-full animate-ping ml-1" />
+                    )}
                   </div>
+                  
                   {currentResponse && (
-                    <div className="text-[10px] text-slate-400 px-2 select-none font-semibold mt-1">
+                    <div className="text-[10px] text-slate-400 px-1 select-none font-semibold mt-1">
                       Generating with {selectedModel === "zai" ? "Z.ai GLM" : selectedModel === "openrouter" ? "Nex N2 Pro" : "Gemini 2.5 Flash"}...
                     </div>
                   )}
@@ -1216,13 +1211,13 @@ export default function AIAssistantPage() {
           <div ref={chatEndRef} />
         </div>
 
-        {/* INPUT CONTAINER (Centered & Premium) */}
-        <div className="p-4 bg-[#FCFAF6] shrink-0 border-t border-slate-100/50">
-          <div className="max-w-[900px] mx-auto relative w-full flex flex-col bg-[#FFFFFF] rounded-[20px] border border-slate-200 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10 transition-all shadow-sm">
+        {/* INPUT CONTAINER (Centered & Floating) */}
+        <div className="p-4 md:p-6 bg-transparent shrink-0">
+          <div className="max-w-3xl mx-auto relative w-full flex flex-col bg-[#FFFFFF] rounded-[24px] border border-slate-200/80 shadow-[0_8px_30px_rgba(0,0,0,0.03)] focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10 transition-all">
             
             {/* Expandable AI Tools Menu Panel */}
             {aiToolsOpen && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3.5 border-b border-slate-100 bg-slate-50/50 rounded-t-[20px] animate-in fade-in duration-200">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3.5 border-b border-slate-100 bg-slate-50/50 rounded-t-[24px] animate-in fade-in duration-200">
                 {[
                   { id: "writer", name: "Content Writer", prompt: "Write content about ", icon: FileText },
                   { id: "caption", name: "Caption Generator", prompt: "/caption ", icon: Sparkles },
@@ -1233,7 +1228,7 @@ export default function AIAssistantPage() {
                 ].map((tool, idx) => (
                   <button
                     key={idx}
-                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white border border-slate-100 hover:border-slate-200 hover:shadow-xs text-left transition-all text-xs font-semibold text-slate-700"
+                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white border border-slate-100 hover:border-slate-200 hover:shadow-xs text-left transition-all text-xs font-semibold text-slate-700 cursor-pointer"
                     onClick={() => {
                       handleToolClick(tool.prompt)
                       setAiToolsOpen(false)
@@ -1283,15 +1278,15 @@ export default function AIAssistantPage() {
               }}
               onKeyDown={handleKeyDown}
               rows={2}
-              className="w-full min-h-[50px] max-h-36 resize-none bg-transparent border-0 outline-none text-xs px-4 py-3 text-foreground placeholder:text-slate-400 focus:ring-0 focus:ring-offset-0"
+              className="w-full min-h-[60px] max-h-36 resize-none bg-transparent border-0 outline-none text-sm px-5 py-4 text-slate-800 placeholder:text-slate-400 focus:ring-0 focus:ring-offset-0"
             />
 
             {/* Input Action Panel Row */}
-            <div className="flex items-center justify-between border-t border-slate-100/50 px-4 py-2.5 bg-[#FFFFFF] rounded-b-[20px] select-none">
-              <div className="flex items-center gap-2.5">
+            <div className="flex items-center justify-between px-5 pb-3.5 pt-1.5 bg-transparent rounded-b-[24px] select-none">
+              <div className="flex items-center gap-2">
                 {/* Attach File Button */}
                 <button
-                  className="size-7 flex items-center justify-center rounded-lg hover:bg-slate-50 border border-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
+                  className="size-8 flex items-center justify-center rounded-xl hover:bg-slate-50 border border-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
                   onClick={() => showToast("Select files to upload", "info")}
                   title="Attach file"
                 >
@@ -1304,7 +1299,7 @@ export default function AIAssistantPage() {
                   size="xs"
                   onClick={() => setAiToolsOpen(!aiToolsOpen)}
                   className={cn(
-                    "h-7 text-[10px] px-2.5 rounded-lg gap-1 border border-slate-100 font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors",
+                    "h-8 text-[11px] px-3 rounded-full gap-1 border border-slate-200 font-semibold text-slate-650 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer",
                     aiToolsOpen && "bg-slate-50 text-slate-900 border-primary/20"
                   )}
                 >
@@ -1313,7 +1308,7 @@ export default function AIAssistantPage() {
                 </Button>
 
                 {/* Selected Model Indicator Badge */}
-                <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                <span className="text-[10px] uppercase tracking-wide text-slate-400 font-bold bg-slate-50/50 px-2.5 py-1 rounded-full border border-slate-200">
                   {selectedModel === "gemini" ? "Gemini" : selectedModel === "zai" ? "Z.ai" : "Nex N2 Pro"}
                 </span>
               </div>
@@ -1324,7 +1319,7 @@ export default function AIAssistantPage() {
                 disabled={streaming || !inputVal.trim()}
                 size="icon"
                 className={cn(
-                  "size-8 rounded-full shrink-0 transition-all duration-200 border-0 flex items-center justify-center cursor-pointer",
+                  "size-8.5 rounded-full shrink-0 transition-all duration-200 border-0 flex items-center justify-center cursor-pointer",
                   inputVal.trim() && !streaming
                     ? "bg-primary text-black hover:bg-[#2ae43f]"
                     : "bg-slate-100 text-slate-400 hover:bg-slate-100"
@@ -1339,7 +1334,6 @@ export default function AIAssistantPage() {
             </div>
           </div>
         </div>
-
       </div>
 
       {/* LEFT SIDEBAR: Collapsible History Drawer */}
