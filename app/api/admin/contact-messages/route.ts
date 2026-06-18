@@ -41,21 +41,21 @@ export async function GET(request: NextRequest) {
       .sort({ createdAt: -1 })
       .lean()
 
-    // Fetch counts for KPIs
+    // Fetch counts for KPIs with backward compatibility
     const totalCount = await ContactMessage.countDocuments()
-    const newCount = await ContactMessage.countDocuments({ status: "New" })
-    const readCount = await ContactMessage.countDocuments({ status: "Read" })
-    const repliedCount = await ContactMessage.countDocuments({ status: "Replied" })
-    const archivedCount = await ContactMessage.countDocuments({ status: "Archived" })
+    const newCount = await ContactMessage.countDocuments({ status: { $in: ["NEW", "New"] } })
+    const inProgressCount = await ContactMessage.countDocuments({ status: { $in: ["IN_PROGRESS", "In Progress", "Read"] } })
+    const repliedCount = await ContactMessage.countDocuments({ status: { $in: ["REPLIED", "Replied"] } })
+    const closedCount = await ContactMessage.countDocuments({ status: { $in: ["CLOSED", "Closed", "Archived"] } })
 
     return NextResponse.json({
       messages,
       kpis: {
         total: totalCount,
         new: newCount,
-        read: readCount,
+        inProgress: inProgressCount,
         replied: repliedCount,
-        archived: archivedCount
+        closed: closedCount
       }
     })
   } catch (err: any) {
@@ -83,7 +83,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields: id, status" }, { status: 400 })
     }
 
-    if (!["New", "Read", "Replied", "Archived"].includes(status)) {
+    if (!["NEW", "IN_PROGRESS", "REPLIED", "CLOSED"].includes(status)) {
       return NextResponse.json({ error: "Invalid status value" }, { status: 400 })
     }
 
@@ -97,8 +97,8 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Message not found" }, { status: 404 })
     }
 
-    // If marked read, replied, or archived, mark the related notification as read
-    if (status !== "New") {
+    // If marked read, replied, or closed, mark the related notification as read
+    if (status !== "NEW") {
       await AdminNotification.updateMany(
         { contactMessageId: id },
         { $set: { read: true } }

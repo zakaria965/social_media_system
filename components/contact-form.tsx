@@ -1,58 +1,50 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { CheckCircle2, Loader2, ArrowRight } from "lucide-react"
+import { Check, Loader2, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-type FieldErrors = Partial<
-  Record<"firstName" | "lastName" | "email" | "subject" | "message" | "privacy", boolean>
->
+export interface ContactFormProps {
+  subject?: string
+  setSubject?: (subject: string) => void
+  nameInputRef?: React.RefObject<HTMLInputElement | null>
+}
 
-export function ContactForm() {
+export function ContactForm({ subject: propSubject, setSubject: propSetSubject, nameInputRef }: ContactFormProps) {
   const router = useRouter()
-  const [firstName, setFirstName] = React.useState("")
-  const [lastName, setLastName] = React.useState("")
+  const [fullName, setFullName] = React.useState("")
   const [email, setEmail] = React.useState("")
-  const [phone, setPhone] = React.useState("")
-  const [subject, setSubject] = React.useState("")
+  const [localSubject, setLocalSubject] = React.useState("")
   const [message, setMessage] = React.useState("")
-  const [privacy, setPrivacy] = React.useState(false)
-  const [errors, setErrors] = React.useState<FieldErrors>({})
+  
+  // Support both controlled (by page) and local state for subject
+  const subject = propSubject !== undefined ? propSubject : localSubject
+  const setSubject = propSetSubject !== undefined ? propSetSubject : setLocalSubject
+
+  const [errors, setErrors] = React.useState<{ fullName?: boolean; email?: boolean; subject?: boolean; message?: boolean }>({})
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [submitError, setSubmitError] = React.useState<string | null>(null)
-  const [showSuccessModal, setShowSuccessModal] = React.useState(false)
+  const [isSuccess, setIsSuccess] = React.useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSubmitError(null)
 
-    const next: FieldErrors = {}
-    if (!firstName.trim()) next.firstName = true
-    if (!lastName.trim()) next.lastName = true
-    if (!email.trim()) next.email = true
-    if (!subject.trim()) next.subject = true
-    if (!message.trim()) next.message = true
-    if (!privacy) next.privacy = true
+    const nextErrors: typeof errors = {}
+    if (!fullName.trim()) nextErrors.fullName = true
+    if (!email.trim() || !email.includes("@")) nextErrors.email = true
+    if (!subject.trim()) nextErrors.subject = true
+    if (!message.trim()) nextErrors.message = true
     
-    setErrors(next)
-    if (Object.keys(next).length > 0) {
+    setErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0) {
       return
     }
 
@@ -64,10 +56,8 @@ export function ContactForm() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          firstName,
-          lastName,
+          fullName,
           email,
-          phone,
           subject,
           message,
         }),
@@ -80,17 +70,14 @@ export function ContactForm() {
       }
 
       // Clear form on success
-      setFirstName("")
-      setLastName("")
+      setFullName("")
       setEmail("")
-      setPhone("")
       setSubject("")
       setMessage("")
-      setPrivacy(false)
       setErrors({})
       
-      // Trigger modal
-      setShowSuccessModal(true)
+      // Trigger success state
+      setIsSuccess(true)
     } catch (err: any) {
       console.error(err)
       setSubmitError(err.message || "Failed to submit. Please try again.")
@@ -100,241 +87,176 @@ export function ContactForm() {
   }
 
   return (
-    <>
-      <Card className="border-0 bg-white shadow-[0_4px_20px_-4px_rgba(15,23,42,0.06)] rounded-[16px]">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-2xl font-bold tracking-tight text-[#111827]">
-            Send us a message
-          </CardTitle>
-          <p className="text-sm text-[#64748B] mt-1">
-            Fill out the form below and we will get back to you as soon as possible.
-          </p>
-        </CardHeader>
-        <CardContent>
-          {submitError && (
-            <Alert variant="destructive" className="mb-6 rounded-xl">
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{submitError}</AlertDescription>
-            </Alert>
-          )}
+    <div className="w-full max-w-xl mx-auto">
+      <AnimatePresence mode="wait">
+        {!isSuccess ? (
+          <motion.div
+            key="form"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white p-8 md:p-10 rounded-[24px] border border-[#E5E7EB] shadow-[0_20px_60px_rgba(15,23,42,0.08)]"
+          >
+            {/* Form Header */}
+            <div className="mb-8">
+              <h3 className="text-2xl font-extrabold text-[#0F172A] tracking-tight">
+                Send Us A Message
+              </h3>
+              <p className="text-sm text-[#64748B] mt-2 leading-relaxed">
+                Fill out the form below and our team will get back to you shortly.
+              </p>
+            </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-2 gap-4">
+            {submitError && (
+              <Alert variant="destructive" className="mb-6 rounded-xl border-red-200 bg-red-50 text-red-800">
+                <AlertTitle className="font-bold">Submission Error</AlertTitle>
+                <AlertDescription>{submitError}</AlertDescription>
+              </Alert>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Full Name */}
               <div className="space-y-1.5">
-                <Label htmlFor="firstName" className="text-xs font-semibold text-[#111827]">First name</Label>
-                <Input
-                  id="firstName"
-                  placeholder="Jane"
-                  className={cn(
-                    "rounded-xl border-[#EEF2F7] focus:border-[#30FC47] focus:ring-1 focus:ring-[#30FC47] h-10 transition-colors bg-white", 
-                    errors.firstName && "border-destructive focus:ring-destructive"
-                  )}
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  aria-invalid={errors.firstName}
-                  disabled={isSubmitting}
-                />
-                {errors.firstName && (
-                  <p className="text-[10px] font-medium text-destructive">First name is required</p>
-                )}
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="lastName" className="text-xs font-semibold text-[#111827]">Last name</Label>
-                <Input
-                  id="lastName"
-                  placeholder="Doe"
-                  className={cn(
-                    "rounded-xl border-[#EEF2F7] focus:border-[#30FC47] focus:ring-1 focus:ring-[#30FC47] h-10 transition-colors bg-white",
-                    errors.lastName && "border-destructive focus:ring-destructive"
-                  )}
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  aria-invalid={errors.lastName}
-                  disabled={isSubmitting}
-                />
-                {errors.lastName && (
-                  <p className="text-[10px] font-medium text-destructive">Last name is required</p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-xs font-semibold text-[#111827]">Email address</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="jane.doe@example.com"
-                className={cn(
-                  "rounded-xl border-[#EEF2F7] focus:border-[#30FC47] focus:ring-1 focus:ring-[#30FC47] h-10 transition-colors bg-white",
-                  errors.email && "border-destructive focus:ring-destructive"
-                )}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                aria-invalid={errors.email}
-                disabled={isSubmitting}
-              />
-              {errors.email && (
-                <p className="text-[10px] font-medium text-destructive">Email is required</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="phone" className="text-xs font-semibold text-[#111827]">
-                Phone number <span className="text-[#9CA3AF] font-normal">(Optional)</span>
-              </Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="+252 63 XXXXXXX"
-                className="rounded-xl border-[#EEF2F7] focus:border-[#30FC47] focus:ring-1 focus:ring-[#30FC47] h-10 transition-colors bg-white"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-[#111827]">Subject</Label>
-              <Select value={subject || undefined} onValueChange={setSubject} disabled={isSubmitting}>
-                <SelectTrigger
-                  className={cn(
-                    "rounded-xl border-[#EEF2F7] focus:border-[#30FC47] focus:ring-1 focus:ring-[#30FC47] h-10 transition-colors bg-white w-full",
-                    errors.subject && "border-destructive focus:ring-destructive"
-                  )}
-                  aria-invalid={errors.subject}
-                >
-                  <SelectValue placeholder="Select a subject" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-[#EEF2F7]">
-                  <SelectItem value="support">Technical Support</SelectItem>
-                  <SelectItem value="sales">Sales & Upgrades</SelectItem>
-                  <SelectItem value="partnership">Business Partnerships</SelectItem>
-                  <SelectItem value="feedback">Product Feedback</SelectItem>
-                  <SelectItem value="general">General Inquiry</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.subject && (
-                <p className="text-[10px] font-medium text-destructive">Please select a subject</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="message" className="text-xs font-semibold text-[#111827]">Message</Label>
-              <Textarea
-                id="message"
-                placeholder="How can we help you grow?"
-                rows={4}
-                className={cn(
-                  "rounded-xl border-[#EEF2F7] focus:border-[#30FC47] focus:ring-1 focus:ring-[#30FC47] transition-colors bg-white resize-none",
-                  errors.message && "border-destructive focus:ring-destructive"
-                )}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                aria-invalid={errors.message}
-                disabled={isSubmitting}
-              />
-              {errors.message && (
-                <p className="text-[10px] font-medium text-destructive">Message content is required</p>
-              )}
-            </div>
-
-            <div className="space-y-3 pt-1">
-              <div className="flex items-start gap-2.5">
-                <Checkbox
-                  id="privacy"
-                  checked={privacy}
-                  onCheckedChange={(v) => setPrivacy(v === true)}
-                  aria-invalid={errors.privacy}
-                  disabled={isSubmitting}
-                  className="mt-0.5 rounded-md border-[#EEF2F7] data-[state=checked]:bg-[#30FC47] data-[state=checked]:border-[#30FC47] data-[state=checked]:text-black"
-                />
-                <Label htmlFor="privacy" className="text-xs text-[#64748B] leading-snug font-normal select-none">
-                  I agree to the{" "}
-                  <Link href="#" className="text-[#111827] font-semibold underline decoration-[#30FC47]/60 underline-offset-2 hover:decoration-[#30FC47]">
-                    Privacy Policy
-                  </Link>{" "}
-                  and consent to having my information processed.
+                <Label htmlFor="fullName" className="text-xs font-semibold text-[#0F172A]">
+                  Full Name
                 </Label>
+                <Input
+                  ref={nameInputRef}
+                  id="fullName"
+                  placeholder="John Doe"
+                  className={cn(
+                    "rounded-[12px] border-[#E5E7EB] focus:border-[#30FC47] focus:ring-[#30FC47]/15 h-[48px] transition-all bg-[#FFFFFF] text-sm px-4 outline-none focus-visible:ring-4 focus-visible:ring-offset-0 focus-visible:border-[#30FC47] text-[#0F172A]", 
+                    errors.fullName && "border-red-300 focus-visible:ring-red-100 focus-visible:border-red-400"
+                  )}
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  disabled={isSubmitting}
+                />
+                {errors.fullName && (
+                  <p className="text-[10px] font-medium text-red-500">Please enter your full name</p>
+                )}
               </div>
-              {errors.privacy && (
-                <p className="text-[10px] font-medium text-destructive">You must agree to the Privacy Policy</p>
-              )}
+
+              {/* Email */}
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-xs font-semibold text-[#0F172A]">
+                  Email Address
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="john@example.com"
+                  className={cn(
+                    "rounded-[12px] border-[#E5E7EB] focus:border-[#30FC47] focus:ring-[#30FC47]/15 h-[48px] transition-all bg-[#FFFFFF] text-sm px-4 outline-none focus-visible:ring-4 focus-visible:ring-offset-0 focus-visible:border-[#30FC47] text-[#0F172A]",
+                    errors.email && "border-red-300 focus-visible:ring-red-100 focus-visible:border-red-400"
+                  )}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isSubmitting}
+                />
+                {errors.email && (
+                  <p className="text-[10px] font-medium text-red-500">Please enter a valid email address</p>
+                )}
+              </div>
+
+              {/* Subject */}
+              <div className="space-y-1.5">
+                <Label htmlFor="subject" className="text-xs font-semibold text-[#0F172A]">
+                  Subject
+                </Label>
+                <Input
+                  id="subject"
+                  placeholder="Partnership Inquiry, Support request..."
+                  className={cn(
+                    "rounded-[12px] border-[#E5E7EB] focus:border-[#30FC47] focus:ring-[#30FC47]/15 h-[48px] transition-all bg-[#FFFFFF] text-sm px-4 outline-none focus-visible:ring-4 focus-visible:ring-offset-0 focus-visible:border-[#30FC47] text-[#0F172A]",
+                    errors.subject && "border-red-300 focus-visible:ring-red-100 focus-visible:border-red-400"
+                  )}
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  disabled={isSubmitting}
+                />
+                {errors.subject && (
+                  <p className="text-[10px] font-medium text-red-500">Please enter a subject</p>
+                )}
+              </div>
+
+              {/* Message */}
+              <div className="space-y-1.5">
+                <Label htmlFor="message" className="text-xs font-semibold text-[#0F172A]">
+                  Message
+                </Label>
+                <Textarea
+                  id="message"
+                  placeholder="How can we help you?"
+                  rows={4}
+                  className={cn(
+                    "rounded-[12px] border-[#E5E7EB] focus:border-[#30FC47] focus:ring-[#30FC47]/15 h-[140px] transition-all bg-[#FFFFFF] text-sm px-4 py-3 resize-none outline-none focus-visible:ring-4 focus-visible:ring-offset-0 focus-visible:border-[#30FC47] text-[#0F172A]",
+                    errors.message && "border-red-300 focus-visible:ring-red-100 focus-visible:border-red-400"
+                  )}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  disabled={isSubmitting}
+                />
+                {errors.message && (
+                  <p className="text-[10px] font-medium text-red-500">Please enter your message details</p>
+                )}
+              </div>
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full h-[56px] rounded-[14px] font-semibold bg-[#30FC47] hover:bg-[#30FC47]/90 text-white shadow-[0_4px_12px_rgba(48,252,71,0.15)] hover:shadow-[0_8px_24px_rgba(48,252,71,0.25)] border-0 transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center justify-center gap-2 text-base font-semibold"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="size-5 animate-spin text-white" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    Send Message
+                  </>
+                )}
+              </Button>
+            </form>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="success"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "spring", duration: 0.5 }}
+            className="bg-white p-10 md:p-12 rounded-[24px] border border-[#E5E7EB] shadow-[0_20px_60px_rgba(15,23,42,0.08)] text-center flex flex-col items-center relative overflow-hidden"
+          >
+            {/* Soft decorative background glows */}
+            <div className="absolute -top-24 -left-24 size-48 rounded-full bg-[#30FC47]/5 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -right-24 size-48 rounded-full bg-[#30FC47]/10 blur-3xl pointer-events-none" />
+
+            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-[#30FC47]/10 border border-[#30FC47]/20 mb-6 shadow-inner">
+              <Check className="size-6 text-[#22C55E] stroke-[3px]" />
             </div>
 
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full h-11 mt-4 rounded-xl font-semibold bg-[#30FC47] hover:bg-[#30FC47]/90 text-black shadow-[0_4px_12px_rgba(48,252,71,0.25)] border-0 transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="size-4 animate-spin text-black" />
-                  Sending Message...
-                </>
-              ) : (
-                <>
-                  Send Message
-                  <ArrowRight className="size-4 text-black" />
-                </>
-              )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+            <h3 className="text-2xl font-extrabold tracking-tight text-[#0F172A]">
+              ✓ Message Sent
+            </h3>
+            
+            <p className="mt-4 text-sm leading-relaxed text-[#64748B] max-w-sm">
+              Thank you for contacting GrowWave. <br /> Our team will reply within 24 hours.
+            </p>
 
-      {/* SUCCESS MODAL */}
-      <AnimatePresence>
-        {showSuccessModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+            <button
               onClick={() => {
-                setShowSuccessModal(false)
                 router.push("/")
               }}
-              className="absolute inset-0 bg-black/45 backdrop-blur-sm"
-            />
-
-            {/* Modal Body */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ type: "spring", duration: 0.45 }}
-              className="relative w-full max-w-md overflow-hidden rounded-[24px] bg-white p-8 text-center shadow-[0_20px_50px_rgba(0,0,0,0.15)] z-10 border border-[#EEF2F7]"
+              className="mt-8 w-full max-w-xs h-[48px] rounded-[12px] bg-[#0F172A] hover:bg-[#0F172A]/90 text-white font-semibold shadow-md hover:shadow-lg transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
             >
-              {/* Decorative background glow */}
-              <div className="absolute -top-20 -left-20 size-40 rounded-full bg-[#30FC47]/10 blur-3xl pointer-events-none" />
-              <div className="absolute -bottom-20 -right-20 size-40 rounded-full bg-emerald-400/10 blur-3xl pointer-events-none" />
-
-              <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-[#30FC47]/10 border border-[#30FC47]/20 mb-6">
-                <CheckCircle2 className="size-8 text-emerald-500" />
-              </div>
-
-              <h3 className="text-2xl font-bold tracking-tight text-[#111827]">
-                Message Sent Successfully
-              </h3>
-              
-              <p className="mt-3 text-sm leading-relaxed text-[#64748B]">
-                Thank you for contacting GrowWave. Our team will review your message and respond as soon as possible.
-              </p>
-
-              <button
-                onClick={() => {
-                  setShowSuccessModal(false)
-                  router.push("/")
-                }}
-                className="mt-8 w-full h-11 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold shadow-md transition-all active:scale-[0.98] cursor-pointer"
-              >
-                Return Home
-              </button>
-            </motion.div>
-          </div>
+              Return Home
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </div>
   )
 }

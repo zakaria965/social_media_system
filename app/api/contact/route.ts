@@ -8,32 +8,36 @@ export async function POST(request: NextRequest) {
     await connectDB()
     
     const body = await request.json()
-    const { firstName, lastName, email, phone, subject, message } = body
+    const { fullName, email, subject, message } = body
 
     // Simple validation
-    if (!firstName?.trim() || !lastName?.trim() || !email?.trim() || !subject?.trim() || !message?.trim()) {
+    if (!fullName?.trim() || !email?.trim() || !subject?.trim() || !message?.trim()) {
       return NextResponse.json(
-        { error: "Missing required fields: firstName, lastName, email, subject, message" },
+        { error: "Missing required fields: fullName, email, subject, message" },
         { status: 400 }
       )
     }
 
+    // Split full name into firstName and lastName for schema compatibility
+    const nameParts = fullName.trim().split(/\s+/)
+    const firstName = nameParts[0] || ""
+    const lastName = nameParts.slice(1).join(" ") || " "
+
     // Create the contact message
     const newMessage = await ContactMessage.create({
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
+      firstName,
+      lastName,
       email: email.trim().toLowerCase(),
-      phone: phone?.trim() || undefined,
       subject: subject.trim(),
       message: message.trim(),
-      status: "New"
+      status: "NEW"
     })
 
     // Automatically create an admin notification
     await AdminNotification.create({
       type: "contact_message",
-      title: "New Contact Message",
-      message: `${firstName.trim()} ${lastName.trim()} sent a contact request`,
+      title: "New Contact Message Received",
+      message: `From: ${firstName} ${lastName}\nSubject: ${subject}`,
       contactMessageId: newMessage._id,
       read: false
     })

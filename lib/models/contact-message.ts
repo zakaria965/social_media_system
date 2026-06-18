@@ -7,7 +7,7 @@ export interface IContactMessage extends Document {
   phone?: string
   subject: string
   message: string
-  status: "New" | "Read" | "Replied" | "Archived"
+  status: "NEW" | "IN_PROGRESS" | "REPLIED" | "CLOSED"
   createdAt: Date
 }
 
@@ -21,8 +21,8 @@ const ContactMessageSchema = new Schema<IContactMessage>(
     message: { type: String, required: true },
     status: {
       type: String,
-      enum: ["New", "Read", "Replied", "Archived"],
-      default: "New",
+      enum: ["NEW", "IN_PROGRESS", "REPLIED", "CLOSED"],
+      default: "NEW",
       index: true
     },
   },

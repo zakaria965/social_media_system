@@ -44,16 +44,16 @@ interface ContactMessageItem {
   phone?: string
   subject: string
   message: string
-  status: "New" | "Read" | "Replied" | "Archived"
+  status: "NEW" | "IN_PROGRESS" | "REPLIED" | "CLOSED"
   createdAt: string
 }
 
 interface KPIStats {
   total: number
   new: number
-  read: number
+  inProgress: number
   replied: number
-  archived: number
+  closed: number
 }
 
 export default function AdminContactMessages() {
@@ -69,7 +69,7 @@ export default function AdminContactMessages() {
 
   // Message page states
   const [messages, setMessages] = useState<ContactMessageItem[]>([])
-  const [kpis, setKpis] = useState<KPIStats>({ total: 0, new: 0, read: 0, replied: 0, archived: 0 })
+  const [kpis, setKpis] = useState<KPIStats>({ total: 0, new: 0, inProgress: 0, replied: 0, closed: 0 })
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("All")
   const [selectedMessage, setSelectedMessage] = useState<ContactMessageItem | null>(null)
@@ -101,7 +101,7 @@ export default function AdminContactMessages() {
       if (res.ok) {
         const data = await res.json()
         setMessages(data.messages || [])
-        setKpis(data.kpis || { total: 0, new: 0, read: 0, replied: 0, archived: 0 })
+        setKpis(data.kpis || { total: 0, new: 0, inProgress: 0, replied: 0, closed: 0 })
       } else {
         showToast("Failed to load contact messages", "error")
       }
@@ -120,7 +120,7 @@ export default function AdminContactMessages() {
   }, [searchQuery, statusFilter])
 
   // Update contact message status
-  const updateMessageStatus = async (id: string, nextStatus: "New" | "Read" | "Replied" | "Archived") => {
+  const updateMessageStatus = async (id: string, nextStatus: "NEW" | "IN_PROGRESS" | "REPLIED" | "CLOSED") => {
     try {
       const res = await fetch("/api/admin/contact-messages", {
         method: "PATCH",
@@ -192,9 +192,9 @@ export default function AdminContactMessages() {
   // Handle viewing message details
   const handleViewMessage = (message: ContactMessageItem) => {
     setSelectedMessage(message)
-    // If the message is New, automatically mark it as Read
-    if (message.status === "New") {
-      updateMessageStatus(message._id, "Read")
+    // If the message is NEW, automatically mark it as IN_PROGRESS
+    if (message.status === "NEW" || (message.status as string) === "New") {
+      updateMessageStatus(message._id, "IN_PROGRESS")
     }
   }
 
@@ -242,9 +242,9 @@ export default function AdminContactMessages() {
               {[
                 { title: "Total Submissions", value: kpis.total, desc: "All incoming requests", color: "text-slate-800" },
                 { title: "New Requests", value: kpis.new, desc: "Awaiting review", color: "text-[#EF4444]" },
-                { title: "Read Messages", value: kpis.read, desc: "Opened inquiries", color: "text-blue-500" },
+                { title: "In Progress", value: kpis.inProgress, desc: "Active inquiries", color: "text-blue-500" },
                 { title: "Replied Queries", value: kpis.replied, desc: "Responded cases", color: "text-[#22C55E]" },
-                { title: "Archived Files", value: kpis.archived, desc: "Stored / Closed", color: "text-slate-400" }
+                { title: "Closed Cases", value: kpis.closed, desc: "Resolved submissions", color: "text-slate-400" }
               ].map((card, idx) => (
                 <div key={idx} className="rounded-2xl bg-white p-5 shadow-[0_2px_8px_rgba(15,23,42,0.04)] border border-[#EEF2F7] transition-all">
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">{card.title}</span>
@@ -272,7 +272,7 @@ export default function AdminContactMessages() {
 
               {/* Status filter tabs */}
               <div className="flex gap-1.5 p-1 bg-[#FCFAF6] rounded-xl border border-[#EEF2F7] self-start md:self-auto overflow-x-auto max-w-full">
-                {["All", "New", "Read", "Replied", "Archived"].map((status) => (
+                {["All", "NEW", "IN_PROGRESS", "REPLIED", "CLOSED"].map((status) => (
                   <button
                     key={status}
                     onClick={() => setStatusFilter(status)}
@@ -283,7 +283,7 @@ export default function AdminContactMessages() {
                         : "text-slate-500 hover:text-slate-800"
                     )}
                   >
-                    {status}
+                    {status === "All" ? "All" : status === "IN_PROGRESS" ? "In Progress" : status === "REPLIED" ? "Replied" : status === "CLOSED" ? "Closed" : "New"}
                   </button>
                 ))}
               </div>
@@ -321,7 +321,7 @@ export default function AdminContactMessages() {
                           key={message._id}
                           className={cn(
                             "hover:bg-[#FCFAF6]/60 transition-colors cursor-pointer",
-                            message.status === "New" && "bg-[#30FC47]/[0.02] font-medium"
+                            (message.status === "NEW" || (message.status as string) === "New") && "bg-[#30FC47]/[0.02] font-medium"
                           )}
                           onClick={() => handleViewMessage(message)}
                         >
@@ -354,18 +354,18 @@ export default function AdminContactMessages() {
                             <span
                               className={cn(
                                 "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase",
-                                message.status === "New" && "bg-red-50 text-red-600 border border-red-100",
-                                message.status === "Read" && "bg-blue-50 text-blue-600 border border-blue-100",
-                                message.status === "Replied" && "bg-green-50 text-green-600 border border-green-100",
-                                message.status === "Archived" && "bg-slate-100 text-slate-500 border border-slate-200"
+                                (message.status === "NEW" || (message.status as string) === "New") && "bg-red-50 text-red-600 border border-red-100",
+                                (message.status === "IN_PROGRESS" || (message.status as string) === "In Progress") && "bg-blue-50 text-blue-600 border border-blue-100",
+                                (message.status === "REPLIED" || (message.status as string) === "Replied") && "bg-green-50 text-green-600 border border-green-100",
+                                (message.status === "CLOSED" || (message.status as string) === "Closed") && "bg-slate-100 text-slate-500 border border-slate-200"
                               )}
                             >
                               <span className={cn(
                                 "size-1.5 rounded-full",
-                                message.status === "New" && "bg-red-500",
-                                message.status === "Read" && "bg-blue-500",
-                                message.status === "Replied" && "bg-green-500",
-                                message.status === "Archived" && "bg-slate-400"
+                                (message.status === "NEW" || (message.status as string) === "New") && "bg-red-500",
+                                (message.status === "IN_PROGRESS" || (message.status as string) === "In Progress") && "bg-blue-500",
+                                (message.status === "REPLIED" || (message.status as string) === "Replied") && "bg-green-500",
+                                (message.status === "CLOSED" || (message.status as string) === "Closed") && "bg-slate-400"
                               )} />
                               {message.status}
                             </span>
@@ -509,27 +509,27 @@ export default function AdminContactMessages() {
             <div className="border-t border-[#EEF2F7] pt-4 mt-auto space-y-3">
               <div className="flex items-center justify-between text-xs text-slate-400">
                 <span>Current Status: <strong className="text-slate-700">{selectedMessage.status}</strong></span>
-                {selectedMessage.status === "New" && (
-                  <span className="text-emerald-500 font-semibold">Automatically marked as Read</span>
+                {(selectedMessage.status === "NEW" || selectedMessage.status === "New") && (
+                  <span className="text-emerald-500 font-semibold">Automatically marked as IN_PROGRESS</span>
                 )}
               </div>
               
               <div className="grid grid-cols-3 gap-2">
                 <button
-                  onClick={() => updateMessageStatus(selectedMessage._id, "Replied")}
-                  disabled={selectedMessage.status === "Replied"}
+                  onClick={() => updateMessageStatus(selectedMessage._id, "REPLIED")}
+                  disabled={selectedMessage.status === "REPLIED" || selectedMessage.status === "Replied"}
                   className="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 disabled:opacity-50 disabled:pointer-events-none py-2.5 text-xs font-bold transition-all cursor-pointer"
                 >
                   <CheckCircle2 className="size-4" />
                   Replied
                 </button>
                 <button
-                  onClick={() => updateMessageStatus(selectedMessage._id, "Archived")}
-                  disabled={selectedMessage.status === "Archived"}
+                  onClick={() => updateMessageStatus(selectedMessage._id, "CLOSED")}
+                  disabled={selectedMessage.status === "CLOSED" || selectedMessage.status === "Closed"}
                   className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-600 disabled:opacity-50 disabled:pointer-events-none py-2.5 text-xs font-bold transition-all cursor-pointer"
                 >
                   <Archive className="size-4" />
-                  Archive
+                  Close
                 </button>
                 <button
                   onClick={() => deleteSpamMessage(selectedMessage._id)}
@@ -540,9 +540,9 @@ export default function AdminContactMessages() {
                 </button>
               </div>
               
-              {selectedMessage.status === "Read" && (
+              {(selectedMessage.status === "IN_PROGRESS" || selectedMessage.status === "In Progress") && (
                 <button
-                  onClick={() => updateMessageStatus(selectedMessage._id, "New")}
+                  onClick={() => updateMessageStatus(selectedMessage._id, "NEW")}
                   className="w-full py-2 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-500 font-semibold text-xs cursor-pointer"
                 >
                   Mark as Unread (New)
