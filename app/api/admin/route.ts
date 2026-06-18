@@ -301,7 +301,8 @@ export async function GET(request: NextRequest) {
 
       const providerStats = {
         gemini: { cost: 0, requests: 0, tokens: 0, errors: 0, totalResponseTime: 0, successRequests: 0 },
-        zai: { cost: 0, requests: 0, tokens: 0, errors: 0, totalResponseTime: 0, successRequests: 0 }
+        zai: { cost: 0, requests: 0, tokens: 0, errors: 0, totalResponseTime: 0, successRequests: 0 },
+        openrouter: { cost: 0, requests: 0, tokens: 0, errors: 0, totalResponseTime: 0, successRequests: 0 }
       }
 
       const featureUsage = {
@@ -342,7 +343,14 @@ export async function GET(request: NextRequest) {
 
         const rawProvider = (log.provider || "").toLowerCase()
         const cleanModel = (log.model || "").toLowerCase()
-        const pKey = (rawProvider.includes("gemini") || cleanModel.includes("gemini")) ? "gemini" : "zai"
+        let pKey: "gemini" | "zai" | "openrouter" = "gemini"
+        if (rawProvider.includes("openrouter") || cleanModel.includes("nex")) {
+          pKey = "openrouter"
+        } else if (rawProvider.includes("zai") || cleanModel.includes("glm")) {
+          pKey = "zai"
+        } else {
+          pKey = "gemini"
+        }
 
         providerStats[pKey].cost += logCost
         providerStats[pKey].requests += 1
@@ -487,7 +495,7 @@ export async function GET(request: NextRequest) {
           user: u.email,
           workspace: workspaceName,
           feature: log.feature,
-          provider: (log.provider || "").toUpperCase().includes("GEMINI") || log.model.toLowerCase().includes("gemini") ? "GEMINI" : "ZAI",
+          provider: (log.provider || "").toUpperCase().includes("GEMINI") || log.model.toLowerCase().includes("gemini") ? "GEMINI" : (log.provider || "").toUpperCase().includes("OPENROUTER") || log.model.toLowerCase().includes("nex") ? "OPENROUTER" : "ZAI",
           model: log.model,
           promptTokens: log.promptTokens,
           completionTokens: log.completionTokens,
@@ -509,7 +517,7 @@ export async function GET(request: NextRequest) {
           avgResponseTime
         },
         providerBreakdown: Object.entries(providerStats).map(([name, stats]) => ({
-          name: name === "gemini" ? "Gemini" : "Z.ai",
+          name: name === "gemini" ? "Gemini" : name === "zai" ? "Z.ai" : "Nex N2 Pro",
           cost: stats.cost,
           requests: stats.requests,
           tokens: stats.tokens,

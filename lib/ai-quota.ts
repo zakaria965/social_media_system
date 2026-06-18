@@ -150,6 +150,8 @@ export async function recordAIUsage(params: {
       cost = promptTokens * 0.000000075 + completionTokens * 0.00000030
     } else if (cleanModel.includes("glm")) {
       cost = promptTokens * 0.0000001 + completionTokens * 0.0000003
+    } else if (cleanModel.includes("nex")) {
+      cost = 0 // Nex N2 Pro is a free model on OpenRouter
     } else {
       // General default fallback cost rate
       cost = totalTokens * 0.000002

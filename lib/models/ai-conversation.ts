@@ -6,6 +6,7 @@ export interface IAIMessage {
   timestamp: string
   pinnedInsight?: boolean
   errorType?: "QUOTA_EXCEEDED" | "CONFIG_INCOMPLETE" | "SERVICE_UNAVAILABLE"
+  model?: "gemini" | "zai" | "openrouter"
 }
 
 export interface IAIConversation extends Document {

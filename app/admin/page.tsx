@@ -1364,11 +1364,13 @@ export default function AdminDashboard() {
                       {(() => {
                         const geminiStats = providerBreakdown.find(p => p.name === "Gemini") || { requests: 0 };
                         const zaiStats = providerBreakdown.find(p => p.name === "Z.ai") || { requests: 0 };
+                        const openrouterStats = providerBreakdown.find(p => p.name === "Nex N2 Pro") || { requests: 0 };
                         return (
-                          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
+                          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                             {[
                               { title: "Gemini Requests", value: geminiStats.requests, desc: "All-time Gemini API calls", color: "border-emerald-500/20" },
                               { title: "Z.ai Requests", value: zaiStats.requests, desc: "All-time Z.ai API calls", color: "border-blue-500/20" },
+                              { title: "Nex N2 Pro Requests", value: openrouterStats.requests, desc: "All-time Nex N2 Pro API calls", color: "border-purple-500/20" },
                               { title: "Total AI Usage", value: `${aiUsageSummary.totalTokensUsed.toLocaleString()} tkn`, desc: "Total generated tokens count", color: "border-purple-500/20" },
                               { title: "Avg Response Time", value: `${aiUsageSummary.avgResponseTime || 0}ms`, desc: "Successful request latency", color: "border-amber-500/20" },
                               { title: "Failed Requests", value: aiUsageSummary.failedRequests, desc: "Total failed API calls", color: "border-red-500/20" }

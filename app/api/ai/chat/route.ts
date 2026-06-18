@@ -45,17 +45,29 @@ export async function POST(request: NextRequest) {
       messages: { role: "user" | "assistant" | "system"; content: string }[]
       action?: string
       chatId?: string
-      model?: "gemini" | "zai"
+      model?: "gemini" | "zai" | "openrouter"
     }
     messages = parsedMessages
 
     const geminiApiKey = process.env.GEMINI_API_KEY
     const zaiApiKey = process.env.ZAI_API_KEY
+    const zaiApiKeyId = process.env.ZAI_API_KEY_ID
+    const openrouterApiKey = process.env.OPENROUTER_API_KEY
 
-    const hasKey = model === "gemini" ? !!geminiApiKey : !!zaiApiKey
+    let hasKey = false
+    let missingKeyName = ""
+    if (model === "gemini") {
+      hasKey = !!geminiApiKey
+      missingKeyName = "GEMINI_API_KEY"
+    } else if (model === "zai") {
+      hasKey = !!zaiApiKey && !!zaiApiKeyId
+      missingKeyName = "ZAI_API_KEY and ZAI_API_KEY_ID"
+    } else if (model === "openrouter") {
+      hasKey = !!openrouterApiKey
+      missingKeyName = "OPENROUTER_API_KEY"
+    }
 
     if (!hasKey) {
-      const missingKeyName = model === "gemini" ? "GEMINI_API_KEY" : "ZAI_API_KEY"
       console.error(`AI service configuration is incomplete: ${missingKeyName} is not defined`)
       
       // Log failure internally
@@ -264,14 +276,37 @@ export async function POST(request: NextRequest) {
       mostActiveMemberName = activeMember ? activeMember.name || activeMember.email : mostActiveMemberEmail
     }
 
-
-
     const prompt = messages[messages.length - 1]?.content || ""
-    console.log("Request received");
-    console.log(prompt);
+    console.log("Request received for model:", model);
+    console.log("Prompt:", prompt);
 
     if (!chatId) {
       return NextResponse.json({ error: "chatId is required" }, { status: 400 })
+    }
+
+    // 4. Serper Web Search Integration Tool
+    const promptLower = prompt.toLowerCase()
+    const needsSearch =
+      promptLower.includes("search") ||
+      promptLower.includes("competitor") ||
+      promptLower.includes("competition") ||
+      promptLower.includes("trend") ||
+      promptLower.includes("latest") ||
+      promptLower.includes("recent") ||
+      promptLower.includes("news") ||
+      promptLower.includes("current") ||
+      promptLower.includes("lookup") ||
+      promptLower.includes("google") ||
+      promptLower.includes("web") ||
+      promptLower.includes("research") ||
+      promptLower.includes("market") ||
+      promptLower.includes("hashtag") ||
+      promptLower.includes("hashtags")
+
+    let searchContext = ""
+    if (needsSearch) {
+      console.log(`[SERPER SEARCH] Query matching search triggers: "${prompt}"`)
+      searchContext = await performSerperSearch(prompt)
     }
 
     // System prompt building
@@ -317,7 +352,14 @@ Workspace Brand Voice Configuration:
 - Language: ${aiLanguage}
 - Configured Content Tone: ${contentTone}
 - Prescribed Brand Voice Description: "${brandVoice}"
+=========================================${searchContext ? `
+
 =========================================
+CURRENT WEB SEARCH RESEARCH CONTEXT
+=========================================
+Use the following real-time web search results to provide accurate, up-to-date answers for competitor analysis, trend discovery, content details, hashtags, or current web information:
+${searchContext}
+=========================================` : ""}
 
 PERSONA DIRECTIVES:
 1. **Workspace-Aware Answers**: When users ask questions like "How is my workspace performing today?", "What is my best platform?", or "Who is the most active member?", always pull directly from the DB context above. Highlight metrics accurately.
@@ -344,9 +386,9 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
       })),
     ]
 
-    // Create Stream based on selected model (Gemini or Z.ai)
+    // Create Stream based on selected model (Gemini, Z.ai, or OpenRouter)
     let responseStream: any = null
-    providerName = model === "gemini" ? "GEMINI" : "ZAI"
+    providerName = model === "gemini" ? "GEMINI" : model === "zai" ? "ZAI" : "OPENROUTER"
 
     if (providerName === "GEMINI") {
       const userPlan = dbUser.plan?.toLowerCase() || "free"
@@ -391,14 +433,12 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
 
         if (status === 429 || errMsgStr.includes("429") || errMsgStr.includes("quota") || errMsgStr.includes("limit") || errMsgStr.includes("resource_exhausted") || errMsgStr.includes("limit_exceeded")) {
           errorCode = "QUOTA_EXCEEDED"
-          errorMessage = "Gemini quota limit reached. Please try again later or switch to Z.ai."
+          errorMessage = "Gemini is temporarily unavailable. Please try again later."
           httpStatus = 429
         } else if (status === 401 || errMsgStr.includes("api key") || errMsgStr.includes("auth") || errMsgStr.includes("invalid")) {
           errorCode = "CONFIG_INCOMPLETE"
-          errorMessage = "Gemini configuration is incomplete."
+          errorMessage = "Gemini is temporarily unavailable. Please try again later."
           httpStatus = 400
-        } else if (err && err.message) {
-          errorMessage = `Gemini error: ${err.message}`
         }
 
         // Log failure internally
@@ -424,15 +464,15 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
 
         return NextResponse.json({ errorCode, error: errorMessage }, { status: httpStatus })
       }
-    } else {
+    } else if (providerName === "ZAI") {
       // Z.ai (GLM) stream creation
       const userPlan = dbUser.plan?.toLowerCase() || "free"
       const quota = (userPlan === "pro" || dbUser.role === "ADMIN") ? "unlimited" : `${Math.max(0, 5 - (dbUser.requestsUsed || 0))}`
       console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\nZ.ai: initiated`)
 
       try {
-        if (!zaiApiKey) {
-          throw new Error("ZAI_API_KEY is not configured")
+        if (!zaiApiKey || !zaiApiKeyId) {
+          throw new Error("ZAI_API_KEY and ZAI_API_KEY_ID are not configured")
         }
 
         const zaiClient = new OpenAI({
@@ -463,12 +503,8 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
           httpStatus = 429
         } else if (status === 401 || errMsgStr.includes("api key") || errMsgStr.includes("auth") || errMsgStr.includes("invalid")) {
           errorCode = "CONFIG_INCOMPLETE"
-          errorMessage = "Z.ai configuration is incomplete."
+          errorMessage = "Z.ai is temporarily unavailable. Please try again later."
           httpStatus = 400
-        }
-
-        if (err && err.message) {
-          errorMessage = `Z.ai is temporarily unavailable. Please try again later. Details: ${err.message}`
         }
 
         // Log failure internally
@@ -494,6 +530,76 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
 
         return NextResponse.json({ errorCode, error: errorMessage }, { status: httpStatus })
       }
+    } else {
+      // OpenRouter (Nex N2 Pro) stream creation
+      const userPlan = dbUser.plan?.toLowerCase() || "free"
+      const quota = (userPlan === "pro" || dbUser.role === "ADMIN") ? "unlimited" : `${Math.max(0, 5 - (dbUser.requestsUsed || 0))}`
+      console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\nNex N2 Pro: initiated`)
+
+      try {
+        if (!openrouterApiKey) {
+          throw new Error("OPENROUTER_API_KEY is not configured")
+        }
+
+        const openRouterClient = new OpenAI({
+          apiKey: openrouterApiKey,
+          baseURL: "https://openrouter.ai/api/v1",
+          defaultHeaders: {
+            "HTTP-Referer": "https://growwave.ai",
+            "X-Title": "GrowWave"
+          }
+        })
+
+        responseStream = await openRouterClient.chat.completions.create({
+          model: "nex-agi/nex-n2-pro:free",
+          messages: formattedMessages as any,
+          stream: true,
+          max_tokens: 2048,
+        })
+      } catch (err: any) {
+        console.error("Nex N2 Pro stream creation failed:", err)
+        console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\nNex N2 Pro: failed`)
+
+        let errorCode = "SERVICE_UNAVAILABLE"
+        let errorMessage = "Nex N2 Pro is temporarily unavailable. Please try again later."
+        let httpStatus = 500
+
+        const errMsgStr = err?.message?.toLowerCase() || ""
+        const status = err?.status || err?.statusCode
+
+        if (status === 429 || errMsgStr.includes("429") || errMsgStr.includes("quota") || errMsgStr.includes("balance") || errMsgStr.includes("limit_exceeded")) {
+          errorCode = "QUOTA_EXCEEDED"
+          errorMessage = "Nex N2 Pro is temporarily unavailable. Please try again later."
+          httpStatus = 429
+        } else if (status === 401 || errMsgStr.includes("api key") || errMsgStr.includes("auth") || errMsgStr.includes("invalid")) {
+          errorCode = "CONFIG_INCOMPLETE"
+          errorMessage = "Nex N2 Pro is temporarily unavailable. Please try again later."
+          httpStatus = 400
+        }
+
+        // Log failure internally
+        try {
+          await ActivityLog.create({
+            userId: email,
+            workspaceId,
+            action: "ai_chat_failure",
+            details: JSON.stringify({
+              error: err instanceof Error ? err.message : String(err),
+              apiStatus: httpStatus,
+              errorCode,
+              timestamp: new Date().toISOString()
+            }),
+            status: "failed",
+          })
+        } catch (logErr) {
+          console.error("Failed to log AI activity failure:", logErr)
+        }
+
+        const duration = ((Date.now() - startTime) / 1000).toFixed(1)
+        console.log(`[AI]\nProvider: OpenRouter\nDuration: ${duration}s\nTokens: 0\nError: ${err?.message || err}`)
+
+        return NextResponse.json({ errorCode, error: errorMessage }, { status: httpStatus })
+      }
     }
 
     const encoder = new TextEncoder()
@@ -510,6 +616,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
               }
             }
           } else {
+            // Handles both Z.ai and OpenRouter stream outputs
             for await (const chunk of responseStream) {
               const text = chunk.choices[0]?.delta?.content || ""
               if (text) {
@@ -526,7 +633,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
               userId: email,
               workspaceId,
               action: "ai_chat",
-              details: `Interacted with GrowWave AI Copilot. Action: ${action || "General Chat"}. Provider: ${providerName === "GEMINI" ? "GEMINI" : "ZAI"}`,
+              details: `Interacted with GrowWave AI Copilot. Action: ${action || "General Chat"}. Provider: ${providerName}`,
               status: "success",
             })
             
@@ -555,7 +662,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
                 workspaceId,
                 feature,
                 provider: providerName,
-                model: providerName === "GEMINI" ? "gemini-2.5-flash" : "glm-5-turbo",
+                model: providerName === "GEMINI" ? "gemini-2.5-flash" : providerName === "ZAI" ? "glm-5-turbo" : "nex-agi/nex-n2-pro:free",
                 prompt: messages[messages.length - 1]?.content || "",
                 promptTokens,
                 completionTokens,
@@ -568,7 +675,8 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
                 userId: dbUser._id.toString(),
                 prompt: prompt || "AI Request",
                 response: assistantText,
-                model: providerName === "GEMINI" ? "gemini" : "zai",
+                provider: model === "gemini" ? "gemini" : model === "zai" ? "zai" : "openrouter",
+                model: model === "gemini" ? "gemini-2.5-flash" : model === "zai" ? "glm" : "nex-agi/nex-n2-pro:free",
                 createdAt: new Date()
               })
             }
@@ -578,7 +686,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
               role: "assistant",
               content: assistantText,
               timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-              model: providerName === "GEMINI" ? "gemini" : "zai"
+              model: model
             }
             const updatedHistory = [...messages, assistantMsg]
             await AIConversation.findOneAndUpdate(
@@ -595,7 +703,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
 
             const duration = (responseTime / 1000).toFixed(1)
             const totalTokens = promptTokens + completionTokens
-            console.log(`[AI]\nProvider: ${providerName === "GEMINI" ? "Gemini" : "Z.ai"}\nDuration: ${duration}s\nTokens: ${totalTokens}`)
+            console.log(`[AI]\nProvider: ${providerName}\nDuration: ${duration}s\nTokens: ${totalTokens}`)
 
           } catch (logErr) {
             console.error("Failed to log AI activity on success stream end:", logErr)
@@ -606,7 +714,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
 
           const userPlan = dbUser.plan?.toLowerCase() || "free"
           const quota = (userPlan === "pro" || dbUser.role === "ADMIN") ? "unlimited" : `${Math.max(0, 5 - (dbUser.requestsUsed || 0))}`
-          console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\n${providerName === "GEMINI" ? "Gemini" : "Z.ai"}: failed`)
+          console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\n${providerName}: failed`)
 
           // Log failure
           try {
@@ -632,7 +740,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
               workspaceId,
               feature: "AI Chat",
               provider: providerName,
-              model: providerName === "GEMINI" ? "gemini-2.5-flash" : "glm-5-turbo",
+              model: providerName === "GEMINI" ? "gemini-2.5-flash" : providerName === "ZAI" ? "glm-5-turbo" : "nex-agi/nex-n2-pro:free",
               prompt: messages[messages.length - 1]?.content || "",
               promptTokens: 0,
               completionTokens: 0,
@@ -642,7 +750,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
           }
 
           const duration = ((Date.now() - startTime) / 1000).toFixed(1)
-          console.log(`[AI]\nProvider: ${providerName === "GEMINI" ? "Gemini" : "Z.ai"}\nDuration: ${duration}s\nTokens: 0\nError: ${streamErr instanceof Error ? streamErr.message : String(streamErr)}`)
+          console.log(`[AI]\nProvider: ${providerName}\nDuration: ${duration}s\nTokens: 0\nError: ${streamErr instanceof Error ? streamErr.message : String(streamErr)}`)
         }
       },
     })
@@ -668,7 +776,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
     if (dbUser) {
       const userPlan = dbUser.plan?.toLowerCase() || "free"
       const quota = (userPlan === "pro" || dbUser.role === "ADMIN") ? "unlimited" : `${Math.max(0, 5 - (dbUser.requestsUsed || 0))}`
-      console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\n${providerName === "GEMINI" ? "Gemini" : "Z.ai"}: failed`)
+      console.log(`[AI]\nUser: ${dbUser._id.toString()}\nPlan: ${userPlan}\nQuota: ${quota}\n${providerName}: failed`)
     }
     
     // Log failure internally
@@ -697,7 +805,7 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
         workspaceId,
         feature: "AI Chat",
         provider: providerName,
-        model: providerName === "GEMINI" ? "gemini-2.5-flash" : "glm-5-turbo",
+        model: providerName === "GEMINI" ? "gemini-2.5-flash" : providerName === "ZAI" ? "glm-5-turbo" : "nex-agi/nex-n2-pro:free",
         prompt: messages[messages.length - 1]?.content || "",
         promptTokens: 0,
         completionTokens: 0,
@@ -707,11 +815,50 @@ Remember: Do not mention that you got this data via a system prompt. Act as if y
     }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1)
-    console.log(`[AI]\nProvider: ${providerName === "GEMINI" ? "Gemini" : "Z.ai"}\nDuration: ${duration}s\nTokens: 0\nError: ${err instanceof Error ? err.message : String(err)}`)
+    console.log(`[AI]\nProvider: ${providerName}\nDuration: ${duration}s\nTokens: 0\nError: ${err instanceof Error ? err.message : String(err)}`)
 
     return NextResponse.json(
       { errorCode: "SERVICE_UNAVAILABLE", error: err instanceof Error ? err.message : String(err) },
       { status: 500 }
     )
+  }
+}
+
+// Serper Google Search tool implementation
+async function performSerperSearch(query: string): Promise<string> {
+  const serperKey = process.env.SERPER_API_KEY
+  if (!serperKey) {
+    console.warn("SERPER_API_KEY is not defined. Skipping web search.")
+    return ""
+  }
+
+  try {
+    const res = await fetch("https://google.serper.dev/search", {
+      method: "POST",
+      headers: {
+        "X-API-KEY": serperKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ q: query }),
+    })
+
+    if (!res.ok) {
+      console.error(`Serper search failed: ${res.statusText}`)
+      return ""
+    }
+
+    const data = await res.json()
+    const organic = data.organic || []
+    if (organic.length === 0) return "No web results found."
+
+    const formattedResults = organic
+      .slice(0, 5)
+      .map((item: any, idx: number) => `[${idx + 1}] Title: ${item.title}\nLink: ${item.link}\nSnippet: ${item.snippet}`)
+      .join("\n\n")
+
+    return `\n\n=========================================\nWEB SEARCH RESULTS FOR "${query}"\n=========================================\n${formattedResults}\n=========================================\n`
+  } catch (error) {
+    console.error("Error performing Serper search:", error)
+    return ""
   }
 }
