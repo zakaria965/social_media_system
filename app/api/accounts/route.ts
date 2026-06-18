@@ -13,26 +13,7 @@ export async function GET() {
 
     await connectDB()
 
-    // Automatic Sandbox seeding: If no facebook account is connected, and standard access token is configured in env
-    const hasFacebook = await SocialAccount.findOne({
-      userId: session.user.email,
-      platform: "facebook",
-    })
-
-    if (!hasFacebook && process.env._ACCESS_TOKEN) {
-      await SocialAccount.create({
-        userId: session.user.email,
-        platform: "facebook",
-        accessToken: process.env._ACCESS_TOKEN,
-        platformAccountId: process.env.FACEBOOK_page_id || "1094354963758763",
-        username: "GrowWave Sandbox Page",
-        avatar: "",
-        status: "connected",
-        followers: 2450,
-        engagement: 4.2,
-      })
-    }
-
+    // Load accounts for user
     const accounts = await SocialAccount.find({ userId: session.user.email }).sort({ createdAt: -1 }).lean()
 
     return NextResponse.json({ accounts })

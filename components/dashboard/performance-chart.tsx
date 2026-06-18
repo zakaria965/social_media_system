@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { BarChart3 } from "lucide-react"
 
 interface DataPoint {
   date: string
@@ -27,6 +28,7 @@ export function PerformanceChart({ timeseries }: PerformanceChartProps) {
 
   const activeData = timeseries[`days_${timeframe}`] || []
   const count = activeData.length
+  const hasData = activeData.some(d => d.reach > 0 || d.engagement > 0 || d.clicks > 0)
 
   // Calculate scales
   const maxReach = Math.max(...activeData.map(d => d.reach)) || 100
@@ -188,205 +190,219 @@ export function PerformanceChart({ timeseries }: PerformanceChartProps) {
       </CardHeader>
       
       <CardContent className="relative p-0 sm:px-4 pb-4 overflow-visible">
-        {/* Metric Legends */}
-        <div className="flex items-center gap-4 px-6 pb-2 text-xs">
-          <div className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/30" />
-            <span className="font-medium text-muted-foreground">Reach</span>
+        {!hasData ? (
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center h-[280px]">
+            <div className="p-4 bg-muted/40 rounded-full mb-3">
+              <BarChart3 className="size-8 text-muted-foreground/60 animate-pulse" />
+            </div>
+            <p className="text-sm font-semibold text-foreground">No analytics data available yet</p>
+            <p className="text-xs text-muted-foreground max-w-sm mt-1">
+              Connect your social channels and publish content to start tracking your performance.
+            </p>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-full bg-indigo-500 shadow-sm shadow-indigo-500/30" />
-            <span className="font-medium text-muted-foreground">Engagement</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-full bg-amber-500 shadow-sm shadow-amber-500/30" />
-            <span className="font-medium text-muted-foreground">Clicks</span>
-          </div>
-        </div>
+        ) : (
+          <>
+            {/* Metric Legends */}
+            <div className="flex items-center gap-4 px-6 pb-2 text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/30" />
+                <span className="font-medium text-muted-foreground">Reach</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-full bg-indigo-500 shadow-sm shadow-indigo-500/30" />
+                <span className="font-medium text-muted-foreground">Engagement</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-full bg-amber-500 shadow-sm shadow-amber-500/30" />
+                <span className="font-medium text-muted-foreground">Clicks</span>
+              </div>
+            </div>
 
-        {/* SVG Drawing Canvas */}
-        <svg
-          ref={svgRef}
-          width={width}
-          height={height}
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
-          className="overflow-visible select-none cursor-crosshair"
-        >
-          {/* Gradients */}
-          <defs>
-            <linearGradient id="reachGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10b981" stopOpacity="0.12" />
-              <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
-            </linearGradient>
-            <linearGradient id="engGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#6366f1" stopOpacity="0.12" />
-              <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
-            </linearGradient>
-            <linearGradient id="clickGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.12" />
-              <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.0" />
-            </linearGradient>
-          </defs>
+            {/* SVG Drawing Canvas */}
+            <svg
+              ref={svgRef}
+              width={width}
+              height={height}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+              className="overflow-visible select-none cursor-crosshair"
+            >
+              {/* Gradients */}
+              <defs>
+                <linearGradient id="reachGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity="0.12" />
+                  <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                </linearGradient>
+                <linearGradient id="engGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#6366f1" stopOpacity="0.12" />
+                  <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
+                </linearGradient>
+                <linearGradient id="clickGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.12" />
+                  <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.0" />
+                </linearGradient>
+              </defs>
 
-          {/* Grid lines */}
-          {gridLines.map((line, i) => (
-            <g key={i} className="opacity-40">
-              <line
-                x1={paddingLeft}
-                y1={line.y}
-                x2={width - paddingRight}
-                y2={line.y}
-                stroke="currentColor"
-                strokeWidth="1"
-                strokeDasharray="4 4"
-                className="text-border/60"
-              />
-              <text
-                x={paddingLeft - 10}
-                y={line.y + 4}
-                textAnchor="end"
-                className="fill-muted-foreground text-[10px] font-medium"
-              >
-                {formatValue(Math.round(line.val))}
-              </text>
-            </g>
-          ))}
-
-          {count > 1 && (
-            <>
-              {/* Fill Areas */}
-              <path d={reachArea} fill="url(#reachGrad)" className="transition-all duration-300" />
-              <path d={engagementArea} fill="url(#engGrad)" className="transition-all duration-300" />
-              <path d={clicksArea} fill="url(#clickGrad)" className="transition-all duration-300" />
-
-              {/* Line Paths */}
-              <path
-                d={reachPath}
-                fill="none"
-                stroke="#10b981"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="transition-all duration-300"
-              />
-              <path
-                d={engagementPath}
-                fill="none"
-                stroke="#6366f1"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="transition-all duration-300"
-              />
-              <path
-                d={clicksPath}
-                fill="none"
-                stroke="#f59e0b"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="transition-all duration-300"
-              />
-
-              {/* Horizontal Dates Labels */}
-              {activeData.map((d, i) => {
-                if (i % labelStep !== 0 && i !== count - 1) return null
-                return (
+              {/* Grid lines */}
+              {gridLines.map((line, i) => (
+                <g key={i} className="opacity-40">
+                  <line
+                    x1={paddingLeft}
+                    y1={line.y}
+                    x2={width - paddingRight}
+                    y2={line.y}
+                    stroke="currentColor"
+                    strokeWidth="1"
+                    strokeDasharray="4 4"
+                    className="text-border/60"
+                  />
                   <text
-                    key={i}
-                    x={getX(i)}
-                    y={height - paddingBottom + 20}
-                    textAnchor="middle"
+                    x={paddingLeft - 10}
+                    y={line.y + 4}
+                    textAnchor="end"
                     className="fill-muted-foreground text-[10px] font-medium"
                   >
-                    {d.date}
+                    {formatValue(Math.round(line.val))}
                   </text>
-                )
-              })}
-
-              {/* Hover Guidelines and Highlight Nodes */}
-              {hoveredIndex !== null && (
-                <g>
-                  <line
-                    x1={getX(hoveredIndex)}
-                    y1={paddingTop}
-                    x2={getX(hoveredIndex)}
-                    y2={paddingTop + chartHeight}
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    className="text-muted-foreground/35"
-                  />
-                  {/* Reach Dot */}
-                  <circle
-                    cx={getX(hoveredIndex)}
-                    cy={getY(activeData[hoveredIndex].reach)}
-                    r="5"
-                    fill="#10b981"
-                    stroke="#fff"
-                    strokeWidth="1.5"
-                    className="shadow-sm"
-                  />
-                  {/* Engagement Dot */}
-                  <circle
-                    cx={getX(hoveredIndex)}
-                    cy={getY(activeData[hoveredIndex].engagement)}
-                    r="5"
-                    fill="#6366f1"
-                    stroke="#fff"
-                    strokeWidth="1.5"
-                    className="shadow-sm"
-                  />
-                  {/* Clicks Dot */}
-                  <circle
-                    cx={getX(hoveredIndex)}
-                    cy={getY(activeData[hoveredIndex].clicks)}
-                    r="5"
-                    fill="#f59e0b"
-                    stroke="#fff"
-                    strokeWidth="1.5"
-                    className="shadow-sm"
-                  />
                 </g>
-              )}
-            </>
-          )}
-        </svg>
+              ))}
 
-        {/* Dynamic Float Tooltip Modal */}
-        {hoveredIndex !== null && hoveredPoint && (
-          <div
-            className="absolute z-10 pointer-events-none rounded-lg border border-border/80 bg-background/95 p-3 shadow-xl backdrop-blur-sm transition-all duration-150 flex flex-col gap-1 w-[150px]"
-            style={{
-              left: `${tooltipPos.x}px`,
-              top: `${tooltipPos.y}px`
-            }}
-          >
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase border-b border-border/40 pb-1 mb-1">
-              {hoveredPoint.date}
-            </span>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground flex items-center gap-1">
-                <span className="size-1.5 rounded-full bg-emerald-500" />
-                Reach
-              </span>
-              <span className="font-bold text-foreground">{hoveredPoint.reach.toLocaleString()}</span>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground flex items-center gap-1">
-                <span className="size-1.5 rounded-full bg-indigo-500" />
-                Engage
-              </span>
-              <span className="font-bold text-foreground">{hoveredPoint.engagement.toLocaleString()}</span>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground flex items-center gap-1">
-                <span className="size-1.5 rounded-full bg-amber-500" />
-                Clicks
-              </span>
-              <span className="font-bold text-foreground">{hoveredPoint.clicks.toLocaleString()}</span>
-            </div>
-          </div>
+              {count > 1 && (
+                <>
+                  {/* Fill Areas */}
+                  <path d={reachArea} fill="url(#reachGrad)" className="transition-all duration-300" />
+                  <path d={engagementArea} fill="url(#engGrad)" className="transition-all duration-300" />
+                  <path d={clicksArea} fill="url(#clickGrad)" className="transition-all duration-300" />
+
+                  {/* Line Paths */}
+                  <path
+                    d={reachPath}
+                    fill="none"
+                    stroke="#10b981"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="transition-all duration-300"
+                  />
+                  <path
+                    d={engagementPath}
+                    fill="none"
+                    stroke="#6366f1"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="transition-all duration-300"
+                  />
+                  <path
+                    d={clicksPath}
+                    fill="none"
+                    stroke="#f59e0b"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="transition-all duration-300"
+                  />
+
+                  {/* Horizontal Dates Labels */}
+                  {activeData.map((d, i) => {
+                    if (i % labelStep !== 0 && i !== count - 1) return null
+                    return (
+                      <text
+                        key={i}
+                        x={getX(i)}
+                        y={height - paddingBottom + 20}
+                        textAnchor="middle"
+                        className="fill-muted-foreground text-[10px] font-medium"
+                      >
+                        {d.date}
+                      </text>
+                    )
+                  })}
+
+                  {/* Hover Guidelines and Highlight Nodes */}
+                  {hoveredIndex !== null && (
+                    <g>
+                      <line
+                        x1={getX(hoveredIndex)}
+                        y1={paddingTop}
+                        x2={getX(hoveredIndex)}
+                        y2={paddingTop + chartHeight}
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        className="text-muted-foreground/35"
+                      />
+                      {/* Reach Dot */}
+                      <circle
+                        cx={getX(hoveredIndex)}
+                        cy={getY(activeData[hoveredIndex].reach)}
+                        r="5"
+                        fill="#10b981"
+                        stroke="#fff"
+                        strokeWidth="1.5"
+                        className="shadow-sm"
+                      />
+                      {/* Engagement Dot */}
+                      <circle
+                        cx={getX(hoveredIndex)}
+                        cy={getY(activeData[hoveredIndex].engagement)}
+                        r="5"
+                        fill="#6366f1"
+                        stroke="#fff"
+                        strokeWidth="1.5"
+                        className="shadow-sm"
+                      />
+                      {/* Clicks Dot */}
+                      <circle
+                        cx={getX(hoveredIndex)}
+                        cy={getY(activeData[hoveredIndex].clicks)}
+                        r="5"
+                        fill="#f59e0b"
+                        stroke="#fff"
+                        strokeWidth="1.5"
+                        className="shadow-sm"
+                      />
+                    </g>
+                  )}
+                </>
+              )}
+            </svg>
+
+            {/* Dynamic Float Tooltip Modal */}
+            {hoveredIndex !== null && hoveredPoint && (
+              <div
+                className="absolute z-10 pointer-events-none rounded-lg border border-border/80 bg-background/95 p-3 shadow-xl backdrop-blur-sm transition-all duration-150 flex flex-col gap-1 w-[150px]"
+                style={{
+                  left: `${tooltipPos.x}px`,
+                  top: `${tooltipPos.y}px`
+                }}
+              >
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase border-b border-border/40 pb-1 mb-1">
+                  {hoveredPoint.date}
+                </span>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <span className="size-1.5 rounded-full bg-emerald-500" />
+                    Reach
+                  </span>
+                  <span className="font-bold text-foreground">{hoveredPoint.reach.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <span className="size-1.5 rounded-full bg-indigo-500" />
+                    Engage
+                  </span>
+                  <span className="font-bold text-foreground">{hoveredPoint.engagement.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <span className="size-1.5 rounded-full bg-amber-500" />
+                    Clicks
+                  </span>
+                  <span className="font-bold text-foreground">{hoveredPoint.clicks.toLocaleString()}</span>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>

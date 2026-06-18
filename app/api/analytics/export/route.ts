@@ -18,13 +18,13 @@ const calculatePostReach = (p: any) => {
   const likes = p.engagement?.likes || 0
   const comments = p.engagement?.comments || 0
   const shares = p.engagement?.shares || 0
-  return Math.round(likes * 12 + comments * 20 + shares * 35 + 150)
+  return Math.round(likes * 12 + comments * 20 + shares * 35)
 }
 
 const calculatePostClicks = (p: any) => {
   const likes = p.engagement?.likes || 0
   const shares = p.engagement?.shares || 0
-  return Math.round(likes * 0.4 + shares * 1.2 + 8)
+  return Math.round(likes * 0.4 + shares * 1.2)
 }
 
 const sumMetrics = (pList: any[]) => {
@@ -191,10 +191,9 @@ export async function POST(request: NextRequest) {
           return pDate.getMonth() === targetMonth && pDate.getFullYear() === (pDate.getMonth() > nowMonth ? now.getFullYear() - 1 : now.getFullYear())
         })
         const sums = sumMetrics(postsInMonth)
-        const organicBase = Math.round(totalFollowers * 0.15)
         timeseries.push({
           date: monthLabel,
-          reach: sums.reach + organicBase,
+          reach: sums.reach,
           engagement: sums.engagement,
           clicks: sums.clicks,
         })
@@ -210,14 +209,11 @@ export async function POST(request: NextRequest) {
           return pDate.getDate() === d.getDate() && pDate.getMonth() === d.getMonth() && pDate.getFullYear() === d.getFullYear()
         })
         const sums = sumMetrics(postsOnDay)
-        const seedValue = d.getDate() + d.getMonth()
-        const organicBase = Math.round(totalFollowers * 0.05 + 50)
-        const fluctuation = Math.sin(seedValue * 0.5) * 0.12 + 1
         timeseries.push({
           date: dateStr,
-          reach: Math.round((sums.reach + organicBase) * fluctuation),
-          engagement: Math.round((sums.engagement + 15) * fluctuation),
-          clicks: Math.round((sums.clicks + 8) * fluctuation),
+          reach: sums.reach,
+          engagement: sums.engagement,
+          clicks: sums.clicks,
         })
       }
     }

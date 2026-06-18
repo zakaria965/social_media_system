@@ -203,6 +203,7 @@ export default function DashboardPage() {
             trend={stats.published.trend}
             icon={CheckCircle}
             sparkline={stats.published.sparkline}
+            emptyMessage="Start publishing content to see your metrics."
           />
           <StatsCard
             title="Scheduled Posts"
@@ -211,6 +212,7 @@ export default function DashboardPage() {
             trend={stats.scheduled.trend}
             icon={CalendarCheck}
             sparkline={stats.scheduled.sparkline}
+            emptyMessage="Plan ahead by scheduling posts."
           />
           <StatsCard
             title="Reach"
@@ -219,6 +221,7 @@ export default function DashboardPage() {
             trend={stats.reach.trend}
             icon={BarChart3}
             sparkline={stats.reach.sparkline}
+            emptyMessage="No analytics data available yet. Connect a channel and publish content to start tracking performance."
           />
           <StatsCard
             title="Engagement"
@@ -227,6 +230,7 @@ export default function DashboardPage() {
             trend={stats.engagement.trend}
             icon={TrendingUp}
             sparkline={stats.engagement.sparkline}
+            emptyMessage="No engagement tracked yet. Publish content to see interaction rates."
           />
           <StatsCard
             title="Followers"
@@ -235,6 +239,7 @@ export default function DashboardPage() {
             trend={stats.followers.trend}
             icon={Users}
             sparkline={stats.followers.sparkline}
+            emptyMessage="No channels connected. Go to settings to link your accounts."
           />
           <StatsCard
             title="AI Generations"
@@ -243,6 +248,7 @@ export default function DashboardPage() {
             trend={stats.aiGenerated.trend}
             icon={Sparkles}
             sparkline={stats.aiGenerated.sparkline}
+            emptyMessage="Generate captions or content ideas using the AI Assistant."
           />
         </div>
 

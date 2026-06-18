@@ -7,14 +7,15 @@ import { cn } from "@/lib/utils"
 interface StatsCardProps {
   title: string
   value: string | number
-  change: string
-  trend: "up" | "down" | "neutral"
+  change?: string | null
+  trend?: "up" | "down" | "neutral"
   icon: LucideIcon
   sparkline?: number[]
+  emptyMessage?: string
 }
 
-export function StatsCard({ title, value, change, trend, icon: Icon, sparkline }: StatsCardProps) {
-  const hasSparkline = sparkline && sparkline.length > 1
+export function StatsCard({ title, value, change, trend, icon: Icon, sparkline, emptyMessage }: StatsCardProps) {
+  const hasSparkline = sparkline && sparkline.length > 1 && sparkline.some(v => v > 0)
   let svgPath = ""
   let fillPath = ""
   const width = 120
@@ -52,21 +53,29 @@ export function StatsCard({ title, value, change, trend, icon: Icon, sparkline }
         </div>
 
         <div className="mt-4 flex items-center justify-between gap-2 z-10">
-          <div className="flex items-center gap-1.5">
-            <span className={cn(
-              "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors duration-200",
-              trend === "up" && "bg-emerald-500/10 text-[#22C55E]",
-              trend === "down" && "bg-rose-500/10 text-rose-600",
-              trend === "neutral" && "bg-muted text-muted-foreground"
-            )}>
-              {trend === "up" && <ArrowUpRight className="size-2.5" />}
-              {trend === "down" && <ArrowDownRight className="size-2.5" />}
-              {trend === "neutral" && <Minus className="size-2.5" />}
-              {change.split(" ")[0]}
-            </span>
-            <span className="text-[9.5px] font-medium text-[#6B7280] truncate max-w-[80px]">
-              {change.substring(change.indexOf(" ") + 1)}
-            </span>
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            {change ? (
+              <>
+                <span className={cn(
+                  "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors duration-200 shrink-0",
+                  trend === "up" && "bg-emerald-500/10 text-[#22C55E]",
+                  trend === "down" && "bg-rose-500/10 text-rose-600",
+                  trend === "neutral" && "bg-muted text-muted-foreground"
+                )}>
+                  {trend === "up" && <ArrowUpRight className="size-2.5" />}
+                  {trend === "down" && <ArrowDownRight className="size-2.5" />}
+                  {trend === "neutral" && <Minus className="size-2.5" />}
+                  {change.split(" ")[0]}
+                </span>
+                <span className="text-[9.5px] font-medium text-[#6B7280] truncate">
+                  {change.substring(change.indexOf(" ") + 1)}
+                </span>
+              </>
+            ) : emptyMessage ? (
+              <span className="text-[9.5px] font-medium text-[#94A3B8] leading-normal line-clamp-2">
+                {emptyMessage}
+              </span>
+            ) : null}
           </div>
 
           {hasSparkline && (

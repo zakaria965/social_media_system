@@ -6,7 +6,8 @@ import { SocialAccount } from "@/lib/models/account"
 import { Post } from "@/lib/models/post"
 import { ActivityLog } from "@/lib/models/activity"
 import { User } from "@/lib/models/user"
-import { checkAIQuota, recordAIUsage } from "@/lib/ai-quota"
+import { AIConversation } from "@/lib/models/ai-conversation"
+import { checkAIQuota } from "@/lib/ai-quota"
 import { executeAIOperation } from "@/lib/ai/manager"
 
 // Helper to call OpenAI GPT-4o-mini for Analytics Insights and Recommendations
@@ -58,7 +59,6 @@ Ensure all descriptions are highly specific, professional, and directly referenc
     if (res.ok) {
       const data = await res.json()
       const content = data.choices?.[0]?.message?.content?.trim() || ""
-      // Clean up markdown block wraps if present
       const cleanJson = content.replace(/^```json/, "").replace(/```$/, "").trim()
       const parsed = JSON.parse(cleanJson)
       if (Array.isArray(parsed.insights) && Array.isArray(parsed.recommendations)) {
@@ -80,11 +80,11 @@ function getFallbackIntelligence(): {
 } {
   return {
     insights: [
-      "Your average account engagement increased 8.4% compared to the prior period.",
-      "Visual image and video content perform 38% better in organic reach than standard text posts.",
-      "Tuesday and Thursday posts receive a 42% higher click-through rate compared to weekends.",
+      "Your average account engagement rate is holding steady compared to the prior period.",
+      "Visual content types perform better in organic reach than standard text posts.",
+      "Tuesday and Thursday posts receive a higher click-through rate compared to weekends.",
       "Facebook Pages are driving the highest engagement spike, followed closely by LinkedIn.",
-      "AI-optimized captions correlate with a 15% boost in shares and comments across all channels.",
+      "AI-optimized captions correlate with a boost in shares and comments across all channels.",
     ],
     recommendations: [
       {
@@ -130,170 +130,32 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const timeframe = searchParams.get("timeframe") || "7d"
 
+    // Clean up previously seeded mock data
+    await SocialAccount.deleteMany({
+      userId: email,
+      $or: [
+        { accessToken: { $in: ["sandbox_token_fb", "sandbox_token_ig", "sandbox_token_tw", "sandbox_token_li", "sandbox_token_tt"] } },
+        { username: "GrowWave Sandbox Page", followers: 2450 }
+      ]
+    })
+    await Post.deleteMany({
+      userId: email,
+      title: { $in: ["GrowWave AI Dashboard Launch", "Visual Aesthetics in Modern Web Design", "Productivity Hacks for Content Creators", "Behind the Scenes at GrowWave"] }
+    })
+    await ActivityLog.deleteMany({
+      userId: email,
+      details: { $in: [
+        "Successfully published post content ('We are incredibly thrilled...') to facebook, linkedin, twitter",
+        "Successfully published image post content ('Aesthetics are everything...') to instagram, facebook",
+        "Scheduled post: 'Productivity Hacks for Content Creators' for 2 platforms",
+        "Generated 5 content ideas for topic: 'SaaS UX Architect'",
+        "Connected platform account 'GrowWave Sandbox Page'"
+      ]}
+    })
+
     // Load user databases records
     let accounts = await SocialAccount.find({ userId: email }).lean()
     let posts = await Post.find({ userId: email }).lean()
-
-    // 1. If database is completely empty (new workspace seed sandbox data first)
-    if (accounts.length === 0 && posts.length === 0) {
-      // Direct integration with Summary seeding logic to keep sandbox alive
-      const seededAccounts = [
-        {
-          userId: email,
-          platform: "facebook",
-          username: "GrowWave Sandbox Page",
-          avatar: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=100&auto=format&fit=crop&q=60",
-          accessToken: process.env._ACCESS_TOKEN || "sandbox_token_fb",
-          platformAccountId: "1094354963758763",
-          followers: 2450,
-          engagement: 4.2,
-          status: "connected",
-        },
-        {
-          userId: email,
-          platform: "instagram",
-          username: "@growwave_sandbox",
-          avatar: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=100&auto=format&fit=crop&q=60",
-          accessToken: "sandbox_token_ig",
-          platformAccountId: "sandbox_ig_id",
-          followers: 4850,
-          engagement: 5.8,
-          status: "connected",
-        },
-        {
-          userId: email,
-          platform: "twitter",
-          username: "@growwave_ai",
-          avatar: "https://images.unsplash.com/photo-1611605698335-8b15d27e03f2?w=100&auto=format&fit=crop&q=60",
-          accessToken: "sandbox_token_tw",
-          platformAccountId: "sandbox_tw_id",
-          followers: 5120,
-          engagement: 2.9,
-          status: "connected",
-        },
-        {
-          userId: email,
-          platform: "linkedin",
-          username: "GrowWave Enterprise",
-          avatar: "https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100&auto=format&fit=crop&q=60",
-          accessToken: "sandbox_token_li",
-          platformAccountId: "sandbox_li_id",
-          followers: 3100,
-          engagement: 3.8,
-          status: "connected",
-        },
-        {
-          userId: email,
-          platform: "tiktok",
-          username: "@growwave_clips",
-          avatar: "https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?w=100&auto=format&fit=crop&q=60",
-          accessToken: "sandbox_token_tt",
-          platformAccountId: "sandbox_tt_id",
-          followers: 12400,
-          engagement: 8.4,
-          status: "connected",
-        }
-      ]
-      
-      await SocialAccount.insertMany(seededAccounts)
-      
-      const seededPosts = [
-        {
-          userId: email,
-          title: "GrowWave AI Dashboard Launch",
-          content: "We are incredibly thrilled to announce the brand new GrowWave AI Social Media Operating System! Get complete, real-time control of your performance, planning, and content growth. Let us know what you think!",
-          platforms: ["facebook", "linkedin", "twitter"],
-          status: "published",
-          type: "text",
-          engagement: { likes: 342, comments: 45, shares: 28 },
-          publishedAt: new Date(Date.now() - 24 * 60 * 60 * 1000 * 2), // 2 days ago
-          createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000 * 2),
-        },
-        {
-          userId: email,
-          title: "Visual Aesthetics in Modern Web Design",
-          content: "Aesthetics are everything in modern SaaS design. From smooth micro-interactions to vibrant dark modes, design is what builds trust first.",
-          platforms: ["instagram", "facebook"],
-          status: "published",
-          type: "image",
-          media: ["https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=800&auto=format&fit=crop&q=60"],
-          engagement: { likes: 512, comments: 89, shares: 12 },
-          publishedAt: new Date(Date.now() - 24 * 60 * 60 * 1000 * 5), // 5 days ago
-          createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000 * 5),
-        },
-        {
-          userId: email,
-          title: "Productivity Hacks for Content Creators",
-          content: "Creating high-performing content requires structure. Batch your content, rely on AI intelligence for optimization, and watch your brand grow.",
-          platforms: ["twitter", "linkedin"],
-          status: "scheduled",
-          type: "text",
-          scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // scheduled tomorrow
-          createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
-        },
-        {
-          userId: email,
-          title: "Behind the Scenes at GrowWave",
-          content: "Designing the new Vercel-like dashboard was a masterclass in UI engineering. Here's a look at how we optimized our server queries.",
-          platforms: ["tiktok"],
-          status: "draft",
-          type: "video",
-          media: ["https://assets.mixkit.co/videos/preview/mixkit-software-developer-working-on-his-computer-43187-large.mp4"],
-          createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
-        }
-      ]
-
-      await Post.insertMany(seededPosts)
-
-      const seededActivities = [
-        {
-          userId: email,
-          action: "publish_post",
-          details: "Successfully published post content ('We are incredibly thrilled...') to facebook, linkedin, twitter",
-          platform: "facebook",
-          status: "success",
-          createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000 * 2),
-        },
-        {
-          userId: email,
-          action: "publish_post",
-          details: "Successfully published image post content ('Aesthetics are everything...') to instagram, facebook",
-          platform: "instagram",
-          status: "success",
-          createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000 * 5),
-        },
-        {
-          userId: email,
-          action: "create_post",
-          details: "Scheduled post: 'Productivity Hacks for Content Creators' for 2 platforms",
-          platform: "linkedin",
-          status: "success",
-          createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
-        },
-        {
-          userId: email,
-          action: "ai_generation",
-          details: "Generated 5 content ideas for topic: 'SaaS UX Architect'",
-          platform: null,
-          status: "success",
-          createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
-        },
-        {
-          userId: email,
-          action: "connect_account",
-          details: "Connected platform account 'GrowWave Sandbox Page'",
-          platform: "facebook",
-          status: "success",
-          createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000 * 6),
-        }
-      ]
-
-      await ActivityLog.insertMany(seededActivities)
-
-      // Reload
-      accounts = await SocialAccount.find({ userId: email }).lean()
-      posts = await Post.find({ userId: email }).lean()
-    }
 
     // Filter published posts
     const publishedPosts = posts.filter((p) => p.status === "published")
@@ -336,13 +198,13 @@ export async function GET(request: NextRequest) {
       const likes = p.engagement?.likes || 0
       const comments = p.engagement?.comments || 0
       const shares = p.engagement?.shares || 0
-      return Math.round(likes * 12 + comments * 20 + shares * 35 + 150)
+      return Math.round(likes * 12 + comments * 20 + shares * 35)
     }
 
     const calculatePostClicks = (p: any) => {
       const likes = p.engagement?.likes || 0
       const shares = p.engagement?.shares || 0
-      return Math.round(likes * 0.4 + shares * 1.2 + 8)
+      return Math.round(likes * 0.4 + shares * 1.2)
     }
 
     // Sum functions
@@ -364,7 +226,7 @@ export async function GET(request: NextRequest) {
     
     // Period over Period calculations (percentage changes)
     const getPercentageChange = (curr: number, prev: number) => {
-      if (prev === 0) return curr > 0 ? "+100%" : "0%"
+      if (prev === 0) return null
       const diff = ((curr - prev) / prev) * 100
       const sign = diff >= 0 ? "+" : ""
       return `${sign}${diff.toFixed(1)}%`
@@ -374,31 +236,35 @@ export async function GET(request: NextRequest) {
     const scheduledPostsCount = posts.filter((p) => p.status === "scheduled").length
     const draftPostsCount = posts.filter((p) => p.status === "draft").length
 
-    const aiActionsCount = await ActivityLog.countDocuments({
-      userId: email,
-      action: { $in: ["ai_generation", "generate_caption", "generate_hashtags", "content_ideas"] },
-    })
+    // Count assistant messages from AI conversation history
+    const conversations = await AIConversation.find({ userId: email }).lean()
+    let aiActionsCount = 0
+    for (const conv of conversations) {
+      if (Array.isArray(conv.messages)) {
+        aiActionsCount += conv.messages.filter(msg => msg.role === "assistant").length
+      }
+    }
 
     const overview = {
       reach: {
         value: currentSums.reach >= 1000 ? `${(currentSums.reach / 1000).toFixed(1)}K` : `${currentSums.reach}`,
         change: getPercentageChange(currentSums.reach, previousSums.reach),
-        trend: currentSums.reach >= previousSums.reach ? "up" : "down",
+        trend: getPercentageChange(currentSums.reach, previousSums.reach) ? (currentSums.reach >= previousSums.reach ? "up" : "down") : "neutral",
       },
       engagement: {
         value: currentSums.engagement >= 1000 ? `${(currentSums.engagement / 1000).toFixed(1)}K` : `${currentSums.engagement}`,
         change: getPercentageChange(currentSums.engagement, previousSums.engagement),
-        trend: currentSums.engagement >= previousSums.engagement ? "up" : "down",
+        trend: getPercentageChange(currentSums.engagement, previousSums.engagement) ? (currentSums.engagement >= previousSums.engagement ? "up" : "down") : "neutral",
       },
       followers: {
         value: totalFollowers.toLocaleString(),
-        change: timeframe === "7d" ? "+1.8% this week" : timeframe === "30d" ? "+5.4% this month" : "+12.8% last 90 days",
-        trend: "up",
+        change: null,
+        trend: "neutral",
       },
       clicks: {
         value: currentSums.clicks >= 1000 ? `${(currentSums.clicks / 1000).toFixed(1)}K` : `${currentSums.clicks}`,
         change: getPercentageChange(currentSums.clicks, previousSums.clicks),
-        trend: currentSums.clicks >= previousSums.clicks ? "up" : "down",
+        trend: getPercentageChange(currentSums.clicks, previousSums.clicks) ? (currentSums.clicks >= previousSums.clicks ? "up" : "down") : "neutral",
       },
       publishedCount: publishedPosts.length,
       scheduledCount: scheduledPostsCount,
@@ -425,15 +291,14 @@ export async function GET(request: NextRequest) {
         })
 
         const sums = sumMetrics(postsInMonth)
-        const organicBase = Math.round(totalFollowers * 0.15)
         timeseries.push({
           date: monthLabel,
-          reach: sums.reach + organicBase,
+          reach: sums.reach,
           engagement: sums.engagement,
           comments: sums.comments,
           shares: sums.shares,
           clicks: sums.clicks,
-          followersGrowth: Math.round(sums.engagement * 0.08 + 25),
+          followersGrowth: 0,
         })
       }
     } else {
@@ -454,18 +319,14 @@ export async function GET(request: NextRequest) {
         })
 
         const sums = sumMetrics(postsOnDay)
-        const seedValue = d.getDate() + d.getMonth()
-        const organicBase = Math.round(totalFollowers * 0.05 + 50)
-        const fluctuation = Math.sin(seedValue * 0.5) * 0.12 + 1
-
         timeseries.push({
           date: dateStr,
-          reach: Math.round((sums.reach + organicBase) * fluctuation),
-          engagement: Math.round((sums.engagement + 15) * fluctuation),
-          comments: Math.round((sums.comments + 4) * fluctuation),
-          shares: Math.round((sums.shares + 2) * fluctuation),
-          clicks: Math.round((sums.clicks + 8) * fluctuation),
-          followersGrowth: Math.round((sums.engagement * 0.1 + 3) * fluctuation),
+          reach: sums.reach,
+          engagement: sums.engagement,
+          comments: sums.comments,
+          shares: sums.shares,
+          clicks: sums.clicks,
+          followersGrowth: 0,
         })
       }
     }
@@ -497,10 +358,10 @@ export async function GET(request: NextRequest) {
 
       return {
         platform: plat,
-        reach: sums.reach + Math.round(followers * 1.2),
+        reach: sums.reach,
         engagement: sums.engagement,
         followers,
-        growth: account ? "+4.2%" : "0%",
+        growth: null,
         topPost,
         lastSync,
         status,
@@ -524,7 +385,7 @@ export async function GET(request: NextRequest) {
         comments: p.engagement?.comments || 0,
         shares: p.engagement?.shares || 0,
         clicks,
-        saves: Math.round((p.engagement?.likes || 0) * 0.15),
+        saves: 0,
         engagement,
         publishDate: p.publishedAt,
         type: p.type,
@@ -547,15 +408,14 @@ export async function GET(request: NextRequest) {
     // AUDIENCE DETAILS (Section 6)
     const daysArr = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     const audienceGrowthRate = {
-      daily: Math.round(totalFollowers * 0.002 + 8),
-      weekly: Math.round(totalFollowers * 0.015 + 56),
-      monthly: Math.round(totalFollowers * 0.062 + 245),
+      daily: 0,
+      weekly: 0,
+      monthly: 0,
     }
 
     // Activity distribution by hour (0 to 23)
     const audienceActivityByHour = Array.from({ length: 24 }, (_, hour) => {
-      // Standard activity curve peaking in mornings 9 AM and evenings 8 PM
-      let baseVal = 20
+      let baseVal = 0
       if (hour >= 8 && hour <= 11) baseVal = 78
       else if (hour >= 18 && hour <= 21) baseVal = 86
       else if (hour >= 12 && hour <= 17) baseVal = 55
@@ -564,16 +424,15 @@ export async function GET(request: NextRequest) {
     })
 
     const audienceRetention = [
-      { week: "Week 1", retention: 98 },
-      { week: "Week 2", retention: 94 },
-      { week: "Week 3", retention: 89 },
-      { week: "Week 4", retention: 85 },
-      { week: "Week 5", retention: 82 },
-      { week: "Week 6", retention: 80 },
+      { week: "Week 1", retention: 100 },
+      { week: "Week 2", retention: 100 },
+      { week: "Week 3", retention: 100 },
+      { week: "Week 4", retention: 100 },
+      { week: "Week 5", retention: 100 },
+      { week: "Week 6", retention: 100 },
     ]
 
     // PUBLISHING INSIGHTS (Section 7)
-    // Map performance metrics across weekdays and hours
     const dayPerformanceSums: Record<number, { count: number; reachSum: number }> = {}
     const hourPerformanceSums: Record<number, { count: number; reachSum: number }> = {}
 
@@ -627,15 +486,15 @@ export async function GET(request: NextRequest) {
     const worstDayLabel = daysArr[worstDayIdx]
     const bestHourLabel = `${bestHourIdx === 0 ? 12 : bestHourIdx > 12 ? bestHourIdx - 12 : bestHourIdx}:00 ${bestHourIdx >= 12 ? "PM" : "AM"}`
 
-    const avgReach = Math.round(publishedPosts.reduce((sum, p) => sum + calculatePostReach(p), 0) / publishedPosts.length)
-    const avgEngagement = parseFloat(
+    const avgReach = publishedPosts.length > 0 ? Math.round(publishedPosts.reduce((sum, p) => sum + calculatePostReach(p), 0) / publishedPosts.length) : 0
+    const avgEngagement = publishedPosts.length > 0 ? parseFloat(
       (
         publishedPosts.reduce(
           (sum, p) => sum + (p.engagement?.likes || 0) + (p.engagement?.comments || 0) + (p.engagement?.shares || 0),
           0
         ) / publishedPosts.length
       ).toFixed(1)
-    )
+    ) : 0
     const totalReachSum = publishedPosts.reduce((sum, p) => sum + calculatePostReach(p), 0)
     const totalClicksSum = publishedPosts.reduce((sum, p) => sum + calculatePostClicks(p), 0)
     const avgClickRate = totalReachSum > 0 ? parseFloat(((totalClicksSum / totalReachSum) * 100).toFixed(2)) : 0
@@ -655,9 +514,9 @@ export async function GET(request: NextRequest) {
       mostActiveTime: `${bestHourIdx}:00 - ${bestHourIdx + 2}:00`,
       growthRate: audienceGrowthRate,
       interactionPattern: {
-        likesPercentage: currentSums.engagement > 0 ? Math.round((currentSums.likes / currentSums.engagement) * 100) : 70,
-        commentsPercentage: currentSums.engagement > 0 ? Math.round((currentSums.comments / currentSums.engagement) * 100) : 20,
-        sharesPercentage: currentSums.engagement > 0 ? Math.round((currentSums.shares / currentSums.engagement) * 100) : 10,
+        likesPercentage: currentSums.engagement > 0 ? Math.round((currentSums.likes / currentSums.engagement) * 100) : 0,
+        commentsPercentage: currentSums.engagement > 0 ? Math.round((currentSums.comments / currentSums.engagement) * 100) : 0,
+        sharesPercentage: currentSums.engagement > 0 ? Math.round((currentSums.shares / currentSums.engagement) * 100) : 0,
       },
       topCategories: ["Product Launch", "Visual Design", "Industry Guides", "Team Behind-the-Scenes"],
       platformPreferences: "LinkedIn performs best for professional text articles. Instagram and Facebook exhibit peak click-through metrics on highly visual media attachments.",
@@ -846,14 +705,14 @@ export async function POST(request: NextRequest) {
         }
       } else {
         // Sandboxed sync simulated parameters for LinkedIn, Twitter, Instagram, TikTok
-        acc.followers += Math.round(acc.followers * 0.005 + Math.random() * 8) // +0.5% growth
+        // No simulated growth increments - keep followers count stable
         acc.status = "connected"
         await acc.save()
         logs.push(`Simulated credentials handshake and synchronization for ${acc.platform.toUpperCase()} sandbox account`)
       }
     }
 
-    // Write a system activity log log for this refresh
+    // Write a system activity log for this refresh
     await ActivityLog.create({
       userId: email,
       action: "sync_analytics",
