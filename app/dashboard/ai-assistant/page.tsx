@@ -41,7 +41,8 @@ import {
   Bookmark,
   ExternalLink,
   PlusCircle,
-  FileText
+  FileText,
+  MoreVertical
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -91,12 +92,10 @@ const suggestedPrompts = [
 ]
 
 const quickActions = [
-  { label: "Generate Caption", prompt: "Write a LinkedIn post about AI" },
-  { label: "Analyze Analytics", prompt: "Analyze my engagement this week" },
-  { label: "Create Calendar", prompt: "Create a 30-day content calendar" },
-  { label: "Growth Strategy", prompt: "How can I grow faster?" },
-  { label: "Weekly Report", prompt: "How is my workspace today?" },
-  { label: "Content Ideas", prompt: "What should I post tomorrow?" }
+  { label: "Create Content", prompt: "Write an engaging social media post for my brand." },
+  { label: "Generate Hashtags", prompt: "Suggest high-performing trending hashtags for social media." },
+  { label: "30-Day Content Plan", prompt: "/calendar 30 days" },
+  { label: "Analyze Performance", prompt: "/report today" }
 ]
 
 const slashCommands = [
@@ -115,8 +114,8 @@ const slashCommands = [
 // Rotational thinking phase list
 const thinkingPhases = [
   "Thinking...",
-  "Analyzing workspace...",
-  "Generating content..."
+  "Generating Strategy...",
+  "Analyzing Data..."
 ]
 
 export default function AIAssistantPage() {
@@ -127,6 +126,8 @@ export default function AIAssistantPage() {
   // Panel layout toggles
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false)
   const [rightSidebarOpen, setRightSidebarOpen] = useState(false)
+  const [threeDotMenuOpen, setThreeDotMenuOpen] = useState(false)
+  const [aiToolsOpen, setAiToolsOpen] = useState(false)
   
   // Chats state & filter
   const [chats, setChats] = useState<ChatSession[]>([])
@@ -818,9 +819,6 @@ export default function AIAssistantPage() {
     return matchesSearch && matchesTag && matchesArchive
   })
 
-  const pinnedChats = filteredChats.filter((c) => c.pinned)
-  const recentChats = filteredChats.filter((c) => !c.pinned)
-
   // Context-aware AI action triggers helper
   const getContextualActions = (content: string) => {
     const actions = []
@@ -841,105 +839,577 @@ export default function AIAssistantPage() {
     return actions
   }
 
+  // Quick Action triggers
+  const handleQuickAction = (label: string, promptText: string) => {
+    if (promptText.startsWith("/")) {
+      handleSend(promptText)
+    } else {
+      setInputVal(promptText)
+    }
+  }
+
+  // AI Tool Selection trigger
+  const handleToolClick = (toolPrompt: string) => {
+    if (toolPrompt.startsWith("/")) {
+      if (toolPrompt === "/calendar 30 days" || toolPrompt === "/report today") {
+        handleSend(toolPrompt)
+      } else {
+        setInputVal(toolPrompt)
+      }
+    } else {
+      setInputVal(toolPrompt)
+    }
+  }
+
+  // History Drawer grouping helper
+  const getGroupedChats = () => {
+    const now = new Date()
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+    const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000
+    const startOf7DaysAgo = startOfToday - 7 * 24 * 60 * 60 * 1000
+    const startOf30DaysAgo = startOfToday - 30 * 24 * 60 * 60 * 1000
+
+    const groups: {
+      today: ChatSession[]
+      yesterday: ChatSession[]
+      last7Days: ChatSession[]
+      last30Days: ChatSession[]
+      older: ChatSession[]
+    } = {
+      today: [],
+      yesterday: [],
+      last7Days: [],
+      last30Days: [],
+      older: []
+    }
+
+    filteredChats.forEach((c) => {
+      const time = new Date(c.updatedAt).getTime()
+      if (time >= startOfToday) {
+        groups.today.push(c)
+      } else if (time >= startOfYesterday) {
+        groups.yesterday.push(c)
+      } else if (time >= startOf7DaysAgo) {
+        groups.last7Days.push(c)
+      } else if (time >= startOf30DaysAgo) {
+        groups.last30Days.push(c)
+      } else {
+        groups.older.push(c)
+      }
+    })
+
+    return groups
+  }
+
   return (
     <PageTransition>
-      <div className="flex h-[calc(100vh-140px)] w-full overflow-hidden rounded-2xl bg-[#FFFFFF] shadow-card relative border-0">
+      <div className="flex flex-col h-[calc(100vh-140px)] w-full overflow-hidden rounded-[20px] bg-[#FCFAF6] shadow-[0_4px_30px_rgba(0,0,0,0.02)] border border-slate-200/60 relative">
         
-        {/* PANEL 1: Collapsible History Sidebar (Left) */}
-        <div
-          className={cn(
-            "absolute inset-y-0 left-0 z-50 w-72 shrink-0 border-r border-[#EEF2F7] bg-[#FCFAF6] transition-all duration-300 md:relative md:translate-x-0 md:bg-[#FCFAF6]",
-            leftSidebarOpen ? "translate-x-0" : "-translate-x-full"
-          )}
-        >
-          <div className="flex h-full flex-col">
-            {/* Header Area */}
-            <div className="p-4 border-b border-[#EEF2F7] flex items-center justify-between gap-2 shrink-0">
-              <Button
-                onClick={() => handleNewChat()}
-                variant="outline"
-                className="flex-1 h-9 rounded-xl text-xs gap-1.5 border-[#EEF2F7] hover:bg-[#FCFAF6] font-semibold bg-[#FFFFFF]"
-              >
-                <Plus className="size-3.5" /> New conversation
-              </Button>
+        {/* HEADER PANEL */}
+        <div className="px-6 py-4 border-b border-[#EEF2F7] flex items-center justify-between shrink-0 bg-[#FFFFFF] z-30 shadow-2xs">
+          <div className="flex items-center gap-3">
+            {/* ☰ History Toggle Button */}
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 border border-slate-100"
+              onClick={() => setLeftSidebarOpen(true)}
+            >
+              <Menu className="size-4" />
+              <span>☰ History</span>
+            </Button>
+            
+            {/* Header Title / Brand */}
+            <span className="font-bold text-sm flex items-center gap-1.5 text-[#1E293B] select-none ml-2">
+              <span className="text-primary text-base">✨</span> GrowWave AI
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* AI Model Selector */}
+            <Select value={selectedModel} onValueChange={(val: "gemini" | "zai") => setSelectedModel(val)}>
+              <SelectTrigger className="h-9 w-[110px] text-xs rounded-xl border-0 bg-transparent hover:bg-slate-50 font-semibold text-[#374151] flex items-center justify-between gap-1 focus:ring-0 focus:ring-offset-0 px-2.5">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border border-slate-100 bg-[#FFFFFF] shadow-lg">
+                <SelectItem value="gemini" className="text-xs focus:bg-emerald-50 focus:text-emerald-900 rounded-lg">Gemini</SelectItem>
+                <SelectItem value="zai" className="text-xs focus:bg-blue-50 focus:text-blue-900 rounded-lg">Z.ai</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Three-dot Dropdown Menu Button */}
+            <div className="relative">
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden size-8 text-muted-foreground"
-                onClick={() => setLeftSidebarOpen(false)}
+                className={cn(
+                  "size-9 rounded-xl border border-slate-100 text-[#64748B] hover:bg-slate-50",
+                  threeDotMenuOpen && "bg-slate-50 text-slate-800"
+                )}
+                onClick={() => setThreeDotMenuOpen(!threeDotMenuOpen)}
               >
-                <X className="size-4" />
+                <MoreVertical className="size-4.5" />
+              </Button>
+
+              {threeDotMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setThreeDotMenuOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-48 rounded-xl border border-slate-100 bg-[#FFFFFF] p-1.5 shadow-lg z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <button
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={() => {
+                        setThreeDotMenuOpen(false)
+                        if (activeChat) exportChatData(activeChat)
+                      }}
+                      disabled={!activeChat || activeMessages.length === 0}
+                    >
+                      <Download className="size-3.5 text-slate-500" />
+                      <span>Export Logs</span>
+                    </button>
+                    <button
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                      onClick={() => {
+                        setThreeDotMenuOpen(false)
+                        setRightSidebarOpen(true)
+                      }}
+                    >
+                      <Layers className="size-3.5 text-slate-500" />
+                      <span>Workspace Insights</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* CHAT MESSAGES CANVAS (Centered) */}
+        <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8 space-y-6 bg-[#FCFAF6] w-full">
+          
+          {/* EMPTY STATE / WELCOME HERO */}
+          {activeMessages.length === 0 ? (
+            <div className="h-full flex flex-col justify-center items-center text-center space-y-8 py-12 max-w-2xl mx-auto">
+              <div className="space-y-4">
+                <div className="size-16 rounded-[20px] bg-[#FFFFFF] shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex items-center justify-center mx-auto border border-slate-100 animate-bounce">
+                  <span className="text-3xl">✨</span>
+                </div>
+                <h1 className="text-3xl font-extrabold tracking-tight text-[#111827]">
+                  GrowWave AI Assistant
+                </h1>
+                <p className="text-sm text-[#64748B] leading-relaxed max-w-lg mx-auto font-medium">
+                  Your intelligent social media strategist. Generate content, plan campaigns, analyze performance, and grow faster with AI.
+                </p>
+              </div>
+
+              {/* Suggestions Grid */}
+              <div className="grid gap-3.5 sm:grid-cols-2 w-full pt-4">
+                {quickActions.map((q, idx) => (
+                  <div
+                    key={idx}
+                    className="group flex flex-col text-left p-4 rounded-[20px] bg-[#FFFFFF] cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.02)] border border-slate-200/60 hover:border-primary/40"
+                    onClick={() => handleQuickAction(q.label, q.prompt)}
+                  >
+                    <span className="text-xs font-bold text-[#111827] group-hover:text-primary transition-colors flex items-center justify-between">
+                      {q.label}
+                      <ChevronRight className="size-3.5 text-slate-400 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                    </span>
+                    <span className="text-[10px] text-slate-400 mt-1.5 font-bold uppercase tracking-wider">
+                      {q.label === "Create Content" ? "Content Writer" : q.label === "Generate Hashtags" ? "Caption tool" : q.label === "30-Day Content Plan" ? "Calendar Builder" : "Analytics"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            // MESSAGES TIMELINE Flow
+            <div className="max-w-[900px] mx-auto space-y-6">
+              {activeMessages.map((msg, index) => (
+                <div
+                  key={index}
+                  className={cn(
+                    "flex flex-col space-y-1.5 w-full",
+                    msg.role === "user" ? "items-end" : "items-start"
+                  )}
+                >
+                  {/* Model badge and timestamp for Assistant responses */}
+                  {msg.role === "assistant" && (
+                    <div className="flex items-center gap-2 px-1 text-[10px] text-slate-400 font-semibold select-none">
+                      <span className={cn(
+                        "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase border",
+                        msg.model === "zai"
+                          ? "bg-blue-50/80 border-blue-100 text-blue-600"
+                          : "bg-emerald-50/80 border-emerald-100 text-emerald-600"
+                      )}>
+                        {msg.model === "zai" ? "🔵 Z.ai" : "🟢 Gemini"}
+                      </span>
+                      <span>{msg.timestamp}</span>
+                      <button
+                        className="opacity-0 group-hover/msg:opacity-100 hover:text-primary transition-all p-0.5 cursor-pointer ml-1"
+                        onClick={() => handlePinInsight(msg.content)}
+                        title="Pin Insight to workspace drawer"
+                      >
+                        <Bookmark className="size-3" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Message Bubble */}
+                  <div
+                    className={cn(
+                      "p-4.5 rounded-[20px] text-sm leading-relaxed relative group/msg max-w-[82%] border-0 transition-all duration-200",
+                      msg.role === "user"
+                        ? "bg-[#EBFEEB] text-slate-900 rounded-tr-none shadow-[0_2px_12px_rgba(48,252,71,0.04)]"
+                        : "bg-[#FFFFFF] text-slate-900 rounded-tl-none shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-[#F1F5F9]"
+                    )}
+                  >
+                    {msg.role === "user" && (
+                      <div className="flex items-center justify-between gap-6 mb-1 text-[9px] text-slate-500/80 font-bold uppercase select-none">
+                        <span>You</span>
+                        <span>{msg.timestamp}</span>
+                      </div>
+                    )}
+
+                    <div className="space-y-2 text-[#1E293B]">
+                      {msg.errorType ? (
+                        <div className="p-4 rounded-xl border bg-destructive/5 border-destructive/20 text-foreground flex flex-col gap-3 w-full">
+                          <div className="flex items-start gap-2.5">
+                            <span className="text-destructive font-bold text-base mt-0.5">⚠️</span>
+                            <div>
+                              <h4 className="font-bold text-xs text-destructive">
+                                {msg.errorType === "QUOTA_EXCEEDED" && "AI Limit Reached"}
+                                {msg.errorType === "CONFIG_INCOMPLETE" && "Configuration Incomplete"}
+                                {msg.errorType === "SERVICE_UNAVAILABLE" && "Temporarily Unavailable"}
+                              </h4>
+                              <p className="text-xs text-[#64748B] mt-1 leading-normal font-medium">
+                                {msg.content}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 justify-end mt-1">
+                            {msg.errorType === "QUOTA_EXCEEDED" && (
+                              <Button
+                                variant="outline"
+                                size="xs"
+                                className="h-7 text-[10.5px] border-primary/20 hover:border-primary/40 text-primary hover:bg-primary/5 font-semibold bg-[#FFFFFF]"
+                                onClick={() => router.push("/pricing")}
+                              >
+                                Upgrade to Pro
+                              </Button>
+                            )}
+                            {(msg.errorType === "SERVICE_UNAVAILABLE" || msg.errorType === "QUOTA_EXCEEDED") && (
+                              <Button
+                                variant="outline"
+                                size="xs"
+                                className="h-7 text-[10.5px] border-primary/20 hover:border-primary/40 text-primary hover:bg-primary/5 font-semibold bg-[#FFFFFF]"
+                                onClick={() => {
+                                  const lastUserMsg = activeMessages
+                                    .slice(0, activeMessages.indexOf(msg))
+                                    .reverse()
+                                    .find((m) => m.role === "user")
+                                  if (lastUserMsg) {
+                                    handleSend(lastUserMsg.content)
+                                  }
+                                }}
+                              >
+                                Retry
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        renderMessageContent(msg.content)
+                      )}
+                    </div>
+
+                    {/* Dynamic Context-Aware Action Cards */}
+                    {msg.role === "assistant" && !msg.errorType && (
+                      <div className="pt-3 border-t border-slate-100 mt-4 flex flex-wrap gap-2 items-center justify-between select-none">
+                        <div className="flex flex-wrap gap-1.5">
+                          {getContextualActions(msg.content).map((act, aIdx) => (
+                            <Button
+                              key={aIdx}
+                              variant="outline"
+                              size="xs"
+                              className="h-6 px-2.5 text-[10px] rounded-lg gap-1 border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-800 transition-all font-semibold bg-[#FFFFFF]"
+                              onClick={() => handleAction(act.type, msg.content)}
+                            >
+                              <act.icon className="size-3 text-slate-500" />
+                              {act.label}
+                            </Button>
+                          ))}
+                        </div>
+                        
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="xs"
+                            className="h-6 px-2 text-[10px] text-slate-400 hover:text-slate-700 font-semibold"
+                            onClick={() => handleCopyText(msg.content)}
+                          >
+                            <Copy className="size-3" /> Copy
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {/* Streaming loading phase */}
+              {streaming && (
+                <div className="flex flex-col space-y-1.5 w-full items-start">
+                  <div className="flex items-center gap-2 px-1 text-[10px] text-slate-400 font-semibold select-none">
+                    <span className={cn(
+                      "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase border",
+                      selectedModel === "zai"
+                        ? "bg-blue-50 border-blue-100 text-blue-600"
+                        : "bg-emerald-50 border-emerald-100 text-emerald-600"
+                    )}>
+                      {selectedModel === "zai" ? "🔵 Z.ai" : "🟢 Gemini"}
+                    </span>
+                    <span className="flex items-center gap-1 font-bold text-primary">
+                      <span className="size-1 rounded-full bg-primary inline-block animate-ping" />
+                      {currentResponse ? "streaming..." : generatingText}
+                    </span>
+                  </div>
+
+                  <div className="p-4.5 rounded-[20px] rounded-tl-none text-sm leading-relaxed bg-[#FFFFFF] text-[#1E293B] shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-[#F1F5F9] w-full max-w-[82%]">
+                    {currentResponse ? (
+                      renderMessageContent(currentResponse)
+                    ) : (
+                      <div className="flex items-center gap-2.5 py-1 text-slate-400">
+                        <Loader2 className="size-4 animate-spin text-slate-400" />
+                        <span className="italic font-semibold animate-pulse">{generatingText}</span>
+                      </div>
+                    )}
+                    <span className="inline-block size-2 bg-primary rounded-full animate-ping ml-1" />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div ref={chatEndRef} />
+        </div>
+
+        {/* INPUT CONTAINER (Centered & Premium) */}
+        <div className="p-4 bg-[#FCFAF6] shrink-0 border-t border-slate-100/50">
+          <div className="max-w-[900px] mx-auto relative w-full flex flex-col bg-[#FFFFFF] rounded-[20px] border border-slate-200 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10 transition-all shadow-sm">
+            
+            {/* Expandable AI Tools Menu Panel */}
+            {aiToolsOpen && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3.5 border-b border-slate-100 bg-slate-50/50 rounded-t-[20px] animate-in fade-in duration-200">
+                {[
+                  { id: "writer", name: "Content Writer", prompt: "Write content about ", icon: FileText },
+                  { id: "caption", name: "Caption Generator", prompt: "/caption ", icon: Sparkles },
+                  { id: "calendar", name: "Calendar Builder", prompt: "/calendar 30 days", icon: Calendar },
+                  { id: "analytics", name: "Analytics Review", prompt: "/analyze ", icon: Activity },
+                  { id: "growth", name: "Growth Strategy", prompt: "/growth ", icon: TrendingUp },
+                  { id: "reports", name: "Reports", prompt: "/report today", icon: FileText }
+                ].map((tool, idx) => (
+                  <button
+                    key={idx}
+                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white border border-slate-100 hover:border-slate-200 hover:shadow-xs text-left transition-all text-xs font-semibold text-slate-700"
+                    onClick={() => {
+                      handleToolClick(tool.prompt)
+                      setAiToolsOpen(false)
+                    }}
+                  >
+                    <tool.icon className="size-4 text-slate-500 shrink-0" />
+                    <span className="truncate">{tool.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Slash Commands Dialog Overlay */}
+            {showCommands && (
+              <div className="absolute bottom-[calc(100%+8px)] left-0 right-0 bg-background border border-border rounded-xl shadow-lg max-h-52 overflow-y-auto z-40 divide-y divide-border/40 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                <div className="px-3.5 py-2 text-[10px] uppercase font-bold tracking-wider text-muted-foreground bg-muted/10 flex items-center justify-between">
+                  <span>Quick assistant commands</span>
+                  <span>ESC to close</span>
+                </div>
+                {slashCommands.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="px-3.5 py-2 flex items-center justify-between cursor-pointer hover:bg-muted/40 transition-colors"
+                    onClick={() => handleSelectCommand(item)}
+                  >
+                    <div>
+                      <span className="text-xs font-bold text-primary">{item.cmd}</span>
+                      <span className="text-xs text-foreground font-semibold ml-3">{item.desc}</span>
+                    </div>
+                    <ChevronRight className="size-3 text-muted-foreground/60" />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Input Textarea */}
+            <textarea
+              placeholder="Ask the Copilot... Type '/' for commands, click 'AI Tools' for helpers..."
+              value={inputVal}
+              onChange={(e) => {
+                setInputVal(e.target.value)
+                if (e.target.value.startsWith("/")) {
+                  setShowCommands(true)
+                } else {
+                  setShowCommands(false)
+                }
+              }}
+              onKeyDown={handleKeyDown}
+              rows={2}
+              className="w-full min-h-[50px] max-h-36 resize-none bg-transparent border-0 outline-none text-xs px-4 py-3 text-foreground placeholder:text-slate-400 focus:ring-0 focus:ring-offset-0"
+            />
+
+            {/* Input Action Panel Row */}
+            <div className="flex items-center justify-between border-t border-slate-100/50 px-4 py-2.5 bg-[#FFFFFF] rounded-b-[20px] select-none">
+              <div className="flex items-center gap-2.5">
+                {/* Attach File Button */}
+                <button
+                  className="size-7 flex items-center justify-center rounded-lg hover:bg-slate-50 border border-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
+                  onClick={() => showToast("Select files to upload", "info")}
+                  title="Attach file"
+                >
+                  <Paperclip className="size-3.5" />
+                </button>
+
+                {/* AI Tools Menu Toggle */}
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => setAiToolsOpen(!aiToolsOpen)}
+                  className={cn(
+                    "h-7 text-[10px] px-2.5 rounded-lg gap-1 border border-slate-100 font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors",
+                    aiToolsOpen && "bg-slate-50 text-slate-900 border-primary/20"
+                  )}
+                >
+                  <Sparkles className="size-3 text-primary" />
+                  <span>AI Tools</span>
+                </Button>
+
+                {/* Selected Model Indicator Badge */}
+                <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                  {selectedModel === "gemini" ? "Gemini" : "Z.ai"}
+                </span>
+              </div>
+
+              {/* Send / Stop Stream Button */}
+              <Button
+                onClick={() => handleSend()}
+                disabled={streaming || !inputVal.trim()}
+                size="icon"
+                className={cn(
+                  "size-8 rounded-full shrink-0 transition-all duration-200 border-0 flex items-center justify-center cursor-pointer",
+                  inputVal.trim() && !streaming
+                    ? "bg-primary text-black hover:bg-[#2ae43f]"
+                    : "bg-slate-100 text-slate-400 hover:bg-slate-100"
+                )}
+              >
+                {streaming ? (
+                  <Loader2 className="size-4 animate-spin text-slate-400" />
+                ) : (
+                  <Send className="size-3.5" />
+                )}
               </Button>
             </div>
+          </div>
+        </div>
 
-            {/* Search Input */}
-            <div className="px-4 py-2 relative shrink-0">
-              <Search className="size-3.5 absolute left-7 top-4.5 text-muted-foreground/50" />
-              <Input
-                placeholder="Search chats..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-8 rounded-lg pl-8 text-xs border-[#EEF2F7] bg-[#FFFFFF]"
-              />
-            </div>
+      </div>
 
-            {/* Tag Filters list */}
-            <div className="px-4 py-1.5 flex flex-wrap gap-1 border-b border-[#EEF2F7] shrink-0 pb-3">
-              <Badge
-                variant={activeTagFilter === null ? "default" : "outline"}
-                className="cursor-pointer text-[9px] py-0 px-2 rounded-md font-semibold"
-                onClick={() => setActiveTagFilter(null)}
-              >
-                All
-              </Badge>
-              {chatTags.map((t) => (
-                <Badge
-                  key={t}
-                  variant={activeTagFilter === t ? "default" : "outline"}
-                  className="cursor-pointer text-[9px] py-0 px-2 rounded-md font-semibold"
-                  onClick={() => setActiveTagFilter(t)}
-                >
-                  #{t}
-                </Badge>
-              ))}
-              <Badge
-                variant={showArchived ? "secondary" : "outline"}
-                className="cursor-pointer text-[9px] py-0 px-2 rounded-md font-semibold border-dashed ml-auto flex items-center gap-0.5"
-                onClick={() => setShowArchived(!showArchived)}
-              >
-                <Archive className="size-2" /> Archived
-              </Badge>
-            </div>
+      {/* LEFT SIDEBAR: Collapsible History Drawer */}
+      {leftSidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-xs transition-opacity duration-300"
+          onClick={() => setLeftSidebarOpen(false)}
+        />
+      )}
+      <div
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 w-80 bg-[#FFFFFF] shadow-2xl transition-transform duration-300 ease-in-out flex flex-col border-r border-[#EEF2F7]",
+          leftSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        {/* Drawer Header */}
+        <div className="p-4.5 border-b border-[#EEF2F7] flex items-center justify-between gap-2 shrink-0">
+          <span className="font-bold text-sm text-[#111827]">History</span>
+          <div className="flex items-center gap-1.5">
+            <Button
+              onClick={() => {
+                handleNewChat()
+                setLeftSidebarOpen(false)
+              }}
+              variant="outline"
+              className="h-8 px-2.5 rounded-lg text-xs gap-1 border-slate-200 hover:bg-slate-50 font-semibold text-slate-700 bg-white"
+            >
+              <Plus className="size-3.5" /> New Chat
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 text-slate-400 hover:text-slate-600 rounded-lg"
+              onClick={() => setLeftSidebarOpen(false)}
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
+        </div>
 
-            {/* Chats List */}
-            <div className="flex-1 overflow-y-auto px-2 py-3 space-y-4">
-              {/* Pinned Section */}
-              {pinnedChats.length > 0 && (
-                <div className="space-y-1">
-                  <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1">
-                    <Pin className="size-3" /> Pinned
+        {/* Drawer Search Input */}
+        <div className="px-4 py-3 relative shrink-0 border-b border-[#EEF2F7]">
+          <Search className="size-4 absolute left-7 top-6 text-slate-400" />
+          <Input
+            placeholder="Search conversations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-9 rounded-lg pl-9 text-xs border-slate-200 bg-slate-50/50"
+          />
+        </div>
+
+        {/* Grouped conversations list */}
+        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
+          {(() => {
+            const grouped = getGroupedChats()
+            const sections: { key: keyof typeof grouped; label: string }[] = [
+              { key: "today", label: "Today" },
+              { key: "yesterday", label: "Yesterday" },
+              { key: "last7Days", label: "Last 7 Days" },
+              { key: "last30Days", label: "Last 30 Days" },
+              { key: "older", label: "Older" }
+            ]
+
+            return sections.map(({ key, label }) => {
+              const items = grouped[key]
+              if (items.length === 0) return null
+
+              return (
+                <div key={key} className="space-y-1">
+                  <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    {label}
                   </span>
-                  {pinnedChats.map((c) => (
+                  {items.map((c) => (
                     <div
                       key={c.id}
                       className={cn(
-                        "group flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-xs transition-colors",
-                        c.id === activeChatId ? "bg-primary/10 text-foreground font-semibold" : "hover:bg-muted/40 text-muted-foreground hover:text-foreground"
+                        "group flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer text-xs transition-all duration-150",
+                        c.id === activeChatId
+                          ? "bg-[#EBFEEB] text-slate-900 font-semibold"
+                          : "hover:bg-slate-50 text-slate-600 hover:text-slate-900"
                       )}
                       onClick={() => {
                         setActiveChatId(c.id)
                         setLeftSidebarOpen(false)
                       }}
                     >
-                      <div className="flex items-center gap-2 overflow-hidden flex-1">
-                        <MessageSquare className="size-3.5 shrink-0 text-primary/75" />
+                      <div className="flex items-center gap-2.5 overflow-hidden flex-1">
+                        <MessageSquare className={cn("size-4 shrink-0", c.id === activeChatId ? "text-primary" : "text-slate-400")} />
                         {editingChatId === c.id ? (
                           <input
                             value={editTitleVal}
                             onChange={(e) => setEditTitleVal(e.target.value)}
                             onKeyDown={(e) => e.key === "Enter" && handleSaveRename(c.id)}
                             onBlur={() => handleSaveRename(c.id)}
-                            className="bg-transparent border-b border-primary text-xs focus:outline-none w-full"
+                            className="bg-transparent border-b border-primary text-xs focus:outline-none w-full py-0.5"
                             onClick={(e) => e.stopPropagation()}
                             autoFocus
                           />
@@ -948,606 +1418,154 @@ export default function AIAssistantPage() {
                         )}
                       </div>
 
-                      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-1 shrink-0 ml-1">
-                        <Button variant="ghost" size="icon" className="size-5 text-muted-foreground hover:text-foreground" onClick={(e) => handleTogglePin(c.id, e)}>
-                          <Pin className="size-3 fill-foreground" />
+                      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-0.5 shrink-0 ml-1">
+                        <Button variant="ghost" size="icon" className="size-6 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md" onClick={(e) => handleTogglePin(c.id, e)}>
+                          <Pin className={cn("size-3", c.pinned && "fill-slate-500 text-slate-500")} />
                         </Button>
-                        <Button variant="ghost" size="icon" className="size-5 text-muted-foreground hover:text-foreground" onClick={(e) => handleToggleFavorite(c.id, e)}>
+                        <Button variant="ghost" size="icon" className="size-6 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md" onClick={(e) => handleToggleFavorite(c.id, e)}>
                           <Star className={cn("size-3", c.favorite && "fill-amber-400 text-amber-400")} />
                         </Button>
-                        <Button variant="ghost" size="icon" className="size-5 text-muted-foreground hover:text-foreground" onClick={(e) => handleToggleArchive(c.id, e)}>
+                        <Button variant="ghost" size="icon" className="size-6 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md" onClick={(e) => handleToggleArchive(c.id, e)}>
                           <Archive className="size-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="size-5 text-muted-foreground hover:text-foreground" onClick={(e) => handleStartRename(c, e)}>
+                        <Button variant="ghost" size="icon" className="size-6 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md" onClick={(e) => handleStartRename(c, e)}>
                           <Edit2 className="size-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="size-5 text-destructive/70 hover:text-destructive hover:bg-destructive/10" onClick={(e) => handleDeleteChat(c.id, e)}>
+                        <Button variant="ghost" size="icon" className="size-6 text-destructive/70 hover:text-destructive hover:bg-destructive/10 rounded-md" onClick={(e) => handleDeleteChat(c.id, e)}>
                           <Trash2 className="size-3" />
                         </Button>
                       </div>
                     </div>
                   ))}
                 </div>
-              )}
-
-              {/* Recents Section */}
-              <div className="space-y-1">
-                <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
-                  {showArchived ? "Archived Logs" : "Recent Conversations"}
-                </span>
-                {recentChats.map((c) => (
-                  <div
-                    key={c.id}
-                    className={cn(
-                      "group flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-xs transition-colors",
-                      c.id === activeChatId ? "bg-primary/10 text-foreground font-semibold" : "hover:bg-muted/40 text-muted-foreground hover:text-foreground"
-                    )}
-                    onClick={() => {
-                      setActiveChatId(c.id)
-                      setLeftSidebarOpen(false)
-                    }}
-                  >
-                    <div className="flex items-center gap-2 overflow-hidden flex-1">
-                      <MessageSquare className="size-3.5 shrink-0 text-muted-foreground/75" />
-                      {editingChatId === c.id ? (
-                        <input
-                          value={editTitleVal}
-                          onChange={(e) => setEditTitleVal(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && handleSaveRename(c.id)}
-                          onBlur={() => handleSaveRename(c.id)}
-                          className="bg-transparent border-b border-primary text-xs focus:outline-none w-full"
-                          onClick={(e) => e.stopPropagation()}
-                          autoFocus
-                        />
-                      ) : (
-                        <span className="truncate">{c.title}</span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-1 shrink-0 ml-1">
-                      <Button variant="ghost" size="icon" className="size-5 text-muted-foreground hover:text-foreground" onClick={(e) => handleTogglePin(c.id, e)}>
-                        <Pin className="size-3" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="size-5 text-muted-foreground hover:text-foreground" onClick={(e) => handleToggleFavorite(c.id, e)}>
-                        <Star className={cn("size-3", c.favorite && "fill-amber-400 text-amber-400")} />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="size-5 text-muted-foreground hover:text-foreground" onClick={(e) => handleToggleArchive(c.id, e)}>
-                        <Archive className="size-3" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="size-5 text-muted-foreground hover:text-foreground" onClick={(e) => handleStartRename(c, e)}>
-                        <Edit2 className="size-3" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="size-5 text-destructive/70 hover:text-destructive hover:bg-destructive/10" onClick={(e) => handleDeleteChat(c.id, e)}>
-                        <Trash2 className="size-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                {filteredChats.length === 0 && (
-                  <p className="px-3 py-2 text-xs text-muted-foreground/60 italic">No conversations found</p>
-                )}
-              </div>
-            </div>
-
-            {/* Bottom link to Settings */}
-            <div className="p-4 border-t border-[#EEF2F7] bg-[#FCFAF6] flex flex-col gap-2 shrink-0">
-              <div className="flex items-center justify-between text-[11px] text-[#64748B]">
-                <span className="flex items-center gap-1 font-semibold"><Brain className="size-3.5 text-primary" /> Memory Settings</span>
-                <Link href="/dashboard/settings" className="text-primary hover:underline font-semibold flex items-center gap-0.5">
-                  Configure <ChevronRight className="size-3" />
-                </Link>
-              </div>
-              <p className="text-[10px] text-[#64748B]/85 leading-normal">
-                AI remembers brand guidelines and content rules set inside Settings page tabs.
-              </p>
-            </div>
-          </div>
+              )
+            })
+          })()}
+          {filteredChats.length === 0 && (
+            <p className="px-3 py-6 text-xs text-slate-400 italic text-center">No conversations found</p>
+          )}
         </div>
 
-        {/* PANEL 2: Central Chat Canvas */}
-        <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#FFFFFF]">
-          
-          {/* Header Panel */}
-          <div className="px-4 py-3 border-b border-[#EEF2F7] flex items-center justify-between shrink-0 bg-background/50 backdrop-blur-md z-30">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden size-8 text-[#64748B]"
-                onClick={() => setLeftSidebarOpen(true)}
-              >
-                <Menu className="size-4" />
-              </Button>
-              {activeChat && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-[#111827] truncate max-w-[150px] sm:max-w-[280px]">
-                    {activeChat.title}
-                  </span>
-                  {activeChat.pinned && <Pin className="size-3 text-primary" />}
-                  {activeChat.favorite && <Star className="size-3 fill-amber-400 text-amber-400" />}
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <div className="flex items-center gap-1.5 border-r border-[#EEF2F7] pr-2.5 mr-1">
-                <span className="text-[11px] font-semibold text-[#64748B]">AI Model</span>
-                <Select value={selectedModel} onValueChange={(val: "gemini" | "zai") => setSelectedModel(val)}>
-                  <SelectTrigger className="h-8 w-[100px] text-xs rounded-xl border-[#EEF2F7] bg-[#FFFFFF] font-semibold text-[#374151]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="gemini" className="text-xs">Gemini</SelectItem>
-                    <SelectItem value="zai" className="text-xs">Z.ai</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {activeChat && activeMessages.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 text-[11px] text-[#64748B] hover:text-foreground gap-1.5"
-                  onClick={() => exportChatData(activeChat)}
-                >
-                  <Download className="size-3.5" /> Export Logs
-                </Button>
-              )}
-              {/* Toggle Right drawer */}
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "h-8 text-[11px] text-[#64748B] hover:text-foreground gap-1.5 border-[#EEF2F7] bg-[#FFFFFF]",
-                  rightSidebarOpen && "bg-primary/10 text-primary border-primary/25"
-                )}
-                onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
-              >
-                <Layers className="size-3.5" /> Workspace Insights
-              </Button>
-            </div>
+        {/* Bottom Memory Settings */}
+        <div className="p-4 border-t border-[#EEF2F7] bg-slate-50/50 flex flex-col gap-2 shrink-0">
+          <div className="flex items-center justify-between text-[11px] text-[#64748B]">
+            <span className="flex items-center gap-1 font-semibold">
+              <Brain className="size-3.5 text-primary" /> Memory Settings
+            </span>
+            <Link href="/dashboard/settings" className="text-primary hover:underline font-semibold flex items-center gap-0.5">
+              Configure <ChevronRight className="size-3" />
+            </Link>
           </div>
+          <p className="text-[10px] text-[#64748B]/85 leading-normal">
+            AI remembers brand guidelines and content rules set inside Settings page tabs.
+          </p>
+        </div>
+      </div>
 
-          {/* Conversation Main Screen */}
-          <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8 space-y-6 bg-[#FFFFFF]">
-            
-            {/* EMPTY STATE */}
-            {activeMessages.length === 0 ? (
-              <div className="max-w-2xl mx-auto h-full flex flex-col justify-center items-center text-center space-y-8 py-10">
-                <div className="space-y-4">
-                  <Badge variant="outline" className="border-primary/25 bg-[#F0FDF4] text-primary text-[10px] uppercase font-bold py-0.5 px-2.5 tracking-wider rounded-md">
-                    GrowWave AI Copilot active
-                  </Badge>
-                  <h1 className="text-3xl font-extrabold tracking-tight text-[#111827] sm:text-4xl">
-                    {getGreeting()}
-                  </h1>
-                  
-                  {/* Subtle status line */}
-                  <p className="text-xs text-[#64748B]/80 flex items-center justify-center gap-2 font-medium">
-                    <span>Connected to {channelsCount || 3} channels</span>
-                    <span>•</span>
-                    <span>{scheduledPostsCount || 8} scheduled posts</span>
-                    <span>•</span>
-                    <span className="text-[#22C55E] font-semibold flex items-center gap-0.5">
-                      <span className="size-1.5 rounded-full bg-[#22C55E] inline-block animate-ping" />
-                      Analytics synced
-                    </span>
-                  </p>
+      {/* RIGHT SIDEBAR: Workspace Insights Slide-over */}
+      {rightSidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-xs transition-opacity duration-300"
+          onClick={() => setRightSidebarOpen(false)}
+        />
+      )}
+      <div className={cn(
+        "fixed inset-y-0 right-0 z-50 w-80 bg-[#FFFFFF] shadow-2xl transition-transform duration-300 ease-in-out flex flex-col border-l border-[#EEF2F7]",
+        rightSidebarOpen ? "translate-x-0" : "translate-x-full"
+      )}>
+        <div className="px-4.5 py-4.5 border-b border-[#EEF2F7] flex items-center justify-between shrink-0 bg-white">
+          <span className="text-xs font-bold text-[#111827] flex items-center gap-1.5">
+            <Layers className="size-4 text-primary" />
+            Workspace Insights
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8 text-slate-400 hover:text-slate-600 rounded-lg"
+            onClick={() => setRightSidebarOpen(false)}
+          >
+            <X className="size-4" />
+          </Button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          {/* Connected Channels status */}
+          <div className="space-y-2.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] block">Connected Channels</span>
+            <div className="space-y-1.5">
+              {connectedChannels.map((ch, idx) => (
+                <div key={idx} className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50/50 border border-slate-100 shadow-2xs">
+                  <span className="font-semibold text-slate-700 capitalize">{ch.platform}</span>
+                  <span className="text-[10px] text-[#64748B] max-w-[120px] truncate">{ch.username}</span>
                 </div>
-
-                {/* Suggested AI action cards */}
-                <div className="grid gap-3 sm:grid-cols-2 w-full pt-4">
-                  {suggestedPrompts.map((q, idx) => (
-                    <div
-                      key={idx}
-                      className="group flex flex-col text-left p-4 rounded-2xl bg-[#FCFAF6] cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover border-0"
-                      onClick={() => handleNewChat(q.prompt)}
-                    >
-                      <span className="text-xs font-bold text-[#111827] group-hover:text-primary transition-colors flex items-center justify-between">
-                        {q.text}
-                        <ChevronRight className="size-3.5 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-                      </span>
-                      <span className="text-[10px] text-[#64748B]/65 mt-1 font-semibold uppercase tracking-wider">{q.category}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              // MESSAGES FLOW
-              <div className="max-w-3xl mx-auto space-y-6">
-                {activeMessages.map((msg, index) => (
-                  <div
-                    key={index}
-                    className={cn(
-                      "flex gap-4 p-4.5 rounded-2xl text-sm leading-relaxed transition-all shadow-card relative group/msg",
-                      msg.role === "user"
-                        ? "ml-auto bg-[#F0FDF4] text-[#111827] max-w-[85%] rounded-br-none border-0 shadow-card/40"
-                        : "mr-auto bg-[#FCFAF6] text-[#111827] max-w-[92%] rounded-bl-none border-0 shadow-card/30"
-                    )}
-                  >
-                    <div className="shrink-0 mt-0.5">
-                      {msg.role === "user" ? (
-                        <div className="size-6 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs">
-                          <User className="size-3.5" />
-                        </div>
-                      ) : (
-                        <div className="size-6 rounded-full bg-violet-500/20 text-violet-400 flex items-center justify-center font-bold text-xs">
-                          <Bot className="size-3.5 animate-pulse" />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex-1 overflow-hidden space-y-3">
-                      <div className="flex items-center justify-between mb-1 text-[10px] text-muted-foreground/75 font-semibold">
-                        <span className="uppercase tracking-wider flex items-center gap-1.5">
-                          {msg.role === "user" ? "You" : "GrowWave Copilot"}
-                          {msg.role === "assistant" && msg.model && (
-                            <span className={cn(
-                              "inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-normal uppercase border",
-                              msg.model === "gemini" 
-                                ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-400"
-                                : "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-400"
-                            )}>
-                              {msg.model === "gemini" ? "🟢 Gemini" : "🔵 Z.ai"}
-                            </span>
-                          )}
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <span>{msg.timestamp}</span>
-                          {msg.role === "assistant" && (
-                            <button
-                              className="opacity-0 group-hover/msg:opacity-100 hover:text-primary transition-all p-0.5 cursor-pointer"
-                              onClick={() => handlePinInsight(msg.content)}
-                              title="Pin Insight to workspace drawer"
-                            >
-                              <Bookmark className="size-3" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2.5 text-[#111827]">
-                        {msg.errorType ? (
-                          <div className="p-4 rounded-xl border bg-destructive/5 border-destructive/20 text-foreground flex flex-col gap-3 w-full">
-                            <div className="flex items-start gap-2.5">
-                              <span className="text-destructive font-bold text-base mt-0.5">⚠️</span>
-                              <div>
-                                <h4 className="font-bold text-xs text-destructive">
-                                  {msg.errorType === "QUOTA_EXCEEDED" && "AI Limit Reached"}
-                                  {msg.errorType === "CONFIG_INCOMPLETE" && "Configuration Incomplete"}
-                                  {msg.errorType === "SERVICE_UNAVAILABLE" && "Temporarily Unavailable"}
-                                </h4>
-                                <p className="text-xs text-[#64748B] mt-1 leading-normal font-medium">
-                                  {msg.content}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex gap-2 justify-end mt-1">
-                              {msg.errorType === "QUOTA_EXCEEDED" && (
-                                <Button
-                                  variant="outline"
-                                  size="xs"
-                                  className="h-7 text-[10.5px] border-primary/20 hover:border-primary/40 text-primary hover:bg-primary/5 font-semibold bg-[#FFFFFF]"
-                                  onClick={() => router.push("/pricing")}
-                                >
-                                  Upgrade to Pro
-                                </Button>
-                              )}
-                              {(msg.errorType === "SERVICE_UNAVAILABLE" || msg.errorType === "QUOTA_EXCEEDED") && (
-                                <Button
-                                  variant="outline"
-                                  size="xs"
-                                  className="h-7 text-[10.5px] border-primary/20 hover:border-primary/40 text-primary hover:bg-primary/5 font-semibold bg-[#FFFFFF]"
-                                  onClick={() => {
-                                    const lastUserMsg = activeMessages
-                                      .slice(0, activeMessages.indexOf(msg))
-                                      .reverse()
-                                      .find((m) => m.role === "user")
-                                    if (lastUserMsg) {
-                                      handleSend(lastUserMsg.content)
-                                    }
-                                  }}
-                                >
-                                  Retry
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          renderMessageContent(msg.content)
-                        )}
-                      </div>
-
-                      {/* Dynamic Context-Aware Action Cards */}
-                      {msg.role === "assistant" && !msg.errorType && (
-                        <div className="pt-3 border-t border-border/25 mt-4 flex flex-wrap gap-2 items-center justify-between">
-                          <div className="flex flex-wrap gap-1.5">
-                            {getContextualActions(msg.content).map((act, aIdx) => (
-                              <Button
-                                key={aIdx}
-                                variant="outline"
-                                size="xs"
-                                className="h-6 px-2.5 text-[10.5px] rounded-lg gap-1 border-primary/20 hover:border-primary/40 text-primary hover:bg-primary/5 transition-all font-semibold bg-[#FFFFFF]"
-                                onClick={() => handleAction(act.type, msg.content)}
-                              >
-                                <act.icon className="size-3" />
-                                {act.label}
-                              </Button>
-                            ))}
-                          </div>
-                          
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="xs"
-                              className="h-6 px-2 text-[10px] text-[#64748B] hover:text-foreground font-semibold"
-                              onClick={() => handleCopyText(msg.content)}
-                            >
-                              <Copy className="size-3" /> Copy
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-
-                {/* ROTATING THINKING / STREAM */}
-                {streaming && (
-                  <div className="mr-auto bg-[#FCFAF6] text-[#111827] rounded-2xl rounded-bl-none p-4.5 max-w-[92%] flex gap-4 text-sm leading-relaxed shadow-card/30 w-full border-0">
-                    <div className="shrink-0 mt-0.5">
-                      <div className="size-6 rounded-full bg-violet-500/20 text-violet-400 flex items-center justify-center font-bold text-xs">
-                        <Loader2 className="size-3.5 animate-spin" />
-                      </div>
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                      <div className="flex items-center justify-between mb-1 text-[10px] text-muted-foreground/75 font-semibold">
-                        <span className="uppercase tracking-wider flex items-center gap-1.5">
-                          GrowWave Copilot
-                          <span className={cn(
-                            "inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-normal uppercase border",
-                            selectedModel === "gemini" 
-                              ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-400"
-                              : "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-400"
-                          )}>
-                            {selectedModel === "gemini" ? "🟢 Gemini" : "🔵 Z.ai"}
-                          </span>
-                        </span>
-                        <span className="flex items-center gap-1 font-semibold text-primary">
-                          <span className="size-1 rounded-full bg-primary inline-block animate-ping" />
-                          {currentResponse ? "streaming..." : generatingText}
-                        </span>
-                      </div>
-                      {currentResponse ? (
-                        renderMessageContent(currentResponse)
-                      ) : (
-                        <p className="text-xs text-[#64748B]/70 italic py-1">Connecting to workspace database context...</p>
-                      )}
-                      <span className="inline-block size-2 bg-primary rounded-full animate-ping ml-1" />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            <div ref={chatEndRef} />
-          </div>
-
-          {/* Floating Actions Pills above textfield */}
-          <div className="px-4 py-1.5 flex justify-center shrink-0">
-            <div className="flex gap-1.5 overflow-x-auto pb-1 max-w-3xl w-full no-scrollbar">
-              {quickActions.map((pill, idx) => (
-                <button
-                  key={idx}
-                  className="px-3.5 py-1.5 rounded-full bg-[#F0FDF4] hover:bg-[#DCFCE7] text-[10.5px] font-semibold text-[#22C55E] hover:text-[#16A34A] shrink-0 transition-all duration-200 flex items-center gap-1.5 border-0 cursor-pointer"
-                  onClick={() => {
-                    if (streaming) return
-                    if (activeChatId) {
-                      handleSend(pill.prompt)
-                    } else {
-                      handleNewChat(pill.prompt)
-                    }
-                  }}
-                  disabled={streaming}
-                >
-                  <Sparkle className="size-3 text-primary/75" />
-                  {pill.label}
-                </button>
               ))}
+              {connectedChannels.length === 0 && (
+                <p className="text-[11px] text-[#64748B] italic">No channels synced. Connected profiles will list here.</p>
+              )}
             </div>
           </div>
 
-          {/* Chat Inputs & Overlays */}
-          <div className="p-4 border-t border-[#EEF2F7] bg-[#FFFFFF] shrink-0 relative">
-            <div className="max-w-3xl mx-auto relative">
-              
-              {/* Slash commands list */}
-              {showCommands && (
-                <div className="absolute bottom-[calc(100%+8px)] left-0 right-0 bg-background border border-border rounded-xl shadow-lg max-h-52 overflow-y-auto z-40 divide-y divide-border/40 animate-in fade-in slide-in-from-bottom-2 duration-150">
-                  <div className="px-3.5 py-2 text-[10px] uppercase font-bold tracking-wider text-muted-foreground bg-muted/10 flex items-center justify-between">
-                    <span>Quick assistant commands</span>
-                    <span>ESC to close</span>
-                  </div>
-                  {slashCommands.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="px-3.5 py-2 flex items-center justify-between cursor-pointer hover:bg-muted/40 transition-colors"
-                      onClick={() => handleSelectCommand(item)}
-                    >
-                      <div>
-                        <span className="text-xs font-bold text-primary">{item.cmd}</span>
-                        <span className="text-xs text-foreground font-semibold ml-3">{item.desc}</span>
-                      </div>
-                      <ChevronRight className="size-3 text-muted-foreground/60" />
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Textarea Container */}
-              <div className="relative rounded-2xl bg-[#F8FAFC] focus-within:ring-1 focus-within:ring-[#22C55E]/40 transition-all flex flex-col border-0 shadow-xs">
-                <textarea
-                  placeholder="Ask the Copilot: '/report today', '/calendar 30 days', 'Write a LinkedIn caption...' (Type '/' for commands)..."
-                  value={inputVal}
-                  onChange={(e) => {
-                    setInputVal(e.target.value)
-                    if (e.target.value.startsWith("/")) {
-                      setShowCommands(true)
-                    } else {
-                      setShowCommands(false)
-                    }
-                  }}
-                  onKeyDown={handleKeyDown}
-                  rows={2}
-                  className="min-h-16 max-h-32 resize-none bg-transparent border-0 rounded-2xl focus:outline-none focus:ring-0 text-xs px-3.5 py-3.5 shrink-0 text-foreground placeholder:text-muted-foreground/75"
-                />
-
-                <div className="flex items-center justify-between border-t border-[#EEF2F7] px-3.5 py-2 bg-[#F8FAFC] rounded-b-2xl shrink-0">
-                  <div className="flex gap-2 items-center">
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      className={cn(
-                        "h-6 text-[10px] px-2 gap-1 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground font-semibold",
-                        showCommands && "bg-primary/10 text-primary hover:bg-primary/20"
-                      )}
-                      onClick={() => setShowCommands(!showCommands)}
-                    >
-                      <Terminal className="size-3" /> Commands
-                    </Button>
-                    
-                    {/* Mock attachments clip */}
-                    <button
-                      className="size-6 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
-                      onClick={() => showToast("Attachment upload triggers. Select files option.", "info")}
-                      title="Attach file / template image"
-                    >
-                      <Paperclip className="size-3.5" />
-                    </button>
-
-                    <Badge variant="outline" className="text-[9px] border-border/60 text-muted-foreground/75 font-normal bg-background/50 px-1.5 py-0.5 hidden sm:inline-block">
-                      <HelpCircle className="size-2.5" /> Shift+Enter for newline
-                    </Badge>
-                  </div>
-
-                  <Button
-                    onClick={() => handleSend()}
-                    disabled={streaming || !inputVal.trim()}
-                    size="icon"
-                    className="size-7 rounded-lg shrink-0 bg-[#22C55E] text-[#FFFFFF] hover:bg-[#4ADE80] transition-all border-0 shadow-[0_4px_14px_rgba(34,197,94,0.18)] cursor-pointer"
-                  >
-                    {streaming ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <Send className="size-3.5" />
-                    )}
+          {/* Saved Calendars */}
+          <div className="space-y-2.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] block">Saved Calendars</span>
+            <div className="space-y-1.5">
+              {savedCalendars.map((cName, idx) => (
+                <div key={idx} className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50/50 border border-slate-100 shadow-2xs">
+                  <span className="truncate flex-1 pr-2 text-slate-700 font-medium">{cName}</span>
+                  <Button variant="ghost" size="icon" className="size-6 hover:bg-slate-100 rounded-md" onClick={() => router.push("/dashboard/calendar")}>
+                    <ExternalLink className="size-3 text-slate-500" />
                   </Button>
                 </div>
-              </div>
+              ))}
+              {savedCalendars.length === 0 && (
+                <p className="text-[11px] text-[#64748B] italic">No calendars saved. Prompt `/calendar` to generate schedules.</p>
+              )}
             </div>
           </div>
 
+          {/* Recent Reports */}
+          <div className="space-y-2.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] block">Recent Reports</span>
+            <div className="space-y-1.5">
+              {recentReports.map((rName, idx) => (
+                <div key={idx} className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50/50 border border-slate-100 shadow-2xs">
+                  <span className="truncate flex-1 pr-2 text-slate-700 font-medium">{rName}</span>
+                  <Button variant="ghost" size="icon" className="size-6 hover:bg-slate-100 rounded-md" onClick={() => handleAction("export_md", `## ${rName}\nExecutive Summary and KPI indicators.`)}>
+                    <Download className="size-3 text-slate-500" />
+                  </Button>
+                </div>
+              ))}
+              {recentReports.length === 0 && (
+                <p className="text-[11px] text-[#64748B] italic">No reports listed. Prompt `/report` to generate executive sheets.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Pinned Insights */}
+          <div className="space-y-2.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] block">Pinned Insights</span>
+            <div className="space-y-1.5">
+              {pinnedInsights.map((ins, idx) => (
+                <div key={idx} className="relative group/ins p-3 rounded-xl bg-emerald-50/30 border border-emerald-100 text-[11px] leading-relaxed text-slate-700 flex flex-col gap-1.5 shadow-2xs">
+                  <p>{ins}</p>
+                  <button
+                    className="absolute top-1.5 right-1.5 opacity-0 group-hover/ins:opacity-100 text-slate-400 hover:text-destructive transition-all cursor-pointer"
+                    onClick={() => {
+                      const updated = pinnedInsights.filter((_, i) => i !== idx)
+                      setPinnedInsights(updated)
+                      localStorage.setItem("growwave-pinned-insights", JSON.stringify(updated))
+                    }}
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+              ))}
+              {pinnedInsights.length === 0 && (
+                <p className="text-[11px] text-[#64748B] italic">Pin tips from Copilot responses to keep them visible here.</p>
+              )}
+            </div>
+          </div>
         </div>
-
-        {/* PANEL 3: Collapsible Workspace Insights Drawer (Right) */}
-        {rightSidebarOpen && (
-          <div className="w-72 shrink-0 border-l border-[#EEF2F7] bg-[#FCFAF6] transition-all duration-300 md:bg-[#FCFAF6] h-full flex flex-col z-40">
-            <div className="px-4 py-3 border-b border-[#EEF2F7] flex items-center justify-between shrink-0">
-              <span className="text-xs font-bold text-[#111827] flex items-center gap-1.5">
-                <Layers className="size-3.5 text-primary" />
-                Workspace Insights
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7 text-muted-foreground"
-                onClick={() => setRightSidebarOpen(false)}
-              >
-                <X className="size-4" />
-              </Button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 space-y-6">
-              
-              {/* Connected channels status list */}
-              <div className="space-y-2.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] block">Connected Channels</span>
-                <div className="space-y-1.5">
-                  {connectedChannels.map((ch, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-xs p-2 rounded-lg bg-[#FFFFFF] border border-[#EEF2F7] shadow-xs">
-                      <span className="font-semibold text-foreground capitalize">{ch.platform}</span>
-                      <span className="text-[10px] text-[#64748B] max-w-[120px] truncate">{ch.username}</span>
-                    </div>
-                  ))}
-                  {connectedChannels.length === 0 && (
-                    <p className="text-[11px] text-[#64748B] italic">No channels synced. Connected profiles will list here.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Saved Calendars list */}
-              <div className="space-y-2.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] block">Saved Calendars</span>
-                <div className="space-y-1.5">
-                  {savedCalendars.map((cName, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-xs p-2 rounded-lg bg-[#FFFFFF] border border-[#EEF2F7] shadow-xs">
-                      <span className="truncate flex-1 pr-2">{cName}</span>
-                      <Button variant="ghost" size="icon" className="size-5 hover:bg-muted" onClick={() => router.push("/dashboard/calendar")}>
-                        <ExternalLink className="size-3" />
-                      </Button>
-                    </div>
-                  ))}
-                  {savedCalendars.length === 0 && (
-                    <p className="text-[11px] text-[#64748B] italic">No calendars saved. Prompt `/calendar` to generate schedules.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Recent Reports list */}
-              <div className="space-y-2.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] block">Recent Reports</span>
-                <div className="space-y-1.5">
-                  {recentReports.map((rName, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-xs p-2 rounded-lg bg-[#FFFFFF] border border-[#EEF2F7] shadow-xs">
-                      <span className="truncate flex-1 pr-2">{rName}</span>
-                      <Button variant="ghost" size="icon" className="size-5 hover:bg-muted" onClick={() => handleAction("export_md", `## ${rName}\nExecutive Summary and KPI indicators.`)}>
-                        <Download className="size-3" />
-                      </Button>
-                    </div>
-                  ))}
-                  {recentReports.length === 0 && (
-                    <p className="text-[11px] text-[#64748B] italic">No reports listed. Prompt `/report` to generate executive sheets.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Pinned Insights board */}
-              <div className="space-y-2.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] block">Pinned Insights</span>
-                <div className="space-y-1.5">
-                  {pinnedInsights.map((ins, idx) => (
-                    <div key={idx} className="relative group/ins p-2.5 rounded-lg bg-[#F0FDF4] border border-[#DCFCE7] text-[11px] leading-relaxed text-foreground/80 flex flex-col gap-1.5 shadow-xs">
-                      <p>{ins}</p>
-                      <button
-                        className="absolute top-1.5 right-1.5 opacity-0 group-hover/ins:opacity-100 text-[#64748B] hover:text-destructive transition-all cursor-pointer"
-                        onClick={() => {
-                          const updated = pinnedInsights.filter((_, i) => i !== idx)
-                          setPinnedInsights(updated)
-                          localStorage.setItem("growwave-pinned-insights", JSON.stringify(updated))
-                        }}
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </div>
-                  ))}
-                  {pinnedInsights.length === 0 && (
-                    <p className="text-[11px] text-[#64748B] italic">Pin tips from Copilot responses to keep them visible here.</p>
-                  )}
-                </div>
-              </div>
-
-            </div>
-          </div>
-        )}
-
       </div>
     </PageTransition>
   )
