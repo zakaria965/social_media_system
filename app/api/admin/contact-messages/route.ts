@@ -43,10 +43,10 @@ export async function GET(request: NextRequest) {
 
     // Fetch counts for KPIs with backward compatibility
     const totalCount = await ContactMessage.countDocuments()
-    const newCount = await ContactMessage.countDocuments({ status: { $in: ["NEW", "New"] } })
-    const inProgressCount = await ContactMessage.countDocuments({ status: { $in: ["IN_PROGRESS", "In Progress", "Read"] } })
-    const repliedCount = await ContactMessage.countDocuments({ status: { $in: ["REPLIED", "Replied"] } })
-    const closedCount = await ContactMessage.countDocuments({ status: { $in: ["CLOSED", "Closed", "Archived"] } })
+    const newCount = await ContactMessage.countDocuments({ status: { $in: ["NEW", "New"] } } as any)
+    const inProgressCount = await ContactMessage.countDocuments({ status: { $in: ["IN_PROGRESS", "In Progress", "Read"] } } as any)
+    const repliedCount = await ContactMessage.countDocuments({ status: { $in: ["REPLIED", "Replied"] } } as any)
+    const closedCount = await ContactMessage.countDocuments({ status: { $in: ["CLOSED", "Closed", "Archived"] } } as any)
 
     return NextResponse.json({
       messages,

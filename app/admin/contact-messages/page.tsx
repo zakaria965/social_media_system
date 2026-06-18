@@ -509,7 +509,7 @@ export default function AdminContactMessages() {
             <div className="border-t border-[#EEF2F7] pt-4 mt-auto space-y-3">
               <div className="flex items-center justify-between text-xs text-slate-400">
                 <span>Current Status: <strong className="text-slate-700">{selectedMessage.status}</strong></span>
-                {(selectedMessage.status === "NEW" || selectedMessage.status === "New") && (
+                {(selectedMessage.status === "NEW" || (selectedMessage.status as string) === "New") && (
                   <span className="text-emerald-500 font-semibold">Automatically marked as IN_PROGRESS</span>
                 )}
               </div>
@@ -517,7 +517,7 @@ export default function AdminContactMessages() {
               <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => updateMessageStatus(selectedMessage._id, "REPLIED")}
-                  disabled={selectedMessage.status === "REPLIED" || selectedMessage.status === "Replied"}
+                  disabled={selectedMessage.status === "REPLIED" || (selectedMessage.status as string) === "Replied"}
                   className="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 disabled:opacity-50 disabled:pointer-events-none py-2.5 text-xs font-bold transition-all cursor-pointer"
                 >
                   <CheckCircle2 className="size-4" />
@@ -525,7 +525,7 @@ export default function AdminContactMessages() {
                 </button>
                 <button
                   onClick={() => updateMessageStatus(selectedMessage._id, "CLOSED")}
-                  disabled={selectedMessage.status === "CLOSED" || selectedMessage.status === "Closed"}
+                  disabled={selectedMessage.status === "CLOSED" || (selectedMessage.status as string) === "Closed"}
                   className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-600 disabled:opacity-50 disabled:pointer-events-none py-2.5 text-xs font-bold transition-all cursor-pointer"
                 >
                   <Archive className="size-4" />
@@ -540,7 +540,7 @@ export default function AdminContactMessages() {
                 </button>
               </div>
               
-              {(selectedMessage.status === "IN_PROGRESS" || selectedMessage.status === "In Progress") && (
+              {(selectedMessage.status === "IN_PROGRESS" || (selectedMessage.status as string) === "In Progress") && (
                 <button
                   onClick={() => updateMessageStatus(selectedMessage._id, "NEW")}
                   className="w-full py-2 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-500 font-semibold text-xs cursor-pointer"

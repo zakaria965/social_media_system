@@ -8,16 +8,18 @@ import { Footer } from "@/components/footer"
 import { ContactForm } from "@/components/contact-form"
 import { cn } from "@/lib/utils"
 
-function InfoItem({ icon: Icon, title, value, href }: { icon: any; title: string; value: string; href?: string }) {
+function InfoItem({ icon: Icon, title, value, href }: { icon: any; title: string; value: React.ReactNode; href?: string }) {
   const content = (
     <div className="flex items-center gap-4">
-      {/* Icon Container: 48px size, 12px border radius, rgba(48,252,71,0.08) bg */}
-      <div className="size-12 rounded-[12px] bg-[rgba(48,252,71,0.08)] flex items-center justify-center shrink-0 border border-[rgba(48,252,71,0.12)]">
-        <Icon className="size-5 text-[#30FC47]" />
+      {/* Icon Container: 48px size, 12px border radius, rgba(34,197,94,0.08) bg, primary brand green border */}
+      <div className="size-12 rounded-[12px] bg-[rgba(34,197,94,0.08)] flex items-center justify-center shrink-0 border border-[rgba(34,197,94,0.12)]">
+        <Icon className="size-5 text-[#22C55E]" />
       </div>
       <div>
         <p className="text-xs font-semibold text-[#64748B] uppercase tracking-wider">{title}</p>
-        <p className={cn("text-base font-bold text-[#0F172A] mt-0.5 transition-colors", href && "hover:text-[#30FC47]")}>{value}</p>
+        <div className="text-base font-bold text-[#0F172A] mt-0.5 transition-colors">
+          {value}
+        </div>
       </div>
     </div>
   )
@@ -41,7 +43,7 @@ export default function ContactPage() {
     <>
       <Navbar />
       {/* Main Page: Background #FCFAF6 with subtle grid pattern overlay (2-4% opacity) */}
-      <main className="relative min-h-screen bg-[#FCFAF6] text-[#0F172A] font-sans antialiased overflow-hidden selection:bg-[#30FC47]/20 selection:text-[#0F172A]">
+      <main className="relative min-h-screen bg-[#FCFAF6] text-[#0F172A] font-sans antialiased overflow-hidden selection:bg-[#22C55E]/20 selection:text-[#0F172A]">
         {/* Soft grid pattern background overlay (2-4% opacity) */}
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.03]"
@@ -52,7 +54,7 @@ export default function ContactPage() {
         />
 
         {/* Ambient top light */}
-        <div className="pointer-events-none absolute top-0 left-1/4 size-[500px] rounded-full bg-[#30FC47]/5 blur-[100px]" />
+        <div className="pointer-events-none absolute top-0 left-1/4 size-[500px] rounded-full bg-[#22C55E]/5 blur-[100px]" />
 
         {/* Centered 2-column hero layout */}
         <div className="relative max-w-7xl mx-auto px-5 md:px-12 min-h-screen flex items-center pt-28 pb-16 md:py-24">
@@ -67,7 +69,7 @@ export default function ContactPage() {
             >
               {/* Small Label */}
               <div>
-                <span className="text-xs font-bold uppercase tracking-[0.15em] text-[#30FC47]">
+                <span className="text-xs font-bold uppercase tracking-[0.15em] text-[#22C55E]">
                   CONTACT GROWWAVE
                 </span>
                 
@@ -87,27 +89,42 @@ export default function ContactPage() {
                 <InfoItem 
                   icon={Mail} 
                   title="Email" 
-                  value="support@growwave.com" 
-                  href="mailto:support@growwave.com" 
+                  value={
+                    <a href="mailto:support@growwave.com" className="hover:text-[#22C55E] transition-colors">
+                      support@growwave.com
+                    </a>
+                  } 
                 />
                 
                 <InfoItem 
                   icon={Phone} 
                   title="Phone" 
-                  value="+252 63 7157032" 
-                  href="tel:+252637157032" 
+                  value={
+                    <div className="flex flex-col">
+                      <a href="tel:+252637157032" className="hover:text-[#22C55E] transition-colors">
+                        +252 63 7157032
+                      </a>
+                      <a href="tel:+252672032217" className="hover:text-[#22C55E] transition-colors">
+                        +252 67 2032217
+                      </a>
+                    </div>
+                  } 
                 />
                 
                 <InfoItem 
                   icon={MapPin} 
                   title="Location" 
-                  value="Hargeisa, Somaliland" 
+                  value={
+                    <span>Hargeisa, Somaliland</span>
+                  } 
                 />
                 
                 <InfoItem 
                   icon={Clock} 
                   title="Support" 
-                  value="24/7 Online Support" 
+                  value={
+                    <span>24/7 Online Support</span>
+                  } 
                 />
               </div>
             </motion.div>

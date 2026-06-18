@@ -126,7 +126,7 @@ export function ContactForm({ subject: propSubject, setSubject: propSetSubject, 
                   id="fullName"
                   placeholder="John Doe"
                   className={cn(
-                    "rounded-[12px] border-[#E5E7EB] focus:border-[#30FC47] focus:ring-[#30FC47]/15 h-[48px] transition-all bg-[#FFFFFF] text-sm px-4 outline-none focus-visible:ring-4 focus-visible:ring-offset-0 focus-visible:border-[#30FC47] text-[#0F172A]", 
+                    "rounded-[12px] border-[#E5E7EB] focus:border-[#22C55E] focus:ring-[#22C55E]/15 h-[48px] transition-all bg-[#FFFFFF] text-sm px-4 outline-none focus-visible:ring-4 focus-visible:ring-offset-0 focus-visible:border-[#22C55E] text-[#0F172A]", 
                     errors.fullName && "border-red-300 focus-visible:ring-red-100 focus-visible:border-red-400"
                   )}
                   value={fullName}
@@ -148,7 +148,7 @@ export function ContactForm({ subject: propSubject, setSubject: propSetSubject, 
                   type="email"
                   placeholder="john@example.com"
                   className={cn(
-                    "rounded-[12px] border-[#E5E7EB] focus:border-[#30FC47] focus:ring-[#30FC47]/15 h-[48px] transition-all bg-[#FFFFFF] text-sm px-4 outline-none focus-visible:ring-4 focus-visible:ring-offset-0 focus-visible:border-[#30FC47] text-[#0F172A]",
+                    "rounded-[12px] border-[#E5E7EB] focus:border-[#22C55E] focus:ring-[#22C55E]/15 h-[48px] transition-all bg-[#FFFFFF] text-sm px-4 outline-none focus-visible:ring-4 focus-visible:ring-offset-0 focus-visible:border-[#22C55E] text-[#0F172A]",
                     errors.email && "border-red-300 focus-visible:ring-red-100 focus-visible:border-red-400"
                   )}
                   value={email}
@@ -169,7 +169,7 @@ export function ContactForm({ subject: propSubject, setSubject: propSetSubject, 
                   id="subject"
                   placeholder="Partnership Inquiry, Support request..."
                   className={cn(
-                    "rounded-[12px] border-[#E5E7EB] focus:border-[#30FC47] focus:ring-[#30FC47]/15 h-[48px] transition-all bg-[#FFFFFF] text-sm px-4 outline-none focus-visible:ring-4 focus-visible:ring-offset-0 focus-visible:border-[#30FC47] text-[#0F172A]",
+                    "rounded-[12px] border-[#E5E7EB] focus:border-[#22C55E] focus:ring-[#22C55E]/15 h-[48px] transition-all bg-[#FFFFFF] text-sm px-4 outline-none focus-visible:ring-4 focus-visible:ring-offset-0 focus-visible:border-[#22C55E] text-[#0F172A]",
                     errors.subject && "border-red-300 focus-visible:ring-red-100 focus-visible:border-red-400"
                   )}
                   value={subject}
@@ -191,7 +191,7 @@ export function ContactForm({ subject: propSubject, setSubject: propSetSubject, 
                   placeholder="How can we help you?"
                   rows={4}
                   className={cn(
-                    "rounded-[12px] border-[#E5E7EB] focus:border-[#30FC47] focus:ring-[#30FC47]/15 h-[140px] transition-all bg-[#FFFFFF] text-sm px-4 py-3 resize-none outline-none focus-visible:ring-4 focus-visible:ring-offset-0 focus-visible:border-[#30FC47] text-[#0F172A]",
+                    "rounded-[12px] border-[#E5E7EB] focus:border-[#22C55E] focus:ring-[#22C55E]/15 h-[140px] transition-all bg-[#FFFFFF] text-sm px-4 py-3 resize-none outline-none focus-visible:ring-4 focus-visible:ring-offset-0 focus-visible:border-[#22C55E] text-[#0F172A]",
                     errors.message && "border-red-300 focus-visible:ring-red-100 focus-visible:border-red-400"
                   )}
                   value={message}
@@ -203,11 +203,11 @@ export function ContactForm({ subject: propSubject, setSubject: propSetSubject, 
                 )}
               </div>
 
-              {/* Submit Button */}
+              {/* Submit Button: Solid brand green background (#22C55E), White text, hover slightly darker (#16A34A) */}
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full h-[56px] rounded-[14px] font-semibold bg-[#30FC47] hover:bg-[#30FC47]/90 text-white shadow-[0_4px_12px_rgba(48,252,71,0.15)] hover:shadow-[0_8px_24px_rgba(48,252,71,0.25)] border-0 transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center justify-center gap-2 text-base font-semibold"
+                className="w-full h-[56px] rounded-[14px] font-semibold bg-[#22C55E] hover:bg-[#16A34A] text-white shadow-[0_4px_12px_rgba(34,197,94,0.15)] hover:shadow-[0_8px_24px_rgba(34,197,94,0.25)] border-0 transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer flex items-center justify-center gap-2 text-base font-semibold"
               >
                 {isSubmitting ? (
                   <>
@@ -231,10 +231,10 @@ export function ContactForm({ subject: propSubject, setSubject: propSetSubject, 
             className="bg-white p-10 md:p-12 rounded-[24px] border border-[#E5E7EB] shadow-[0_20px_60px_rgba(15,23,42,0.08)] text-center flex flex-col items-center relative overflow-hidden"
           >
             {/* Soft decorative background glows */}
-            <div className="absolute -top-24 -left-24 size-48 rounded-full bg-[#30FC47]/5 blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-24 -right-24 size-48 rounded-full bg-[#30FC47]/10 blur-3xl pointer-events-none" />
+            <div className="absolute -top-24 -left-24 size-48 rounded-full bg-[#22C55E]/5 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -right-24 size-48 rounded-full bg-[#22C55E]/10 blur-3xl pointer-events-none" />
 
-            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-[#30FC47]/10 border border-[#30FC47]/20 mb-6 shadow-inner">
+            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-[#22C55E]/10 border border-[#22C55E]/20 mb-6 shadow-inner">
               <Check className="size-6 text-[#22C55E] stroke-[3px]" />
             </div>
 
