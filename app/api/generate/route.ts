@@ -7,6 +7,7 @@ import { checkAIQuota, recordAIUsage } from "@/lib/ai-quota"
 import { AIGeneration } from "@/lib/models/ai-generation"
 import { getActiveWorkspaceId } from "@/lib/workspaces"
 import { Workspace } from "@/lib/models/workspace"
+import OpenAI from "openai"
 
 
 type Action =
@@ -45,6 +46,7 @@ function getSystemPrompt(action: Action, tone?: string): string {
 import { executeAIOperation } from "@/lib/ai/manager"
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now()
   let userId = "anonymous"
 
   try {
@@ -77,10 +79,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { action, prompt, tone } = body as {
+    const { action, prompt, tone, model = "openrouter" } = body as {
       action: Action
       prompt: string
       tone?: string
+      model?: "gemini" | "zai" | "openrouter"
     }
 
     if (!prompt) {
@@ -98,59 +101,119 @@ export async function POST(request: NextRequest) {
     const quota = (plan === "pro" || dbUser.role === "ADMIN") ? "unlimited" : `${Math.max(0, 5 - (dbUser.requestsUsed || 0))}`
 
     // Log request initiation
-    console.log(`[AI]\nUser: ${userId}\nPlan: ${plan}\nQuota: ${quota}\nGemini: initiated`)
+    console.log(`[AI]\nUser: ${userId}\nPlan: ${plan}\nQuota: ${quota}\n${model}: initiated`)
 
     try {
-      const result = await executeAIOperation(
-        async (providerInstance) => {
-          if (action === "generate-caption") {
-            return providerInstance.generateCaption(prompt, tone)
-          } else if (action === "rewrite-text") {
-            return providerInstance.generateText(
-              prompt,
-              `You are a professional copywriter. Rewrite the given text to make it more engaging and effective for social media. ${tone ? "Use a " + tone + " tone." : ""} Improve clarity and impact while preserving the core message.`
-            )
-          } else if (action === "change-tone") {
-            return providerInstance.generateText(
-              prompt,
-              `You are a professional copywriter. Rewrite the given text in a ${tone || "different"} tone while preserving the core message.`
-            )
-          } else if (action === "generate-hashtags") {
-            return providerInstance.generateHashtags(prompt)
-          } else if (action === "content-ideas") {
-            return providerInstance.generateCalendar(prompt)
-          } else if (action === "improve-grammar") {
-            return providerInstance.generateText(
-              prompt,
-              `You are a professional editor. Fix grammar, spelling, and punctuation errors in the given text. Preserve the original meaning and style as much as possible.`
-            )
-          } else {
-            return providerInstance.generateText(prompt)
+      if (model === "openrouter") {
+        const openrouterApiKey = process.env.OPENROUTER_API_KEY
+        if (!openrouterApiKey) {
+          throw new Error("OPENROUTER_API_KEY is not configured")
+        }
+
+        const openRouterClient = new OpenAI({
+          apiKey: openrouterApiKey,
+          baseURL: "https://openrouter.ai/api/v1",
+          defaultHeaders: {
+            "HTTP-Referer": "https://growwave.ai",
+            "X-Title": "GrowWave"
           }
-        },
-        {
+        })
+
+        const systemPrompt = getSystemPrompt(action, tone)
+        const response = await openRouterClient.chat.completions.create({
+          model: "nex-agi/nex-n2-pro:free",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: prompt }
+          ],
+          max_tokens: 2048,
+        })
+
+        const responseText = response.choices[0]?.message?.content || ""
+        const responseTime = Date.now() - startTime
+        const promptTokens = Math.ceil(prompt.length / 4)
+        const completionTokens = Math.ceil(responseText.length / 4)
+
+        // Log response success
+        console.log(`[AI]\nUser: ${userId}\nPlan: ${plan}\nQuota: ${quota}\n${model}: success`)
+
+        // Record usage via the unified system
+        await recordAIUsage({
           userId,
           workspaceId: null,
           feature,
-          prompt
-        }
-      )
-
-      // Log response success
-      console.log(`[AI]\nUser: ${userId}\nPlan: ${plan}\nQuota: ${quota}\nGemini: success`)
-
-      if (result && result.text) {
-        await AIGeneration.create({
-          userId,
+          provider: "OPENROUTER",
+          model: "nex-agi/nex-n2-pro:free",
           prompt,
-          response: result.text,
+          promptTokens,
+          completionTokens,
+          responseTime,
+          status: "success"
         })
-      }
 
-      return NextResponse.json({ result: result.text })
+        if (responseText) {
+          await AIGeneration.create({
+            userId,
+            prompt,
+            response: responseText,
+          })
+        }
+
+        return NextResponse.json({ result: responseText })
+      } else {
+        const providerOverride = model === "gemini" ? "gemini" : "zai"
+        const result = await executeAIOperation(
+          async (providerInstance) => {
+            if (action === "generate-caption") {
+              return providerInstance.generateCaption(prompt, tone)
+            } else if (action === "rewrite-text") {
+              return providerInstance.generateText(
+                prompt,
+                `You are a professional copywriter. Rewrite the given text to make it more engaging and effective for social media. ${tone ? "Use a " + tone + " tone." : ""} Improve clarity and impact while preserving the core message.`
+              )
+            } else if (action === "change-tone") {
+              return providerInstance.generateText(
+                prompt,
+                `You are a professional copywriter. Rewrite the given text in a ${tone || "different"} tone while preserving the core message.`
+              )
+            } else if (action === "generate-hashtags") {
+              return providerInstance.generateHashtags(prompt)
+            } else if (action === "content-ideas") {
+              return providerInstance.generateCalendar(prompt)
+            } else if (action === "improve-grammar") {
+              return providerInstance.generateText(
+                prompt,
+                `You are a professional editor. Fix grammar, spelling, and punctuation errors in the given text. Preserve the original meaning and style as much as possible.`
+              )
+            } else {
+              return providerInstance.generateText(prompt)
+            }
+          },
+          {
+            userId,
+            workspaceId: null,
+            feature,
+            prompt,
+            providerOverride
+          }
+        )
+
+        // Log response success
+        console.log(`[AI]\nUser: ${userId}\nPlan: ${plan}\nQuota: ${quota}\n${model}: success`)
+
+        if (result && result.text) {
+          await AIGeneration.create({
+            userId,
+            prompt,
+            response: result.text,
+          })
+        }
+
+        return NextResponse.json({ result: result.text })
+      }
     } catch (err: unknown) {
       // Log response failed
-      console.log(`[AI]\nUser: ${userId}\nPlan: ${plan}\nQuota: ${quota}\nGemini: failed`)
+      console.log(`[AI]\nUser: ${userId}\nPlan: ${plan}\nQuota: ${quota}\n${model}: failed`)
       throw err
     }
   } catch (err: unknown) {

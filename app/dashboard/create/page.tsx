@@ -18,6 +18,10 @@ import {
   CheckCircle2,
   FileCheck,
   Video,
+  Copy,
+  Check,
+  RotateCw,
+  FileDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -164,6 +168,10 @@ function CreatePostContent() {
   const [aiTone, setAiTone] = useState("creative")
   const [aiLoading, setAiLoading] = useState(false)
   const [aiResult, setAiResult] = useState("")
+  const [selectedModel, setSelectedModel] = useState<"openrouter" | "gemini" | "zai">("openrouter")
+  const [copied, setCopied] = useState(false)
+  const [insertConfirmOpen, setInsertConfirmOpen] = useState(false)
+  const [draftAfterInsert, setDraftAfterInsert] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -333,7 +341,7 @@ function CreatePostContent() {
           action: aiAction,
           prompt: aiTopic,
           tone: aiTone,
-          provider: "openai",
+          model: selectedModel,
         }),
       })
       const data = await res.json()
@@ -349,25 +357,89 @@ function CreatePostContent() {
     }
   }
 
-  const insertAIResult = () => {
+  const handleCopyClick = () => {
     if (aiResult) {
-      setCaption((prev) => (prev ? prev + "\n" + aiResult : aiResult))
+      navigator.clipboard.writeText(aiResult)
+      setCopied(true)
+      showToast("Copied to clipboard!", "success")
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const handleSaveDraftFromAI = async () => {
+    if (!aiResult) return
+    
+    if (!caption.trim()) {
+      setCaption(aiResult)
+      const post = await savePost("draft", undefined, aiResult)
+      if (post) {
+        showToast(editId ? "Draft updated!" : "Draft saved successfully!", "success")
+        setAiOpen(false)
+        router.push("/dashboard/scheduled")
+      }
+    } else {
+      setDraftAfterInsert(true)
+      setInsertConfirmOpen(true)
+    }
+  }
+
+  const handleInsertClick = () => {
+    if (!aiResult) return
+    if (!caption.trim()) {
+      performInsert("replace")
+    } else {
+      setDraftAfterInsert(false)
+      setInsertConfirmOpen(true)
+    }
+  }
+
+  const performInsert = async (action: "replace" | "append") => {
+    let finalContent = caption
+    if (action === "replace") {
+      finalContent = aiResult
+    } else if (action === "append") {
+      finalContent = caption ? caption + "\n\n" + aiResult : aiResult
+    }
+    
+    setCaption(finalContent)
+    setInsertConfirmOpen(false)
+    
+    if (draftAfterInsert) {
+      setDraftAfterInsert(false)
       setAiOpen(false)
-      setAiTopic("")
-      setAiResult("")
-      showToast("AI text appended successfully!", "success")
+      const post = await savePost("draft", undefined, finalContent)
+      if (post) {
+        showToast(editId ? "Draft updated!" : "Draft saved successfully!", "success")
+        router.push("/dashboard/scheduled")
+      }
+    } else {
+      setAiOpen(false)
+      showToast(
+        action === "replace" ? "AI text replaced successfully!" : "AI text appended successfully!",
+        "success"
+      )
+      
+      setTimeout(() => {
+        const textarea = textareaRef.current
+        if (textarea) {
+          textarea.focus()
+          textarea.scrollIntoView({ behavior: "smooth", block: "center" })
+        }
+      }, 100)
     }
   }
 
   const savePost = async (
     status: string,
-    scheduledAt?: string
+    scheduledAt?: string,
+    contentOverride?: string
   ) => {
     setSaving(true)
     try {
+      const finalContent = contentOverride !== undefined ? contentOverride : caption
       const payload = {
-        title: caption.slice(0, 60),
-        content: caption,
+        title: finalContent.slice(0, 60),
+        content: finalContent,
         platforms: selectedPlatforms,
         media: mediaFiles,
         status,
@@ -1070,32 +1142,50 @@ function CreatePostContent() {
       <Dialog open={aiOpen} onOpenChange={setAiOpen}>
         <DialogContent className="max-w-xl rounded-2xl p-5 border-border/60 shadow-xl bg-card">
           <DialogHeader className="border-b border-border/40 pb-3">
-            <DialogTitle className="flex items-center gap-2 text-md font-bold">
-              <Sparkles className="size-5 text-primary" /> AI Content Copilot
+            <DialogTitle className="flex items-center justify-between text-md font-bold text-foreground">
+              <span className="flex items-center gap-2">
+                <Sparkles className="size-5 text-primary" /> AI Assistant
+              </span>
+              <span className="text-[10px] font-semibold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 px-2.5 py-1 rounded-full border border-purple-200/50 dark:border-purple-800/30 shadow-sm transition-all duration-300">
+                Powered by Nex N2 Pro
+              </span>
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-              Consult OpenAI to generate high-performing captions, rewrite posts, alter tones, or extract hashtags.
+              Select your AI model, action, and tone to generate and optimize copy for your channels.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label className="text-xs font-semibold text-muted-foreground">PROMPT / TOPIC / EXPLAIN IDEA</Label>
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">PROMPT / TOPIC / EXPLAIN IDEA</Label>
               <Textarea
                 placeholder="E.g. A product launch announcement for our new AI assistant called Wavey..."
                 value={aiTopic}
                 onChange={(e) => setAiTopic(e.target.value)}
-                className="min-h-20 rounded-xl border-border/60 bg-muted/20 text-sm leading-relaxed"
+                className="min-h-20 rounded-xl border-border/60 bg-muted/20 text-sm leading-relaxed focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:border-primary/50 transition-all duration-200"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">ACTION</Label>
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">AI MODEL</Label>
+                <select
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value as any)}
+                  className="w-full rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-xs font-medium text-foreground outline-none cursor-pointer h-9 focus:border-primary/50 transition-all duration-200"
+                >
+                  <option value="openrouter">Nex N2 Pro 🟣</option>
+                  <option value="gemini">Gemini 2.5 Flash 🟢</option>
+                  <option value="zai">Z.ai GLM 🔵</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">ACTION</Label>
                 <select
                   value={aiAction}
                   onChange={(e) => setAiAction(e.target.value)}
-                  className="w-full rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-xs font-medium text-foreground outline-none cursor-pointer h-9"
+                  className="w-full rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-xs font-medium text-foreground outline-none cursor-pointer h-9 focus:border-primary/50 transition-all duration-200"
                 >
                   <option value="generate-caption">Generate Caption</option>
                   <option value="rewrite-text">Rewrite Copy</option>
@@ -1106,11 +1196,11 @@ function CreatePostContent() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">TONE</Label>
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">TONE</Label>
                 <select
                   value={aiTone}
                   onChange={(e) => setAiTone(e.target.value)}
-                  className="w-full rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-xs font-medium text-foreground outline-none cursor-pointer h-9"
+                  className="w-full rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-xs font-medium text-foreground outline-none cursor-pointer h-9 focus:border-primary/50 transition-all duration-200"
                 >
                   <option value="creative">Creative ✨</option>
                   <option value="professional">Professional 💼</option>
@@ -1122,28 +1212,149 @@ function CreatePostContent() {
             </div>
 
             {aiResult && (
-              <div className="space-y-2 pt-2 border-t border-border/30">
-                <Label className="text-xs font-semibold text-emerald-600 flex items-center gap-1"><CheckCircle2 className="size-4" /> AI RECOMMENDED COPY</Label>
-                <div className="p-3.5 bg-emerald-500/[0.03] border border-emerald-500/25 rounded-xl text-sm leading-relaxed whitespace-pre-wrap text-foreground max-h-40 overflow-y-auto">
+              <div className="bg-[#FCFAF6] dark:bg-slate-900/40 border border-border/80 rounded-2xl shadow-sm overflow-hidden flex flex-col mt-4">
+                <div className="px-4 py-2.5 border-b border-border/40 flex items-center justify-between bg-muted/10">
+                  <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                    <Sparkles className="size-3.5 text-primary animate-pulse" /> Generated Content
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    {selectedModel === "openrouter" ? "Nex N2 Pro" : selectedModel === "gemini" ? "Gemini" : "Z.ai GLM"}
+                  </span>
+                </div>
+                
+                <div className="p-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground max-h-52 overflow-y-auto select-text">
                   {aiResult}
+                </div>
+                
+                <div className="px-3 py-2 bg-muted/10 border-t border-border/40 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopyClick}
+                      className="h-8 text-xs gap-1.5 rounded-lg border-border/60 hover:bg-muted/50 cursor-pointer"
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="size-3.5 text-emerald-600 animate-in zoom-in duration-200" />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="size-3.5" />
+                          <span>Copy</span>
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAIGenerate}
+                      disabled={aiLoading}
+                      className="h-8 text-xs gap-1.5 rounded-lg border-border/60 hover:bg-muted/50 cursor-pointer"
+                    >
+                      <RotateCw className={`size-3.5 ${aiLoading ? 'animate-spin' : ''}`} />
+                      <span>Regenerate</span>
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSaveDraftFromAI}
+                      disabled={saving}
+                      className="h-8 text-xs gap-1.5 rounded-lg border-border/60 hover:bg-muted/50 cursor-pointer"
+                    >
+                      {saving ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <>
+                          <FileDown className="size-3.5" />
+                          <span>Save Draft</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  
+                  <Button
+                    size="sm"
+                    onClick={handleInsertClick}
+                    className="h-8 text-xs bg-primary hover:bg-primary/95 text-primary-foreground font-semibold gap-1.5 rounded-lg shadow-sm cursor-pointer"
+                  >
+                    <Check className="size-3.5" />
+                    <span>Insert Into Post</span>
+                  </Button>
                 </div>
               </div>
             )}
           </div>
 
-          <DialogFooter className="border-t border-border/40 pt-4 flex gap-2">
-            <Button variant="outline" size="sm" className="rounded-lg text-xs" onClick={() => setAiOpen(false)}>
-              Cancel
-            </Button>
+          <DialogFooter className="border-t border-border/40 pt-4 flex justify-end gap-2">
             {aiResult ? (
-              <Button size="sm" className="rounded-lg text-xs" onClick={insertAIResult}>
-                Append to Caption
+              <Button variant="outline" size="sm" className="rounded-lg text-xs cursor-pointer" onClick={() => setAiOpen(false)}>
+                Close Assistant
               </Button>
             ) : (
-              <Button size="sm" className="rounded-lg text-xs" onClick={handleAIGenerate} disabled={aiLoading}>
-                {aiLoading ? <Loader2 className="size-4 animate-spin" /> : "Generate Content"}
-              </Button>
+              <>
+                <Button variant="outline" size="sm" className="rounded-lg text-xs cursor-pointer" onClick={() => setAiOpen(false)}>
+                  Cancel
+                </Button>
+                <Button size="sm" className="rounded-lg text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold flex items-center gap-1.5 cursor-pointer" onClick={handleAIGenerate} disabled={aiLoading}>
+                  {aiLoading ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" />
+                      <span>Generating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="size-3.5" />
+                      <span>Generate Content</span>
+                    </>
+                  )}
+                </Button>
+              </>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Smart Insert Choose Action Dialog */}
+      <Dialog open={insertConfirmOpen} onOpenChange={setInsertConfirmOpen}>
+        <DialogContent className="max-w-md rounded-2xl p-5 border-border/60 shadow-xl bg-card">
+          <DialogHeader className="pb-3 border-b border-border/40">
+            <DialogTitle className="flex items-center gap-2 text-md font-bold text-foreground">
+              Choose Action
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+              The editor already contains text. How would you like to insert the generated content?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2.5 py-4">
+            <Button
+              onClick={() => performInsert("replace")}
+              className="w-full justify-start text-left py-5 px-4 rounded-xl text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-700 border border-red-200/50 cursor-pointer"
+            >
+              🔄 Replace Existing Content
+            </Button>
+            <Button
+              onClick={() => performInsert("append")}
+              className="w-full justify-start text-left py-5 px-4 rounded-xl text-xs font-semibold bg-[#F0FDF4] hover:bg-emerald-100 text-emerald-800 border border-emerald-200/50 cursor-pointer"
+            >
+              ➕ Append To Existing Content
+            </Button>
+          </div>
+          <DialogFooter className="border-t border-border/40 pt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-lg text-xs cursor-pointer"
+              onClick={() => {
+                setInsertConfirmOpen(false)
+                setDraftAfterInsert(false)
+              }}
+            >
+              Cancel
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

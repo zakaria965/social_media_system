@@ -6,10 +6,18 @@ import { recordAIUsage } from "@/lib/ai-quota"
 
 export async function executeAIOperation(
   operation: (provider: AIProvider) => Promise<AIResult>,
-  options: { userId: string; workspaceId: string | null; feature: string; prompt?: string }
+  options: {
+    userId: string
+    workspaceId: string | null
+    feature: string
+    prompt?: string
+    providerOverride?: "gemini" | "zai"
+  }
 ): Promise<AIResult> {
   const settings = await PlatformSettings.findOne()
-  const selection = settings?.aiProvider || "gemini"
+  const selection = options.providerOverride
+    ? (options.providerOverride === "zai" ? "openai" : "gemini")
+    : (settings?.aiProvider || "gemini")
 
   // Emergency shutdown check (if settings exist and kill switch is active)
   if (settings?.openaiEmergencyShutdown) {
