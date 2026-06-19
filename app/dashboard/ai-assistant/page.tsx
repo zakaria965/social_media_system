@@ -903,7 +903,7 @@ export default function AIAssistantPage() {
 
   return (
     <PageTransition>
-      <div className="flex flex-col h-[calc(100vh-110px)] md:h-[calc(100vh-130px)] w-full overflow-hidden bg-[#FCFAF6] relative">
+      <div className="flex flex-col h-[calc(100vh-110px)] md:h-[calc(100vh-130px)] w-full overflow-hidden bg-[#FCFAF6] dark:bg-background relative">
         
         {/* FLOATING HEADER ROW */}
         <div className="flex items-center justify-between px-4 py-3 shrink-0 bg-transparent z-30 select-none">
@@ -912,7 +912,7 @@ export default function AIAssistantPage() {
             <Button
               variant="ghost"
               size="icon"
-              className="size-8 rounded-lg text-slate-500 hover:bg-slate-200/50 hover:text-slate-800 transition-colors cursor-pointer"
+              className="size-8 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-[#1F2937] hover:text-slate-800 dark:hover:text-slate-250 transition-colors cursor-pointer"
               onClick={() => setLeftSidebarOpen(true)}
               title="Open History"
             >
@@ -923,13 +923,13 @@ export default function AIAssistantPage() {
           <div className="flex items-center gap-1.5">
             {/* AI Model Selector */}
             <Select value={selectedModel} onValueChange={(val: "gemini" | "zai" | "openrouter") => setSelectedModel(val)}>
-              <SelectTrigger className="h-8 w-auto text-xs border-0 bg-transparent hover:bg-slate-200/50 font-medium text-slate-700 flex items-center gap-1 focus:ring-0 focus:ring-offset-0 px-2.5 rounded-lg cursor-pointer">
+              <SelectTrigger className="h-8 w-auto text-xs border-0 bg-transparent hover:bg-slate-200/50 dark:hover:bg-[#1F2937] font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1 focus:ring-0 focus:ring-offset-0 px-2.5 rounded-lg cursor-pointer">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border border-slate-200 bg-[#FFFFFF] shadow-lg">
-                <SelectItem value="gemini" className="text-xs focus:bg-emerald-50 focus:text-emerald-900 rounded-lg">Gemini</SelectItem>
-                <SelectItem value="zai" className="text-xs focus:bg-blue-50 focus:text-blue-900 rounded-lg">Z.ai GLM</SelectItem>
-                <SelectItem value="openrouter" className="text-xs focus:bg-purple-50 focus:text-purple-900 rounded-lg">Nex N2 Pro</SelectItem>
+              <SelectContent className="rounded-xl border border-slate-200 dark:border-[#374151] bg-[#FFFFFF] dark:bg-[#111827] shadow-lg text-foreground">
+                <SelectItem value="gemini" className="text-xs focus:bg-emerald-50 dark:focus:bg-emerald-950 focus:text-emerald-900 dark:focus:text-emerald-300 rounded-lg">Gemini</SelectItem>
+                <SelectItem value="zai" className="text-xs focus:bg-blue-50 dark:focus:bg-blue-950 focus:text-blue-900 dark:focus:text-blue-300 rounded-lg">Z.ai GLM</SelectItem>
+                <SelectItem value="openrouter" className="text-xs focus:bg-purple-50 dark:focus:bg-purple-950 focus:text-purple-900 dark:focus:text-purple-300 rounded-lg">Nex N2 Pro</SelectItem>
               </SelectContent>
             </Select>
 
@@ -939,8 +939,8 @@ export default function AIAssistantPage() {
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "size-8 rounded-lg text-slate-500 hover:bg-slate-200/50 hover:text-slate-800 transition-colors cursor-pointer",
-                  threeDotMenuOpen && "bg-slate-200/50 text-slate-800"
+                  "size-8 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-[#1F2937] hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer",
+                  threeDotMenuOpen && "bg-slate-200/50 dark:bg-[#1F2937] text-slate-800 dark:text-slate-200"
                 )}
                 onClick={() => setThreeDotMenuOpen(!threeDotMenuOpen)}
               >
@@ -950,9 +950,9 @@ export default function AIAssistantPage() {
               {threeDotMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setThreeDotMenuOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-48 rounded-xl border border-slate-200 bg-[#FFFFFF] p-1.5 shadow-lg z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="absolute right-0 mt-2 w-48 rounded-xl border border-slate-200 dark:border-[#374151] bg-[#FFFFFF] dark:bg-[#111827] p-1.5 shadow-lg z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                     <button
-                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-[#1F2937]/60 flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       onClick={() => {
                         setThreeDotMenuOpen(false)
                         if (activeChat) exportChatData(activeChat)
@@ -963,7 +963,7 @@ export default function AIAssistantPage() {
                       <span>Export Logs</span>
                     </button>
                     <button
-                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors cursor-pointer"
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-[#1F2937]/60 flex items-center gap-2 transition-colors cursor-pointer"
                       onClick={() => {
                         setThreeDotMenuOpen(false)
                         setRightSidebarOpen(true)
@@ -980,19 +980,19 @@ export default function AIAssistantPage() {
         </div>
 
         {/* CHAT MESSAGES CANVAS (Centered) */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8 space-y-6 bg-[#FCFAF6] w-full">
+        <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8 space-y-6 bg-[#FCFAF6] dark:bg-background w-full">
           
           {/* EMPTY STATE / WELCOME HERO */}
           {activeMessages.length === 0 ? (
             <div className="h-full flex flex-col justify-center items-center text-center space-y-8 py-12 max-w-2xl mx-auto">
               <div className="space-y-4">
-                <div className="size-16 rounded-[24px] bg-[#FFFFFF] shadow-md flex items-center justify-center mx-auto border border-slate-100 animate-bounce">
+                <div className="size-16 rounded-[24px] bg-[#FFFFFF] dark:bg-[#111827] shadow-md flex items-center justify-center mx-auto border border-slate-100 dark:border-[#374151] animate-bounce">
                   <span className="text-3xl">✨</span>
                 </div>
-                <h1 className="text-3xl font-extrabold tracking-tight text-[#111827]">
+                <h1 className="text-3xl font-extrabold tracking-tight text-[#111827] dark:text-[#F8FAFC]">
                   GrowWave AI Assistant
                 </h1>
-                <p className="text-sm text-[#64748B] leading-relaxed max-w-lg mx-auto font-medium">
+                <p className="text-sm text-[#64748B] dark:text-[#CBD5E1] leading-relaxed max-w-lg mx-auto font-medium">
                   Your intelligent social media strategist. Generate content, plan campaigns, analyze performance, and grow faster with AI.
                 </p>
               </div>
@@ -1002,14 +1002,14 @@ export default function AIAssistantPage() {
                 {quickActions.map((q, idx) => (
                   <div
                     key={idx}
-                    className="group flex flex-col text-left p-4 rounded-xl bg-[#FFFFFF] cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md border border-slate-200/60 hover:border-primary/40"
+                    className="group flex flex-col text-left p-4 rounded-xl bg-[#FFFFFF] dark:bg-[#111827] cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md border border-slate-200/60 dark:border-[#374151] hover:border-primary/40"
                     onClick={() => handleQuickAction(q.label, q.prompt)}
                   >
-                    <span className="text-xs font-bold text-[#111827] group-hover:text-primary transition-colors flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#111827] dark:text-[#F8FAFC] group-hover:text-primary transition-colors flex items-center justify-between">
                       {q.label}
                       <ChevronRight className="size-3.5 text-slate-400 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                     </span>
-                    <span className="text-[10px] text-slate-400 mt-1.5 font-bold uppercase tracking-wider">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 font-bold uppercase tracking-wider">
                       {q.label === "Create Content" ? "Content Writer" : q.label === "Generate Hashtags" ? "Caption tool" : q.label === "30-Day Content Plan" ? "Calendar Builder" : "Analytics"}
                     </span>
                   </div>
@@ -1030,23 +1030,23 @@ export default function AIAssistantPage() {
                   {/* User Message Bubble */}
                   {msg.role === "user" ? (
                     <div className="flex flex-col items-end space-y-1.5 max-w-[75%]">
-                      <div className="bg-[#EBFEEB] text-slate-900 px-4.5 py-3 rounded-2xl rounded-tr-sm shadow-[0_2px_12px_rgba(48,252,71,0.03)] text-sm leading-relaxed border border-emerald-100/30">
+                      <div className="bg-[#EBFEEB] dark:bg-[#1E293B] text-slate-900 dark:text-[#F8FAFC] px-4.5 py-3 rounded-2xl rounded-tr-sm shadow-[0_2px_12px_rgba(48,252,71,0.03)] text-sm leading-relaxed border border-emerald-100/30 dark:border-[#374151]">
                         {renderMessageContent(msg.content)}
                       </div>
-                      <span className="text-[9px] text-slate-400 font-semibold px-1 select-none">{msg.timestamp}</span>
+                      <span className="text-[9px] text-slate-400 dark:text-[#CBD5E1]/70 font-semibold px-1 select-none">{msg.timestamp}</span>
                     </div>
                   ) : (
                     /* Assistant Message: Floating layout (no box wrapper, no borders) */
                     <div className="flex flex-col items-start space-y-2 w-full max-w-[75%] group/msg">
                       {/* Model badge and timestamp for Assistant responses */}
-                      <div className="flex items-center gap-2 px-1 text-[10px] text-slate-400 font-semibold select-none">
+                      <div className="flex items-center gap-2 px-1 text-[10px] text-slate-400 dark:text-[#CBD5E1]/75 font-semibold select-none">
                         <span className={cn(
                           "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase border",
                           msg.model === "zai"
-                            ? "bg-blue-50/80 border-blue-100 text-blue-600"
+                            ? "bg-blue-50/80 border-blue-100 text-blue-600 dark:bg-blue-950/40 dark:border-blue-900 dark:text-blue-450"
                             : msg.model === "openrouter"
-                            ? "bg-purple-50/80 border-purple-100 text-purple-600"
-                            : "bg-emerald-50/80 border-emerald-100 text-emerald-600"
+                            ? "bg-purple-50/80 border-purple-100 text-purple-600 dark:bg-purple-950/40 dark:border-purple-900 dark:text-purple-450"
+                            : "bg-emerald-50/80 border-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:border-emerald-900 dark:text-emerald-450"
                         )}>
                           {msg.model === "zai" ? "🔵 Z.ai GLM" : msg.model === "openrouter" ? "🟣 Nex N2 Pro" : "🟢 Gemini"}
                         </span>
@@ -1061,7 +1061,7 @@ export default function AIAssistantPage() {
                       </div>
 
                       {/* Content Area - floating naturally, leading 1.7 */}
-                      <div className="w-full text-slate-900 text-sm leading-[1.7] px-1 font-normal">
+                      <div className="w-full text-slate-900 dark:text-[#CBD5E1] text-sm leading-[1.7] px-1 font-normal">
                         {msg.errorType ? (
                           <div className="p-4 rounded-xl border bg-destructive/5 border-destructive/20 text-foreground flex flex-col gap-3 w-full">
                             <div className="flex items-start gap-2.5">
@@ -1083,7 +1083,7 @@ export default function AIAssistantPage() {
                                   <Button
                                     variant="outline"
                                     size="xs"
-                                    className="h-7 text-[10.5px] border-primary/20 hover:border-primary/40 text-primary hover:bg-primary/5 font-semibold bg-[#FFFFFF]"
+                                    className="h-7 text-[10.5px] border-primary/20 hover:border-primary/40 text-primary hover:bg-primary/5 font-semibold bg-[#FFFFFF] dark:bg-[#111827]"
                                     onClick={() => router.push("/pricing")}
                                   >
                                     Upgrade Plan
@@ -1091,7 +1091,7 @@ export default function AIAssistantPage() {
                                   <Button
                                     variant="outline"
                                     size="xs"
-                                    className="h-7 text-[10.5px] border-slate-200 hover:border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold bg-[#FFFFFF]"
+                                    className="h-7 text-[10.5px] border-slate-200 dark:border-[#374151] hover:border-slate-300 dark:hover:border-slate-500 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1F2937] font-semibold bg-[#FFFFFF] dark:bg-[#111827]"
                                     onClick={() => router.push("/contact")}
                                   >
                                     Contact Support
@@ -1102,7 +1102,7 @@ export default function AIAssistantPage() {
                                 <Button
                                   variant="outline"
                                   size="xs"
-                                  className="h-7 text-[10.5px] border-primary/20 hover:border-primary/40 text-primary hover:bg-primary/5 font-semibold bg-[#FFFFFF]"
+                                  className="h-7 text-[10.5px] border-primary/20 hover:border-primary/40 text-primary hover:bg-primary/5 font-semibold bg-[#FFFFFF] dark:bg-[#111827]"
                                   onClick={() => {
                                     const lastUserMsg = activeMessages
                                       .slice(0, activeMessages.indexOf(msg))
@@ -1125,14 +1125,14 @@ export default function AIAssistantPage() {
 
                       {/* Dynamic Context-Aware Action Cards */}
                       {!msg.errorType && (
-                        <div className="pt-2 border-t border-slate-100 mt-2 flex flex-wrap gap-2 items-center justify-between w-full select-none">
+                        <div className="pt-2 border-t border-slate-100 dark:border-[#374151] mt-2 flex flex-wrap gap-2 items-center justify-between w-full select-none">
                           <div className="flex flex-wrap gap-1.5">
                             {getContextualActions(msg.content).map((act, aIdx) => (
                               <Button
                                 key={aIdx}
                                 variant="outline"
                                 size="xs"
-                                className="h-6 px-2.5 text-[10px] rounded-lg gap-1 border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-800 transition-all font-semibold bg-[#FFFFFF]"
+                                className="h-6 px-2.5 text-[10px] rounded-lg gap-1 border-slate-200 dark:border-[#374151] hover:border-slate-300 dark:hover:border-slate-550 text-slate-600 dark:text-slate-350 hover:text-slate-800 dark:hover:text-slate-150 transition-all font-semibold bg-[#FFFFFF] dark:bg-[#111827]"
                                 onClick={() => handleAction(act.type, msg.content)}
                               >
                                 <act.icon className="size-3 text-slate-500" />
@@ -1213,11 +1213,11 @@ export default function AIAssistantPage() {
 
         {/* INPUT CONTAINER (Centered & Floating) */}
         <div className="p-4 md:p-6 bg-transparent shrink-0">
-          <div className="max-w-3xl mx-auto relative w-full flex flex-col bg-[#FFFFFF] rounded-[24px] border border-slate-200/80 shadow-[0_8px_30px_rgba(0,0,0,0.03)] focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10 transition-all">
+          <div className="max-w-3xl mx-auto relative w-full flex flex-col bg-[#FFFFFF] dark:bg-[#111827] rounded-[24px] border border-slate-200/80 dark:border-[#374151] shadow-[0_8px_30px_rgba(0,0,0,0.03)] focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10 transition-all">
             
             {/* Expandable AI Tools Menu Panel */}
             {aiToolsOpen && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3.5 border-b border-slate-100 bg-slate-50/50 rounded-t-[24px] animate-in fade-in duration-200">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3.5 border-b border-slate-100 dark:border-[#374151] bg-slate-50/50 dark:bg-[#1F2937]/50 rounded-t-[24px] animate-in fade-in duration-200">
                 {[
                   { id: "writer", name: "Content Writer", prompt: "Write content about ", icon: FileText },
                   { id: "caption", name: "Caption Generator", prompt: "/caption ", icon: Sparkles },
@@ -1228,7 +1228,7 @@ export default function AIAssistantPage() {
                 ].map((tool, idx) => (
                   <button
                     key={idx}
-                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white border border-slate-100 hover:border-slate-200 hover:shadow-xs text-left transition-all text-xs font-semibold text-slate-700 cursor-pointer"
+                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-[#111827] border border-slate-100 dark:border-[#374151] hover:border-slate-200 dark:hover:border-slate-650 hover:shadow-xs text-left transition-all text-xs font-semibold text-slate-700 dark:text-slate-350 cursor-pointer"
                     onClick={() => {
                       handleToolClick(tool.prompt)
                       setAiToolsOpen(false)
@@ -1278,7 +1278,7 @@ export default function AIAssistantPage() {
               }}
               onKeyDown={handleKeyDown}
               rows={2}
-              className="w-full min-h-[60px] max-h-36 resize-none bg-transparent border-0 outline-none text-sm px-5 py-4 text-slate-800 placeholder:text-slate-400 focus:ring-0 focus:ring-offset-0"
+              className="w-full min-h-[60px] max-h-36 resize-none bg-transparent border-0 outline-none text-sm px-5 py-4 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-0 focus:ring-offset-0"
             />
 
             {/* Input Action Panel Row */}
@@ -1286,7 +1286,7 @@ export default function AIAssistantPage() {
               <div className="flex items-center gap-2">
                 {/* Attach File Button */}
                 <button
-                  className="size-8 flex items-center justify-center rounded-xl hover:bg-slate-50 border border-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
+                  className="size-8 flex items-center justify-center rounded-xl hover:bg-slate-50 dark:hover:bg-[#1F2937] border border-slate-100 dark:border-[#374151] text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer transition-colors"
                   onClick={() => showToast("Select files to upload", "info")}
                   title="Attach file"
                 >
@@ -1299,8 +1299,8 @@ export default function AIAssistantPage() {
                   size="xs"
                   onClick={() => setAiToolsOpen(!aiToolsOpen)}
                   className={cn(
-                    "h-8 text-[11px] px-3 rounded-full gap-1 border border-slate-200 font-semibold text-slate-650 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer",
-                    aiToolsOpen && "bg-slate-50 text-slate-900 border-primary/20"
+                    "h-8 text-[11px] px-3 rounded-full gap-1 border border-slate-200 dark:border-[#374151] font-semibold text-slate-650 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-[#1F2937] hover:text-slate-900 dark:hover:text-slate-100 transition-colors cursor-pointer",
+                    aiToolsOpen && "bg-slate-50 dark:bg-[#1F2937] text-slate-900 dark:text-slate-100 border-primary/20"
                   )}
                 >
                   <Sparkles className="size-3 text-primary" />
@@ -1308,7 +1308,7 @@ export default function AIAssistantPage() {
                 </Button>
 
                 {/* Selected Model Indicator Badge */}
-                <span className="text-[10px] uppercase tracking-wide text-slate-400 font-bold bg-slate-50/50 px-2.5 py-1 rounded-full border border-slate-200">
+                <span className="text-[10px] uppercase tracking-wide text-slate-400 dark:text-slate-550 font-bold bg-slate-50/50 dark:bg-[#1F2937]/50 px-2.5 py-1 rounded-full border border-slate-200 dark:border-[#374151]">
                   {selectedModel === "gemini" ? "Gemini" : selectedModel === "zai" ? "Z.ai" : "Nex N2 Pro"}
                 </span>
               </div>
@@ -1322,7 +1322,7 @@ export default function AIAssistantPage() {
                   "size-8.5 rounded-full shrink-0 transition-all duration-200 border-0 flex items-center justify-center cursor-pointer",
                   inputVal.trim() && !streaming
                     ? "bg-primary text-black hover:bg-[#2ae43f]"
-                    : "bg-slate-100 text-slate-400 hover:bg-slate-100"
+                    : "bg-slate-100 dark:bg-[#1F2937] text-slate-400 dark:text-slate-600 hover:bg-slate-100 dark:hover:bg-[#1F2937]"
                 )}
               >
                 {streaming ? (
@@ -1345,13 +1345,13 @@ export default function AIAssistantPage() {
       )}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-80 bg-[#FFFFFF] shadow-2xl transition-transform duration-300 ease-in-out flex flex-col border-r border-[#EEF2F7]",
+          "fixed inset-y-0 left-0 z-50 w-80 bg-[#FFFFFF] dark:bg-[#111827] shadow-2xl transition-transform duration-300 ease-in-out flex flex-col border-r border-[#EEF2F7] dark:border-[#374151]",
           leftSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Drawer Header */}
-        <div className="p-4.5 border-b border-[#EEF2F7] flex items-center justify-between gap-2 shrink-0">
-          <span className="font-bold text-sm text-[#111827]">History</span>
+        <div className="p-4.5 border-b border-[#EEF2F7] dark:border-[#374151] flex items-center justify-between gap-2 shrink-0">
+          <span className="font-bold text-sm text-[#111827] dark:text-[#F8FAFC]">History</span>
           <div className="flex items-center gap-1.5">
             <Button
               onClick={() => {
@@ -1359,14 +1359,14 @@ export default function AIAssistantPage() {
                 setLeftSidebarOpen(false)
               }}
               variant="outline"
-              className="h-8 px-2.5 rounded-lg text-xs gap-1 border-slate-200 hover:bg-slate-50 font-semibold text-slate-700 bg-white"
+              className="h-8 px-2.5 rounded-lg text-xs gap-1 border-slate-200 dark:border-[#374151] hover:bg-slate-50 dark:hover:bg-[#1F2937] font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-[#111827]"
             >
               <Plus className="size-3.5" /> New Chat
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="size-8 text-slate-400 hover:text-slate-600 rounded-lg"
+              className="size-8 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg"
               onClick={() => setLeftSidebarOpen(false)}
             >
               <X className="size-4" />
@@ -1375,13 +1375,13 @@ export default function AIAssistantPage() {
         </div>
 
         {/* Drawer Search Input */}
-        <div className="px-4 py-3 relative shrink-0 border-b border-[#EEF2F7]">
+        <div className="px-4 py-3 relative shrink-0 border-b border-[#EEF2F7] dark:border-[#374151]">
           <Search className="size-4 absolute left-7 top-6 text-slate-400" />
           <Input
             placeholder="Search conversations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-9 rounded-lg pl-9 text-xs border-slate-200 bg-slate-50/50"
+            className="h-9 rounded-lg pl-9 text-xs border-slate-200 dark:border-[#374151] bg-slate-50/50 dark:bg-[#1F2937]/50 text-slate-700 dark:text-slate-200"
           />
         </div>
 
@@ -1412,8 +1412,8 @@ export default function AIAssistantPage() {
                       className={cn(
                         "group flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer text-xs transition-all duration-150",
                         c.id === activeChatId
-                          ? "bg-[#EBFEEB] text-slate-900 font-semibold"
-                          : "hover:bg-slate-50 text-slate-600 hover:text-slate-900"
+                          ? "bg-[#EBFEEB] dark:bg-emerald-950/40 text-slate-900 dark:text-emerald-400 font-semibold"
+                          : "hover:bg-slate-50 dark:hover:bg-[#1F2937] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
                       )}
                       onClick={() => {
                         setActiveChatId(c.id)
@@ -1421,14 +1421,14 @@ export default function AIAssistantPage() {
                       }}
                     >
                       <div className="flex items-center gap-2.5 overflow-hidden flex-1">
-                        <MessageSquare className={cn("size-4 shrink-0", c.id === activeChatId ? "text-primary" : "text-slate-400")} />
+                        <MessageSquare className={cn("size-4 shrink-0", c.id === activeChatId ? "text-primary" : "text-slate-400 dark:text-slate-500")} />
                         {editingChatId === c.id ? (
                           <input
                             value={editTitleVal}
                             onChange={(e) => setEditTitleVal(e.target.value)}
                             onKeyDown={(e) => e.key === "Enter" && handleSaveRename(c.id)}
                             onBlur={() => handleSaveRename(c.id)}
-                            className="bg-transparent border-b border-primary text-xs focus:outline-none w-full py-0.5"
+                            className="bg-transparent border-b border-primary text-xs focus:outline-none w-full py-0.5 text-foreground"
                             onClick={(e) => e.stopPropagation()}
                             autoFocus
                           />
@@ -1438,16 +1438,16 @@ export default function AIAssistantPage() {
                       </div>
 
                       <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-0.5 shrink-0 ml-1">
-                        <Button variant="ghost" size="icon" className="size-6 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md" onClick={(e) => handleTogglePin(c.id, e)}>
+                        <Button variant="ghost" size="icon" className="size-6 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1F2937] rounded-md" onClick={(e) => handleTogglePin(c.id, e)}>
                           <Pin className={cn("size-3", c.pinned && "fill-slate-500 text-slate-500")} />
                         </Button>
-                        <Button variant="ghost" size="icon" className="size-6 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md" onClick={(e) => handleToggleFavorite(c.id, e)}>
+                        <Button variant="ghost" size="icon" className="size-6 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1F2937] rounded-md" onClick={(e) => handleToggleFavorite(c.id, e)}>
                           <Star className={cn("size-3", c.favorite && "fill-amber-400 text-amber-400")} />
                         </Button>
-                        <Button variant="ghost" size="icon" className="size-6 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md" onClick={(e) => handleToggleArchive(c.id, e)}>
+                        <Button variant="ghost" size="icon" className="size-6 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1F2937] rounded-md" onClick={(e) => handleToggleArchive(c.id, e)}>
                           <Archive className="size-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="size-6 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md" onClick={(e) => handleStartRename(c, e)}>
+                        <Button variant="ghost" size="icon" className="size-6 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1F2937] rounded-md" onClick={(e) => handleStartRename(c, e)}>
                           <Edit2 className="size-3" />
                         </Button>
                         <Button variant="ghost" size="icon" className="size-6 text-destructive/70 hover:text-destructive hover:bg-destructive/10 rounded-md" onClick={(e) => handleDeleteChat(c.id, e)}>
@@ -1466,8 +1466,8 @@ export default function AIAssistantPage() {
         </div>
 
         {/* Bottom Memory Settings */}
-        <div className="p-4 border-t border-[#EEF2F7] bg-slate-50/50 flex flex-col gap-2 shrink-0">
-          <div className="flex items-center justify-between text-[11px] text-[#64748B]">
+        <div className="p-4 border-t border-[#EEF2F7] dark:border-[#374151] bg-slate-50/50 dark:bg-[#1F2937]/30 flex flex-col gap-2 shrink-0">
+          <div className="flex items-center justify-between text-[11px] text-[#64748B] dark:text-slate-400">
             <span className="flex items-center gap-1 font-semibold">
               <Brain className="size-3.5 text-primary" /> Memory Settings
             </span>
@@ -1475,7 +1475,7 @@ export default function AIAssistantPage() {
               Configure <ChevronRight className="size-3" />
             </Link>
           </div>
-          <p className="text-[10px] text-[#64748B]/85 leading-normal">
+          <p className="text-[10px] text-[#64748B]/85 dark:text-slate-400/85 leading-normal">
             AI remembers brand guidelines and content rules set inside Settings page tabs.
           </p>
         </div>
@@ -1489,18 +1489,18 @@ export default function AIAssistantPage() {
         />
       )}
       <div className={cn(
-        "fixed inset-y-0 right-0 z-50 w-80 bg-[#FFFFFF] shadow-2xl transition-transform duration-300 ease-in-out flex flex-col border-l border-[#EEF2F7]",
+        "fixed inset-y-0 right-0 z-50 w-80 bg-[#FFFFFF] dark:bg-[#111827] shadow-2xl transition-transform duration-300 ease-in-out flex flex-col border-l border-[#EEF2F7] dark:border-[#374151]",
         rightSidebarOpen ? "translate-x-0" : "translate-x-full"
       )}>
-        <div className="px-4.5 py-4.5 border-b border-[#EEF2F7] flex items-center justify-between shrink-0 bg-white">
-          <span className="text-xs font-bold text-[#111827] flex items-center gap-1.5">
+        <div className="px-4.5 py-4.5 border-b border-[#EEF2F7] dark:border-[#374151] flex items-center justify-between shrink-0 bg-white dark:bg-[#111827]">
+          <span className="text-xs font-bold text-[#111827] dark:text-[#F8FAFC] flex items-center gap-1.5">
             <Layers className="size-4 text-primary" />
             Workspace Insights
           </span>
           <Button
             variant="ghost"
             size="icon"
-            className="size-8 text-slate-400 hover:text-slate-600 rounded-lg"
+            className="size-8 text-slate-400 hover:text-slate-600 dark:hover:text-slate-350 rounded-lg"
             onClick={() => setRightSidebarOpen(false)}
           >
             <X className="size-4" />
@@ -1510,12 +1510,12 @@ export default function AIAssistantPage() {
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
           {/* Connected Channels status */}
           <div className="space-y-2.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] block">Connected Channels</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] dark:text-[#CBD5E1] block">Connected Channels</span>
             <div className="space-y-1.5">
               {connectedChannels.map((ch, idx) => (
-                <div key={idx} className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50/50 border border-slate-100 shadow-2xs">
-                  <span className="font-semibold text-slate-700 capitalize">{ch.platform}</span>
-                  <span className="text-[10px] text-[#64748B] max-w-[120px] truncate">{ch.username}</span>
+                <div key={idx} className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50/50 dark:bg-[#1F2937]/50 border border-slate-100 dark:border-[#374151] shadow-2xs">
+                  <span className="font-semibold text-slate-700 dark:text-slate-200 capitalize">{ch.platform}</span>
+                  <span className="text-[10px] text-[#64748B] dark:text-[#CBD5E1] max-w-[120px] truncate">{ch.username}</span>
                 </div>
               ))}
               {connectedChannels.length === 0 && (
@@ -1526,13 +1526,13 @@ export default function AIAssistantPage() {
 
           {/* Saved Calendars */}
           <div className="space-y-2.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] block">Saved Calendars</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] dark:text-[#CBD5E1] block">Saved Calendars</span>
             <div className="space-y-1.5">
               {savedCalendars.map((cName, idx) => (
-                <div key={idx} className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50/50 border border-slate-100 shadow-2xs">
-                  <span className="truncate flex-1 pr-2 text-slate-700 font-medium">{cName}</span>
-                  <Button variant="ghost" size="icon" className="size-6 hover:bg-slate-100 rounded-md" onClick={() => router.push("/dashboard/calendar")}>
-                    <ExternalLink className="size-3 text-slate-500" />
+                <div key={idx} className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50/50 dark:bg-[#1F2937]/50 border border-slate-100 dark:border-[#374151] shadow-2xs">
+                  <span className="truncate flex-1 pr-2 text-slate-700 dark:text-slate-200 font-medium">{cName}</span>
+                  <Button variant="ghost" size="icon" className="size-6 hover:bg-slate-100 dark:hover:bg-[#1F2937] rounded-md" onClick={() => router.push("/dashboard/calendar")}>
+                    <ExternalLink className="size-3 text-slate-500 dark:text-slate-400" />
                   </Button>
                 </div>
               ))}
@@ -1544,13 +1544,13 @@ export default function AIAssistantPage() {
 
           {/* Recent Reports */}
           <div className="space-y-2.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] block">Recent Reports</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] dark:text-[#CBD5E1] block">Recent Reports</span>
             <div className="space-y-1.5">
               {recentReports.map((rName, idx) => (
-                <div key={idx} className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50/50 border border-slate-100 shadow-2xs">
-                  <span className="truncate flex-1 pr-2 text-slate-700 font-medium">{rName}</span>
-                  <Button variant="ghost" size="icon" className="size-6 hover:bg-slate-100 rounded-md" onClick={() => handleAction("export_md", `## ${rName}\nExecutive Summary and KPI indicators.`)}>
-                    <Download className="size-3 text-slate-500" />
+                <div key={idx} className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50/50 dark:bg-[#1F2937]/50 border border-slate-100 dark:border-[#374151] shadow-2xs">
+                  <span className="truncate flex-1 pr-2 text-slate-700 dark:text-slate-200 font-medium">{rName}</span>
+                  <Button variant="ghost" size="icon" className="size-6 hover:bg-slate-100 dark:hover:bg-[#1F2937] rounded-md" onClick={() => handleAction("export_md", `## ${rName}\nExecutive Summary and KPI indicators.`)}>
+                    <Download className="size-3 text-slate-500 dark:text-slate-400" />
                   </Button>
                 </div>
               ))}
@@ -1562,13 +1562,13 @@ export default function AIAssistantPage() {
 
           {/* Pinned Insights */}
           <div className="space-y-2.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] block">Pinned Insights</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B] dark:text-[#CBD5E1] block">Pinned Insights</span>
             <div className="space-y-1.5">
               {pinnedInsights.map((ins, idx) => (
-                <div key={idx} className="relative group/ins p-3 rounded-xl bg-emerald-50/30 border border-emerald-100 text-[11px] leading-relaxed text-slate-700 flex flex-col gap-1.5 shadow-2xs">
+                <div key={idx} className="relative group/ins p-3 rounded-xl bg-emerald-50/30 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-800/30 text-[11px] leading-relaxed text-slate-700 dark:text-emerald-300 flex flex-col gap-1.5 shadow-2xs">
                   <p>{ins}</p>
                   <button
-                    className="absolute top-1.5 right-1.5 opacity-0 group-hover/ins:opacity-100 text-slate-400 hover:text-destructive transition-all cursor-pointer"
+                    className="absolute top-1.5 right-1.5 opacity-0 group-hover/ins:opacity-100 text-slate-400 dark:text-slate-500 hover:text-destructive transition-all cursor-pointer"
                     onClick={() => {
                       const updated = pinnedInsights.filter((_, i) => i !== idx)
                       setPinnedInsights(updated)

@@ -218,7 +218,7 @@ export default function SettingsCenter() {
   const router = useRouter()
   const { data: session } = useSession()
   const { activeWorkspace, refetchWorkspaces } = useWorkspace()
-  const { theme: localTheme, toggle: toggleLocalTheme } = useTheme()
+  const { theme: localTheme, setTheme } = useTheme()
   const { showToast } = useToast()
 
   // Centralized State
@@ -2228,12 +2228,22 @@ export default function SettingsCenter() {
                 <CardDescription className="text-xs">Modify the theme, layout margins, and accent typography of your dashboard view.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-xs text-emerald-800 font-semibold leading-relaxed">
-                  <p className="font-bold mb-0.5">Branding System Locked</p>
-                  <p className="text-[11px] opacity-90">GrowWave uses one unified enterprise brand system. Custom color accents and dark mode overrides are locked to ensure consistent brand identity across all views.</p>
-                </div>
-
                 <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold">Interface Theme</Label>
+                    <select
+                      value={localTheme}
+                      onChange={(e) => {
+                        const val = e.target.value as "light" | "dark"
+                        setTheme(val)
+                        saveSettingsPayload({ user: { theme: val } }, "appearance")
+                      }}
+                      className="w-full h-9 rounded-xl border border-border/60 bg-background dark:bg-card px-3 py-1.5 text-xs text-foreground dark:text-foreground"
+                    >
+                      <option value="light">Light Mode</option>
+                      <option value="dark">Dark Mode</option>
+                    </select>
+                  </div>
                   <div className="space-y-2">
                     <Label className="text-xs font-semibold">Sidebar Dense Layout</Label>
                     <select

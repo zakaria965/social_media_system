@@ -872,7 +872,7 @@ export default function AnalyticsPage() {
                                   ? "#6366f1"
                                   : "#f59e0b"
                             }
-                            stroke="#fff"
+                            stroke="var(--bg-card)"
                             strokeWidth="1.8"
                           />
                         </g>

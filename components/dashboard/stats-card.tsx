@@ -38,16 +38,16 @@ export function StatsCard({ title, value, change, trend, icon: Icon, sparkline, 
   }
 
   return (
-    <Card className="group relative overflow-hidden rounded-2xl border-none bg-white transition-all duration-200 shadow-card hover:-translate-y-0.5 hover:shadow-card-hover">
+    <Card className="group relative overflow-hidden rounded-2xl border-none bg-white dark:bg-[#111827] transition-all duration-200 shadow-card hover:-translate-y-0.5 hover:shadow-card-hover">
       <CardContent className="flex flex-col justify-between p-4 h-full min-h-[120px]">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <p className="text-[10px] font-bold tracking-wider text-[#6B7280] uppercase">{title}</p>
-            <p className="text-2xl font-bold tracking-tight text-[#111827] transition-all duration-200">
+            <p className="text-[10px] font-bold tracking-wider text-[#6B7280] dark:text-[#CBD5E1] uppercase">{title}</p>
+            <p className="text-2xl font-bold tracking-tight text-[#111827] dark:text-[#F8FAFC] transition-all duration-200">
               {value}
             </p>
           </div>
-          <div className="flex size-9 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#22C55E] transition-all duration-200">
+          <div className="flex size-9 items-center justify-center rounded-lg bg-[#DCFCE7] dark:bg-[#22C55E]/10 text-[#22C55E] transition-all duration-200">
             <Icon className="size-4.5" />
           </div>
         </div>
@@ -59,7 +59,7 @@ export function StatsCard({ title, value, change, trend, icon: Icon, sparkline, 
                 <span className={cn(
                   "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors duration-200 shrink-0",
                   trend === "up" && "bg-emerald-500/10 text-[#22C55E]",
-                  trend === "down" && "bg-rose-500/10 text-rose-600",
+                  trend === "down" && "bg-rose-500/10 text-rose-600 dark:text-rose-400",
                   trend === "neutral" && "bg-muted text-muted-foreground"
                 )}>
                   {trend === "up" && <ArrowUpRight className="size-2.5" />}
@@ -67,16 +67,17 @@ export function StatsCard({ title, value, change, trend, icon: Icon, sparkline, 
                   {trend === "neutral" && <Minus className="size-2.5" />}
                   {change.split(" ")[0]}
                 </span>
-                <span className="text-[9.5px] font-medium text-[#6B7280] truncate">
+                <span className="text-[9.5px] font-medium text-[#6B7280] dark:text-[#CBD5E1] truncate">
                   {change.substring(change.indexOf(" ") + 1)}
                 </span>
               </>
             ) : emptyMessage ? (
-              <span className="text-[9.5px] font-medium text-[#94A3B8] leading-normal line-clamp-2">
+              <span className="text-[9.5px] font-medium text-[#94A3B8] dark:text-[#CBD5E1]/70 leading-normal line-clamp-2">
                 {emptyMessage}
               </span>
             ) : null}
           </div>
+
 
           {hasSparkline && (
             <div className="shrink-0 opacity-50">

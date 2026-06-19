@@ -28,3 +28,29 @@
   /* Typography */
   --font-sans: 'Inter', sans-serif;
 }
+
+.dark {
+  /* Background Colors */
+  --bg-main: #0F172A;
+  --bg-card: #111827;
+  --bg-secondary-card: #1F2937;
+
+  /* Text Colors */
+  --text-primary: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --text-muted: #64748B;
+  --text-white: #FFFFFF;
+
+  /* Borders & Radius */
+  --border: #374151;
+
+  /* Shadows */
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-card-hover: 0 8px 30px rgba(0, 0, 0, 0.4);
+  --shadow-modal: 0 20px 40px rgba(0, 0, 0, 0.4);
+
+  /* Brand surface adjustments for dark mode readability */
+  --brand-surface: rgba(34, 197, 94, 0.15);
+  --brand-light-surface: rgba(34, 197, 94, 0.08);
+}
+

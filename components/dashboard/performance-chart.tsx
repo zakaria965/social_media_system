@@ -337,7 +337,7 @@ export function PerformanceChart({ timeseries }: PerformanceChartProps) {
                         cy={getY(activeData[hoveredIndex].reach)}
                         r="5"
                         fill="#10b981"
-                        stroke="#fff"
+                        stroke="var(--bg-card)"
                         strokeWidth="1.5"
                         className="shadow-sm"
                       />
@@ -347,7 +347,7 @@ export function PerformanceChart({ timeseries }: PerformanceChartProps) {
                         cy={getY(activeData[hoveredIndex].engagement)}
                         r="5"
                         fill="#6366f1"
-                        stroke="#fff"
+                        stroke="var(--bg-card)"
                         strokeWidth="1.5"
                         className="shadow-sm"
                       />
@@ -357,7 +357,7 @@ export function PerformanceChart({ timeseries }: PerformanceChartProps) {
                         cy={getY(activeData[hoveredIndex].clicks)}
                         r="5"
                         fill="#f59e0b"
-                        stroke="#fff"
+                        stroke="var(--bg-card)"
                         strokeWidth="1.5"
                         className="shadow-sm"
                       />

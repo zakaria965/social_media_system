@@ -259,11 +259,11 @@ export default function DashboardPage() {
             <PerformanceChart timeseries={timeseries} />
 
             {/* Connected Platforms Section */}
-            <Card className="rounded-2xl border-none bg-[#FFFFFF] shadow-card hover:shadow-card-hover transition-all duration-200">
+            <Card className="rounded-2xl border-none bg-[#FFFFFF] dark:bg-[#111827] shadow-card hover:shadow-card-hover transition-all duration-200">
               <CardHeader className="pb-3 flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="text-sm font-semibold text-[#111827]">Connected Platforms</CardTitle>
-                  <p className="text-xs text-[#64748B] mt-0.5">Control platform synchronization and status badges.</p>
+                  <CardTitle className="text-sm font-semibold text-[#111827] dark:text-[#F8FAFC]">Connected Platforms</CardTitle>
+                  <p className="text-xs text-[#64748B] dark:text-[#CBD5E1] mt-0.5">Control platform synchronization and status badges.</p>
                 </div>
                 <Link href="/dashboard/settings">
                   <Button variant="ghost" size="sm" className="text-xs font-semibold hover:bg-muted/80 rounded-lg h-8 px-3">
@@ -281,10 +281,10 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={plat}
-                      className="group relative flex flex-col justify-between p-3.5 rounded-2xl border border-[#EEF2F7] bg-[#FFFFFF] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover/20"
+                      className="group relative flex flex-col justify-between p-3.5 rounded-2xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FFFFFF] dark:bg-[#111827] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover/20"
                     >
                       <div className="flex items-start justify-between">
-                        <div className={cn("size-8 rounded-lg flex items-center justify-center bg-[#FCFAF6] border border-[#EEF2F7] transition-transform duration-200 group-hover:scale-105", brand.text)}>
+                        <div className={cn("size-8 rounded-lg flex items-center justify-center bg-[#FCFAF6] dark:bg-[#1F2937] border border-[#EEF2F7] dark:border-[#374151] transition-transform duration-200 group-hover:scale-105", brand.text)}>
                           <BrandIcon className="size-4" />
                         </div>
                         <Badge
@@ -303,17 +303,17 @@ export default function DashboardPage() {
                       </div>
 
                       <div className="mt-4 space-y-0.5">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-[#64748B]">{brand.label}</p>
-                        <p className="text-xs font-semibold text-[#111827] truncate max-w-full">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-[#64748B] dark:text-[#CBD5E1]">{brand.label}</p>
+                        <p className="text-xs font-semibold text-[#111827] dark:text-[#F8FAFC] truncate max-w-full">
                           {account ? account.username : "Unconnected"}
                         </p>
-                        <p className="text-[10px] text-[#64748B]">
+                        <p className="text-[10px] text-[#64748B] dark:text-[#CBD5E1]">
                           {account ? `${account.followers.toLocaleString()} followers` : "0 followers"}
                         </p>
                       </div>
 
-                      <div className="mt-3.5 pt-3.5 border-t border-[#EEF2F7] flex items-center justify-between">
-                        <span className="text-[10px] text-[#64748B]">
+                      <div className="mt-3.5 pt-3.5 border-t border-[#EEF2F7] dark:border-[#374151] flex items-center justify-between">
+                        <span className="text-[10px] text-[#64748B] dark:text-[#CBD5E1]">
                           {account ? "Sync active" : "Available"}
                         </span>
                         {account ? (
@@ -339,11 +339,11 @@ export default function DashboardPage() {
             </Card>
 
             {/* Recent Activity Feed */}
-            <Card className="rounded-2xl border-none bg-[#FFFFFF] shadow-card hover:shadow-card-hover transition-all duration-200">
+            <Card className="rounded-2xl border-none bg-[#FFFFFF] dark:bg-[#111827] shadow-card hover:shadow-card-hover transition-all duration-200">
               <CardHeader className="pb-3 flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="text-sm font-semibold text-[#111827]">Recent Activities</CardTitle>
-                  <p className="text-xs text-[#64748B] mt-0.5">Audit log of system processes and recent interactions.</p>
+                  <CardTitle className="text-sm font-semibold text-[#111827] dark:text-[#F8FAFC]">Recent Activities</CardTitle>
+                  <p className="text-xs text-[#64748B] dark:text-[#CBD5E1] mt-0.5">Audit log of system processes and recent interactions.</p>
                 </div>
                 <Link href="/dashboard/scheduled">
                   <Button variant="ghost" size="sm" className="text-xs font-semibold hover:bg-muted/80 rounded-lg h-8 px-3">
@@ -354,10 +354,10 @@ export default function DashboardPage() {
               
               <CardContent className="p-0">
                 {activities.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center p-8 text-center bg-[#FCFAF6] rounded-b-2xl">
-                    <Activity className="size-8 text-[#64748B]/50 mb-2" />
-                    <p className="text-xs font-semibold text-[#64748B]">No recent activity detected.</p>
-                    <p className="text-[10px] text-[#64748B]/80 max-w-[200px] mt-1">Activities are generated when you schedule or publish content.</p>
+                  <div className="flex flex-col items-center justify-center p-8 text-center bg-[#FCFAF6] dark:bg-[#1F2937] rounded-b-2xl">
+                    <Activity className="size-8 text-[#64748B] dark:text-[#CBD5E1]/50 mb-2" />
+                    <p className="text-xs font-semibold text-[#64748B] dark:text-[#CBD5E1]">No recent activity detected.</p>
+                    <p className="text-[10px] text-[#64748B] dark:text-[#CBD5E1]/80 max-w-[200px] mt-1">Activities are generated when you schedule or publish content.</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-[#EEF2F7]">
@@ -371,7 +371,7 @@ export default function DashboardPage() {
                       })
 
                       return (
-                        <div key={act.id} className="flex items-center gap-3.5 px-4.5 py-3 transition-colors duration-200 hover:bg-[#FCFAF6]/60">
+                        <div key={act.id} className="flex items-center gap-3.5 px-4.5 py-3 transition-colors duration-200 hover:bg-[#FCFAF6] dark:bg-[#1F2937]/60">
                           <div className={cn(
                             "flex size-8 shrink-0 items-center justify-center rounded-full border shadow-sm",
                             act.status === "success" && "bg-[#DCFCE7] border-[#DCFCE7] text-[#22C55E]",
@@ -382,22 +382,22 @@ export default function DashboardPage() {
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs text-[#111827] font-medium truncate">
+                            <p className="text-xs text-[#111827] dark:text-[#F8FAFC] font-medium truncate">
                               {act.details}
                             </p>
                             <div className="flex items-center gap-2 mt-0.5">
                               {brand && (
-                                <Badge variant="outline" className="text-[8px] tracking-wider font-semibold uppercase px-1 py-0 border-[#EEF2F7] text-[#64748B] flex items-center gap-0.5 rounded-sm">
+                                <Badge variant="outline" className="text-[8px] tracking-wider font-semibold uppercase px-1 py-0 border-[#EEF2F7] dark:border-[#374151] text-[#64748B] dark:text-[#CBD5E1] flex items-center gap-0.5 rounded-sm">
                                   {brand.label}
                                 </Badge>
                               )}
-                              <span className="text-[9px] text-[#64748B] font-semibold uppercase shrink-0">
+                              <span className="text-[9px] text-[#64748B] dark:text-[#CBD5E1] font-semibold uppercase shrink-0">
                                 {act.action.replace("_", " ")}
                               </span>
                             </div>
                           </div>
 
-                          <span className="shrink-0 text-[10px] font-semibold text-[#64748B] uppercase flex items-center gap-1">
+                          <span className="shrink-0 text-[10px] font-semibold text-[#64748B] dark:text-[#CBD5E1] uppercase flex items-center gap-1">
                             <Clock className="size-3" />
                             {timeAgo}
                           </span>
@@ -415,70 +415,70 @@ export default function DashboardPage() {
           <div className="lg:col-span-3 space-y-6">
             
             {/* Quick Actions Card */}
-            <Card className="rounded-2xl border-none bg-[#FFFFFF] shadow-card hover:shadow-card-hover transition-all duration-200">
+            <Card className="rounded-2xl border-none bg-[#FFFFFF] dark:bg-[#111827] shadow-card hover:shadow-card-hover transition-all duration-200">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-[#111827] flex items-center gap-1.5">
+                <CardTitle className="text-sm font-semibold text-[#111827] dark:text-[#F8FAFC] flex items-center gap-1.5">
                   <PenSquare className="size-4 text-[#22C55E]" />
                   Quick Actions
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-2 p-4 pt-0">
-                <Link href="/dashboard/create" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] bg-[#FFFFFF] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
+                <Link href="/dashboard/create" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FFFFFF] dark:bg-[#111827] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
                   <div className="size-7 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                     <PenSquare className="size-4" />
                   </div>
-                  <span className="text-xs font-bold text-[#111827] mt-3.5 block">Create Post</span>
-                  <span className="text-[10px] text-[#64748B] mt-0.5 block truncate">Design & share</span>
+                  <span className="text-xs font-bold text-[#111827] dark:text-[#F8FAFC] mt-3.5 block">Create Post</span>
+                  <span className="text-[10px] text-[#64748B] dark:text-[#CBD5E1] mt-0.5 block truncate">Design & share</span>
                 </Link>
 
-                <Link href="/dashboard/bulk" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] bg-[#FFFFFF] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
+                <Link href="/dashboard/bulk" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FFFFFF] dark:bg-[#111827] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
                   <div className="size-7 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                     <Clock className="size-4" />
                   </div>
-                  <span className="text-xs font-bold text-[#111827] mt-3.5 block">Schedule Content</span>
-                  <span className="text-[10px] text-[#64748B] mt-0.5 block truncate">Queue posts</span>
+                  <span className="text-xs font-bold text-[#111827] dark:text-[#F8FAFC] mt-3.5 block">Schedule Content</span>
+                  <span className="text-[10px] text-[#64748B] dark:text-[#CBD5E1] mt-0.5 block truncate">Queue posts</span>
                 </Link>
 
-                <Link href="/dashboard/ai-assistant" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] bg-[#FFFFFF] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
+                <Link href="/dashboard/ai-assistant" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FFFFFF] dark:bg-[#111827] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
                   <div className="size-7 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                     <Sparkles className="size-4" />
                   </div>
-                  <span className="text-xs font-bold text-[#111827] mt-3.5 block">AI Writer</span>
-                  <span className="text-[10px] text-[#64748B] mt-0.5 block truncate">Generate copy</span>
+                  <span className="text-xs font-bold text-[#111827] dark:text-[#F8FAFC] mt-3.5 block">AI Writer</span>
+                  <span className="text-[10px] text-[#64748B] dark:text-[#CBD5E1] mt-0.5 block truncate">Generate copy</span>
                 </Link>
 
-                <Link href="/dashboard/analytics" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] bg-[#FFFFFF] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
+                <Link href="/dashboard/analytics" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FFFFFF] dark:bg-[#111827] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
                   <div className="size-7 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                     <BarChart3 className="size-4" />
                   </div>
-                  <span className="text-xs font-bold text-[#111827] mt-3.5 block">Analytics</span>
-                  <span className="text-[10px] text-[#64748B] mt-0.5 block truncate">Deep insights</span>
+                  <span className="text-xs font-bold text-[#111827] dark:text-[#F8FAFC] mt-3.5 block">Analytics</span>
+                  <span className="text-[10px] text-[#64748B] dark:text-[#CBD5E1] mt-0.5 block truncate">Deep insights</span>
                 </Link>
 
-                <Link href="/dashboard/media" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] bg-[#FFFFFF] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
+                <Link href="/dashboard/media" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FFFFFF] dark:bg-[#111827] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
                   <div className="size-7 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                     <ImageIcon className="size-4" />
                   </div>
-                  <span className="text-xs font-bold text-[#111827] mt-3.5 block">Media Library</span>
-                  <span className="text-[10px] text-[#64748B] mt-0.5 block truncate">Upload assets</span>
+                  <span className="text-xs font-bold text-[#111827] dark:text-[#F8FAFC] mt-3.5 block">Media Library</span>
+                  <span className="text-[10px] text-[#64748B] dark:text-[#CBD5E1] mt-0.5 block truncate">Upload assets</span>
                 </Link>
 
-                <Link href="/dashboard/inbox" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] bg-[#FFFFFF] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
+                <Link href="/dashboard/inbox" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FFFFFF] dark:bg-[#111827] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
                   <div className="size-7 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                     <MessageSquare className="size-4" />
                   </div>
-                  <span className="text-xs font-bold text-[#111827] mt-3.5 block">Inbox</span>
-                  <span className="text-[10px] text-[#64748B] mt-0.5 block truncate">View messages</span>
+                  <span className="text-xs font-bold text-[#111827] dark:text-[#F8FAFC] mt-3.5 block">Inbox</span>
+                  <span className="text-[10px] text-[#64748B] dark:text-[#CBD5E1] mt-0.5 block truncate">View messages</span>
                 </Link>
               </CardContent>
             </Card>
 
             {/* Upcoming Content Calendar */}
-            <Card className="rounded-2xl border-none bg-[#FFFFFF] shadow-card hover:shadow-card-hover transition-all duration-200">
+            <Card className="rounded-2xl border-none bg-[#FFFFFF] dark:bg-[#111827] shadow-card hover:shadow-card-hover transition-all duration-200">
               <CardHeader className="pb-3 flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="text-sm font-semibold text-[#111827]">Content Planning</CardTitle>
-                  <p className="text-xs text-[#64748B] mt-0.5 font-medium uppercase tracking-wider">Queue status</p>
+                  <CardTitle className="text-sm font-semibold text-[#111827] dark:text-[#F8FAFC]">Content Planning</CardTitle>
+                  <p className="text-xs text-[#64748B] dark:text-[#CBD5E1] mt-0.5 font-medium uppercase tracking-wider">Queue status</p>
                 </div>
                 <Link href="/dashboard/calendar">
                   <Button variant="ghost" size="sm" className="text-xs font-semibold hover:bg-muted/80 rounded-lg h-8 px-3">
@@ -489,10 +489,10 @@ export default function DashboardPage() {
               
               <CardContent className="space-y-4 p-4 pt-0">
                 {today.length === 0 && tomorrow.length === 0 && thisWeek.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center p-6 text-center border border-dashed border-[#EEF2F7] rounded-2xl bg-[#FCFAF6]">
-                    <CalendarCheck className="size-7 text-[#64748B]/55 mb-2" />
-                    <p className="text-xs font-semibold text-[#111827]">Planning queue empty</p>
-                    <p className="text-[10px] text-[#64748B] mt-1 mb-3">No scheduled posts scheduled for this week.</p>
+                  <div className="flex flex-col items-center justify-center p-6 text-center border border-dashed border-[#EEF2F7] dark:border-[#374151] rounded-2xl bg-[#FCFAF6] dark:bg-[#1F2937]">
+                    <CalendarCheck className="size-7 text-[#64748B] dark:text-[#CBD5E1]/55 mb-2" />
+                    <p className="text-xs font-semibold text-[#111827] dark:text-[#F8FAFC]">Planning queue empty</p>
+                    <p className="text-[10px] text-[#64748B] dark:text-[#CBD5E1] mt-1 mb-3">No scheduled posts scheduled for this week.</p>
                     <Link href="/dashboard/create">
                       <Button size="sm" className="rounded-lg gap-1 font-semibold text-xs bg-[#22C55E] hover:bg-[#4ADE80] text-[#FFFFFF] border-0 h-8 px-3 cursor-pointer shadow-[0_4px_14px_rgba(34,197,94,0.18)]">
                         <Plus className="size-3.5" />
@@ -508,9 +508,9 @@ export default function DashboardPage() {
                         <span className="text-[10px] font-bold text-[#22C55E] uppercase tracking-wider">Today</span>
                         <div className="space-y-2">
                           {today.map((post: any) => (
-                            <div key={post.id} className="rounded-xl border border-[#EEF2F7] bg-[#FCFAF6]/40 p-3 flex flex-col justify-between hover:bg-[#FCFAF6]/80 transition-all duration-200">
-                              <p className="text-xs font-bold text-[#111827] leading-normal line-clamp-2">{post.title || post.content}</p>
-                              <div className="mt-3 flex items-center justify-between border-t border-[#EEF2F7] pt-2 text-[10px] text-[#64748B]">
+                            <div key={post.id} className="rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FCFAF6] dark:bg-[#1F2937]/40 p-3 flex flex-col justify-between hover:bg-[#FCFAF6] dark:bg-[#1F2937]/80 transition-all duration-200">
+                              <p className="text-xs font-bold text-[#111827] dark:text-[#F8FAFC] leading-normal line-clamp-2">{post.title || post.content}</p>
+                              <div className="mt-3 flex items-center justify-between border-t border-[#EEF2F7] dark:border-[#374151] pt-2 text-[10px] text-[#64748B] dark:text-[#CBD5E1]">
                                 <span className="font-semibold uppercase tracking-wider">{post.platforms.join(" • ")}</span>
                                 <span className="flex items-center gap-1 font-semibold">
                                   <Clock className="size-3" />
@@ -526,12 +526,12 @@ export default function DashboardPage() {
                     {/* TOMORROW SECTION */}
                     {tomorrow.length > 0 && (
                       <div className="space-y-2">
-                        <span className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">Tomorrow</span>
+                        <span className="text-[10px] font-bold text-[#64748B] dark:text-[#CBD5E1] uppercase tracking-wider">Tomorrow</span>
                         <div className="space-y-2">
                           {tomorrow.map((post: any) => (
-                            <div key={post.id} className="rounded-xl border border-[#EEF2F7] bg-[#FCFAF6]/40 p-3 flex flex-col justify-between hover:bg-[#FCFAF6]/80 transition-all duration-200">
-                              <p className="text-xs font-bold text-[#111827] leading-normal line-clamp-2">{post.title || post.content}</p>
-                              <div className="mt-3 flex items-center justify-between border-t border-[#EEF2F7] pt-2 text-[10px] text-[#64748B]">
+                            <div key={post.id} className="rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FCFAF6] dark:bg-[#1F2937]/40 p-3 flex flex-col justify-between hover:bg-[#FCFAF6] dark:bg-[#1F2937]/80 transition-all duration-200">
+                              <p className="text-xs font-bold text-[#111827] dark:text-[#F8FAFC] leading-normal line-clamp-2">{post.title || post.content}</p>
+                              <div className="mt-3 flex items-center justify-between border-t border-[#EEF2F7] dark:border-[#374151] pt-2 text-[10px] text-[#64748B] dark:text-[#CBD5E1]">
                                 <span className="font-semibold uppercase tracking-wider">{post.platforms.join(" • ")}</span>
                                 <span className="flex items-center gap-1 font-semibold">
                                   <Clock className="size-3" />
@@ -547,12 +547,12 @@ export default function DashboardPage() {
                     {/* THIS WEEK SECTION */}
                     {thisWeek.length > 0 && (
                       <div className="space-y-2">
-                        <span className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">Later This Week</span>
+                        <span className="text-[10px] font-bold text-[#64748B] dark:text-[#CBD5E1] uppercase tracking-wider">Later This Week</span>
                         <div className="space-y-2">
                           {thisWeek.map((post: any) => (
-                            <div key={post.id} className="rounded-xl border border-[#EEF2F7] bg-[#FCFAF6]/40 p-3 flex flex-col justify-between hover:bg-[#FCFAF6]/80 transition-all duration-200">
-                              <p className="text-xs font-bold text-[#111827] leading-normal line-clamp-2">{post.title || post.content}</p>
-                              <div className="mt-3 flex items-center justify-between border-t border-[#EEF2F7] pt-2 text-[10px] text-[#64748B]">
+                            <div key={post.id} className="rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FCFAF6] dark:bg-[#1F2937]/40 p-3 flex flex-col justify-between hover:bg-[#FCFAF6] dark:bg-[#1F2937]/80 transition-all duration-200">
+                              <p className="text-xs font-bold text-[#111827] dark:text-[#F8FAFC] leading-normal line-clamp-2">{post.title || post.content}</p>
+                              <div className="mt-3 flex items-center justify-between border-t border-[#EEF2F7] dark:border-[#374151] pt-2 text-[10px] text-[#64748B] dark:text-[#CBD5E1]">
                                 <span className="font-semibold uppercase tracking-wider">{post.platforms.join(" • ")}</span>
                                 <span className="flex items-center gap-1 font-semibold">
                                   <Clock className="size-3" />
@@ -570,41 +570,41 @@ export default function DashboardPage() {
             </Card>
 
             {/* AI Strategist Command Center */}
-            <Card className="rounded-2xl border-none bg-[#FFFFFF] shadow-card hover:shadow-card-hover transition-all duration-200">
+            <Card className="rounded-2xl border-none bg-[#FFFFFF] dark:bg-[#111827] shadow-card hover:shadow-card-hover transition-all duration-200">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-[#111827] flex items-center gap-1.5">
+                <CardTitle className="text-sm font-semibold text-[#111827] dark:text-[#F8FAFC] flex items-center gap-1.5">
                   <Sparkles className="size-4 text-[#22C55E]" />
                   AI Strategist Command
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 p-4 pt-0">
-                <div className="rounded-xl border border-[#EEF2F7] bg-[#FCFAF6] p-3 text-xs leading-relaxed">
+                <div className="rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FCFAF6] dark:bg-[#1F2937] p-3 text-xs leading-relaxed">
                   <span className="font-bold text-[#22C55E] flex items-center gap-1 mb-1">
                     <Brain className="size-3.5" />
                     Posting Time Opportunity
                   </span>
-                  Audience retention analytics indicate that <span className="font-semibold text-[#111827]">educational content</span> performs best on <span className="font-semibold text-[#111827]">Tuesdays at 11:30 AM</span>. Consider scheduling your next thread.
+                  Audience retention analytics indicate that <span className="font-semibold text-[#111827] dark:text-[#F8FAFC]">educational content</span> performs best on <span className="font-semibold text-[#111827] dark:text-[#F8FAFC]">Tuesdays at 11:30 AM</span>. Consider scheduling your next thread.
                 </div>
 
-                <div className="rounded-xl border border-[#EEF2F7] bg-[#FFFFFF] p-3 text-xs flex flex-col justify-between gap-2.5">
+                <div className="rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FFFFFF] dark:bg-[#111827] p-3 text-xs flex flex-col justify-between gap-2.5">
                   <div>
-                    <span className="font-bold text-[#111827] block">Weekly Performance Spike</span>
+                    <span className="font-bold text-[#111827] dark:text-[#F8FAFC] block">Weekly Performance Spike</span>
                     Your LinkedIn engagement rate peaked up <span className="font-semibold text-[#22C55E]">18%</span> compared to the average. Maintain momentum by posting another visual industry insight.
                   </div>
                   <Button
                     onClick={() => router.push("/dashboard/create")}
                     variant="outline"
                     size="sm"
-                    className="w-full text-[10px] font-bold rounded-lg bg-[#FFFFFF] border border-[#EEF2F7] py-1 h-7 flex items-center justify-center gap-1 hover:bg-[#FCFAF6] text-[#111827]"
+                    className="w-full text-[10px] font-bold rounded-lg bg-[#FFFFFF] dark:bg-[#111827] border border-[#EEF2F7] dark:border-[#374151] py-1 h-7 flex items-center justify-center gap-1 hover:bg-[#FCFAF6] dark:bg-[#1F2937] text-[#111827] dark:text-[#F8FAFC]"
                   >
                     Draft Visual Post
                     <ChevronRight className="size-3" />
                   </Button>
                 </div>
 
-                <div className="rounded-xl border border-[#EEF2F7] bg-[#FFFFFF] p-3 text-xs flex flex-col justify-between gap-2.5">
+                <div className="rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FFFFFF] dark:bg-[#111827] p-3 text-xs flex flex-col justify-between gap-2.5">
                   <div>
-                    <span className="font-bold text-[#111827] block">Generate Content Opportunities</span>
+                    <span className="font-bold text-[#111827] dark:text-[#F8FAFC] block">Generate Content Opportunities</span>
                     Would you like to build 5 high-converting post ideas derived from your best performing post?
                   </div>
                   <Button
@@ -619,9 +619,9 @@ export default function DashboardPage() {
             </Card>
 
             {/* Workspace Health Indicator */}
-            <Card className="rounded-2xl border-none bg-[#FFFFFF] shadow-card hover:shadow-card-hover transition-all duration-200">
+            <Card className="rounded-2xl border-none bg-[#FFFFFF] dark:bg-[#111827] shadow-card hover:shadow-card-hover transition-all duration-200">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-[#111827] flex items-center gap-1.5">
+                <CardTitle className="text-sm font-semibold text-[#111827] dark:text-[#F8FAFC] flex items-center gap-1.5">
                   <Activity className="size-4 text-[#22C55E]" />
                   Workspace Health
                 </CardTitle>
@@ -630,8 +630,8 @@ export default function DashboardPage() {
                 {/* Connected Accounts limit */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-medium">
-                    <span className="text-[#64748B]">Connected Accounts</span>
-                    <span className="text-[#111827] font-semibold">
+                    <span className="text-[#64748B] dark:text-[#CBD5E1]">Connected Accounts</span>
+                    <span className="text-[#111827] dark:text-[#F8FAFC] font-semibold">
                       {workspaceHealth.connectedAccounts} / {workspaceHealth.maxAccounts}
                     </span>
                   </div>
@@ -641,8 +641,8 @@ export default function DashboardPage() {
                 {/* Monthly post quota */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-medium">
-                    <span className="text-[#64748B]">Monthly Post Count</span>
-                    <span className="text-[#111827] font-semibold">
+                    <span className="text-[#64748B] dark:text-[#CBD5E1]">Monthly Post Count</span>
+                    <span className="text-[#111827] dark:text-[#F8FAFC] font-semibold">
                       {workspaceHealth.postsThisMonth} / {workspaceHealth.maxPostsMonth}
                     </span>
                   </div>
@@ -652,21 +652,21 @@ export default function DashboardPage() {
                 {/* Media storage */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-medium">
-                    <span className="text-[#64748B] flex items-center gap-1">
-                      <HardDrive className="size-3.5 text-[#64748B]" />
+                    <span className="text-[#64748B] dark:text-[#CBD5E1] flex items-center gap-1">
+                      <HardDrive className="size-3.5 text-[#64748B] dark:text-[#CBD5E1]" />
                       Media Storage Space
                     </span>
-                    <span className="text-[#111827] font-semibold">
+                    <span className="text-[#111827] dark:text-[#F8FAFC] font-semibold">
                       {workspaceHealth.mediaStorageUsed} / {workspaceHealth.mediaStorageLimit} MB
                     </span>
                   </div>
                   <Progress value={(workspaceHealth.mediaStorageUsed / workspaceHealth.mediaStorageLimit) * 100} className="h-1.5 rounded-full" />
                 </div>
 
-                <div className="pt-3 flex items-center justify-between text-xs font-medium border-t border-[#EEF2F7] text-[#64748B]">
+                <div className="pt-3 flex items-center justify-between text-xs font-medium border-t border-[#EEF2F7] dark:border-[#374151] text-[#64748B] dark:text-[#CBD5E1]">
                   <div className="flex flex-col">
-                    <span className="text-[9px] uppercase font-bold text-[#64748B]">Team Quota</span>
-                    <span className="text-xs text-[#111827] font-semibold mt-0.5">{workspaceHealth.teamMembers} Members active</span>
+                    <span className="text-[9px] uppercase font-bold text-[#64748B] dark:text-[#CBD5E1]">Team Quota</span>
+                    <span className="text-xs text-[#111827] dark:text-[#F8FAFC] font-semibold mt-0.5">{workspaceHealth.teamMembers} Members active</span>
                   </div>
                   <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider border-[#DCFCE7] text-[#22C55E] bg-[#DCFCE7] px-2 py-0.5 select-none rounded-md">
                     Pro Workspace

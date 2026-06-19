@@ -14,6 +14,8 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeft,
+  Sun,
+  Moon,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -29,7 +31,12 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuLabel,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu"
+import { useTheme } from "@/components/dashboard/theme-provider"
 import {
   Tooltip,
   TooltipTrigger,
@@ -86,6 +93,7 @@ const navigationItems: SidebarLink[] = [
 export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const { theme, setTheme } = useTheme()
   const { activeWorkspace, workspaces, switchWorkspace, createWorkspace } = useWorkspace()
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false)
   const [newWorkspaceName, setNewWorkspaceName] = useState("")
@@ -154,7 +162,7 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
         )}
 
         <aside
-          style={{ backgroundColor: '#FCFAF6', borderRight: '1px solid #F1F5F9' }}
+          style={{ backgroundColor: 'var(--bg-main)', borderRight: '1px solid var(--border)' }}
           className={cn(
             "fixed top-0 left-0 z-50 flex h-full flex-col transition-all duration-300 lg:translate-x-0 ease-in-out select-none",
             isCollapsed ? "lg:w-20 w-[260px]" : "w-[260px]",
@@ -470,9 +478,48 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
                     </a>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-border-light/60 dark:bg-zinc-800/40 my-1" />
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="flex items-center justify-between gap-2 px-2.5 py-2 text-xs font-bold cursor-pointer rounded-lg text-text-primary dark:text-foreground hover:bg-muted/70 transition-colors">
+                      <div className="flex items-center gap-2">
+                        {theme === "dark" ? (
+                          <Moon className="size-3.5 text-text-secondary" />
+                        ) : (
+                          <Sun className="size-3.5 text-text-secondary" />
+                        )}
+                        <span>Theme</span>
+                      </div>
+                      <span className="text-[10px] font-normal text-text-secondary capitalize">{theme}</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent className="bg-card text-foreground border border-border p-1">
+                        <DropdownMenuItem
+                          onClick={() => setTheme("light")}
+                          className={cn(
+                            "flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold cursor-pointer rounded-lg text-foreground hover:bg-muted transition-colors",
+                            theme === "light" && "bg-muted"
+                          )}
+                        >
+                          <Sun className="size-3.5 text-muted-foreground" />
+                          <span>Light</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setTheme("dark")}
+                          className={cn(
+                            "flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold cursor-pointer rounded-lg text-foreground hover:bg-muted transition-colors",
+                            theme === "dark" && "bg-muted"
+                          )}
+                        >
+                          <Moon className="size-3.5 text-muted-foreground" />
+                          <span>Dark</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+
+                  <DropdownMenuSeparator className="bg-border-light/60 dark:bg-zinc-800/40 my-1" />
                   <DropdownMenuItem
                     onClick={() => signOut({ callbackUrl: "/" })}
-                    className="flex items-center gap-2 px-2.5 py-2 text-xs font-black text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 cursor-pointer rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-2.5 py-2 text-xs font-black text-rose-600 dark:text-rose-450 hover:bg-rose-500/10 cursor-pointer rounded-lg transition-colors"
                   >
                     <LogOut className="size-3.5" />
                     <span>Log Out</span>

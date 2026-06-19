@@ -13,6 +13,10 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu"
 import { useTheme } from "@/components/dashboard/theme-provider"
 import { cn } from "@/lib/utils"
@@ -23,7 +27,7 @@ interface TopNavbarProps {
 
 export function TopNavbar({ onMenuClick }: TopNavbarProps) {
   const { data: session } = useSession()
-  const { theme, toggle } = useTheme()
+  const { theme, setTheme } = useTheme()
 
   const [notifications, setNotifications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -77,31 +81,40 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
     : "U"
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-[#EEF2F7] bg-[#FCFAF6] px-4 md:px-6">
-      <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick}>
-        <Menu className="size-5" />
-      </Button>
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background px-4 md:px-6 transition-colors duration-200">
+      <div className="flex items-center gap-4 flex-1">
+        {/* Mobile menu trigger */}
+        <Button variant="ghost" size="icon" className="lg:hidden shrink-0" onClick={onMenuClick}>
+          <Menu className="size-5" />
+        </Button>
 
-      <div className="hidden items-center gap-2 md:flex">
-        <Link href="/dashboard" className="flex items-center gap-2 lg:hidden">
-          <div className="flex size-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
-            G
-          </div>
-          <span className="font-display text-base font-semibold text-foreground">
-            GrowWave
-          </span>
-        </Link>
+        {/* Theme Toggle Button */}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="rounded-full size-9 border border-border bg-[#F8FAFC] dark:bg-[#1F2937]/50 text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          {theme === "dark" ? (
+            <Sun className="size-4 text-amber-500 transition-all duration-300 hover:rotate-45" />
+          ) : (
+            <Moon className="size-4 text-slate-700 dark:text-slate-350 transition-all duration-300 hover:-rotate-12" />
+          )}
+        </Button>
+
+        {/* Global Search on the left */}
+        <div className="relative w-full max-w-xs shrink-0 sm:block">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search posts, accounts..."
+            className="h-9 rounded-full border border-border bg-[#F8FAFC] dark:bg-[#1F2937]/50 pl-9 text-sm placeholder:text-muted-foreground/60 shadow-xs focus-visible:ring-1 focus-visible:ring-[#22C55E]/40"
+          />
+        </div>
       </div>
 
-      <div className="relative ml-auto hidden max-w-xs flex-1 sm:block">
-        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search posts, accounts..."
-          className="h-9 rounded-full border-0 bg-[#F8FAFC] pl-9 text-sm placeholder:text-muted-foreground/60 shadow-xs focus-visible:ring-1 focus-visible:ring-[#22C55E]/40"
-        />
-      </div>
-
-      <div className="flex items-center gap-2">
+      {/* Action buttons and profile on the right */}
+      <div className="flex items-center gap-3">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative text-muted-foreground">
@@ -113,7 +126,7 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80 p-0 rounded-xl overflow-hidden border-border/60">
+          <DropdownMenuContent align="end" className="w-80 p-0 rounded-xl overflow-hidden border-border/60 bg-card text-foreground">
             <div className="flex items-center justify-between px-3.5 py-2.5 bg-muted/15 border-b border-border/40">
               <span className="text-xs font-bold text-foreground">Notifications</span>
               {unreadCount > 0 && (
@@ -143,8 +156,8 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
                     <div className="flex justify-between items-baseline gap-2">
                       <span className={cn(
                         "text-[10.5px] font-bold truncate",
-                        n.type === "success" ? "text-emerald-600" :
-                        n.type === "error" ? "text-rose-600" : "text-foreground"
+                        n.type === "success" ? "text-emerald-650" :
+                        n.type === "error" ? "text-rose-650" : "text-foreground"
                       )}>
                         {n.title}
                       </span>
@@ -183,12 +196,53 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
               </span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem asChild>
+          <DropdownMenuContent align="end" className="w-48 bg-card text-foreground border border-border">
+            <DropdownMenuItem asChild className="cursor-pointer">
               <Link href="/dashboard/settings">Settings</Link>
             </DropdownMenuItem>
+
+            {/* Submenu for Theme selector */}
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })}>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="flex items-center justify-between gap-2 px-2 py-1.5 text-xs font-bold cursor-pointer rounded-lg text-foreground hover:bg-muted transition-colors">
+                <div className="flex items-center gap-2">
+                  {theme === "dark" ? (
+                    <Moon className="size-3.5 text-muted-foreground" />
+                  ) : (
+                    <Sun className="size-3.5 text-muted-foreground" />
+                  )}
+                  <span>Theme</span>
+                </div>
+                <span className="text-[10px] font-normal text-muted-foreground capitalize">{theme}</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent className="bg-card text-foreground border border-border p-1">
+                  <DropdownMenuItem
+                    onClick={() => setTheme("light")}
+                    className={cn(
+                      "flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold cursor-pointer rounded-lg text-foreground hover:bg-muted transition-colors",
+                      theme === "light" && "bg-muted"
+                    )}
+                  >
+                    <Sun className="size-3.5 text-muted-foreground" />
+                    <span>Light</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setTheme("dark")}
+                    className={cn(
+                      "flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold cursor-pointer rounded-lg text-foreground hover:bg-muted transition-colors",
+                      theme === "dark" && "bg-muted"
+                    )}
+                  >
+                    <Moon className="size-3.5 text-muted-foreground" />
+                    <span>Dark</span>
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
+
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })} className="cursor-pointer text-rose-600 dark:text-rose-450 hover:bg-rose-500/10">
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
