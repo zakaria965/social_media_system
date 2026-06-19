@@ -7,6 +7,7 @@ import { Notification } from "./models/notification"
 import { publisherMap } from "./publisher"
 import { User } from "./models/user"
 import { PublishedPost } from "./models/published-post"
+import { Workspace } from "./models/workspace"
 
 let isChecking = false
 let schedulerInterval: NodeJS.Timeout | null = null
@@ -150,18 +151,26 @@ export async function checkScheduleQueue() {
           }
         }
 
+        let ownerPlan = "FREE"
         const dbUser = await User.findOne({ email: post.userId })
-        if (dbUser && (dbUser.plan || "FREE").toUpperCase() === "FREE") {
+        if (post.workspaceId) {
+          const ws = await Workspace.findById(post.workspaceId)
+          if (ws) {
+            const ownerUser = await User.findOne({ email: ws.ownerEmail })
+            ownerPlan = (ownerUser?.plan || "FREE").toUpperCase()
+          }
+        } else {
+          ownerPlan = (dbUser?.plan || "FREE").toUpperCase()
+        }
+
+        if (ownerPlan === "FREE") {
           const startOfDay = new Date()
           startOfDay.setHours(0, 0, 0, 0)
           const endOfDay = new Date()
           endOfDay.setHours(23, 59, 59, 999)
 
           const count = await PublishedPost.countDocuments({
-            $or: [
-              { userId: dbUser._id.toString() },
-              { userId: dbUser.email }
-            ],
+            workspaceId: post.workspaceId ? post.workspaceId.toString() : null,
             publishedAt: {
               $gte: startOfDay,
               $lte: endOfDay

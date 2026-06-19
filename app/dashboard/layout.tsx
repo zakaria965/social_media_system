@@ -6,6 +6,7 @@ import { TopNavbar } from "@/components/dashboard/top-navbar"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { useWorkspace } from "@/components/dashboard/workspace-provider"
 
 export default function DashboardLayout({
   children,
@@ -14,6 +15,7 @@ export default function DashboardLayout({
 }) {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const { activeWorkspace } = useWorkspace()
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -22,14 +24,30 @@ export default function DashboardLayout({
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login")
-    } else if (status === "authenticated") {
+      return
+    }
+
+    if (status === "authenticated" && activeWorkspace) {
       if (session?.user?.role === "ADMIN") {
         router.push("/admin")
-      } else if (session?.user?.plan !== "PRO") {
-        router.push("/dashboard-lite")
+        return
+      }
+
+      const pathname = typeof window !== "undefined" ? window.location.pathname : ""
+      const isWorkspaceRoute = pathname.startsWith("/workspace/")
+
+      if (!isWorkspaceRoute) {
+        const prefix = "/dashboard"
+        let suffix = ""
+        if (pathname.startsWith(prefix)) {
+          suffix = pathname.substring(prefix.length)
+        } else if (pathname === "/team") {
+          suffix = "/team"
+        }
+        router.replace(`/workspace/${activeWorkspace._id}${suffix}`)
       }
     }
-  }, [status, session, router])
+  }, [status, session, activeWorkspace, router])
 
   useEffect(() => {
     // 1. Initial Local Storage Loading (Fast UI render)
@@ -69,7 +87,9 @@ export default function DashboardLayout({
     )
   }
 
-  if (status === "unauthenticated" || session?.user?.plan !== "PRO") {
+  const isWorkspaceRoute = typeof window !== "undefined" ? window.location.pathname.startsWith("/workspace/") : false
+
+  if (status === "unauthenticated" || (!isWorkspaceRoute && session?.user?.plan !== "PRO")) {
     return null
   }
 

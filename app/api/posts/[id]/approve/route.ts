@@ -29,10 +29,10 @@ export async function POST(
       return NextResponse.json({ error: "Post is not linked to a workspace" }, { status: 400 })
     }
 
-    // 1. Verify owner/admin role (they are the only ones allowed to approve)
+    // 1. Verify owner/admin/manager role (they are the only ones allowed to approve)
     const check = await verifyMemberPermission(session.user.email, workspaceId, "team")
-    if (!check.allowed || !["owner", "admin"].includes(check.role || "")) {
-      return NextResponse.json({ error: "Forbidden: Only Owners or Admins can approve posts" }, { status: 403 })
+    if (!check.allowed || !["owner", "admin", "Workspace Owner", "Admin", "Workspace Manager"].includes(check.role || "")) {
+      return NextResponse.json({ error: "Forbidden: Only Workspace Owners or Managers can approve posts" }, { status: 403 })
     }
 
     // 2. Approve post
@@ -82,10 +82,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Post is not linked to a workspace" }, { status: 400 })
     }
 
-    // 1. Verify owner/admin role
+    // 1. Verify owner/admin/manager role
     const check = await verifyMemberPermission(session.user.email, workspaceId, "team")
-    if (!check.allowed || !["owner", "admin"].includes(check.role || "")) {
-      return NextResponse.json({ error: "Forbidden: Only Owners or Admins can reject posts" }, { status: 403 })
+    if (!check.allowed || !["owner", "admin", "Workspace Owner", "Admin", "Workspace Manager"].includes(check.role || "")) {
+      return NextResponse.json({ error: "Forbidden: Only Workspace Owners or Managers can reject posts" }, { status: 403 })
     }
 
     // 2. Reject post

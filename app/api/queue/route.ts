@@ -10,6 +10,7 @@ import { Notification } from "@/lib/models/notification"
 import { publisherMap } from "@/lib/publisher"
 import { User } from "@/lib/models/user"
 import { PublishedPost } from "@/lib/models/published-post"
+import { Workspace } from "@/lib/models/workspace"
 
 export async function GET(request: NextRequest) {
   try {
@@ -114,18 +115,26 @@ export async function POST(request: NextRequest) {
         throw new Error(`Connection error: ${job.platform} account connection is unhealthy (${account.status})`)
       }
 
+      let ownerPlan = "FREE"
       const dbUser = await User.findOne({ email: post.userId })
-      if (dbUser && (dbUser.plan || "FREE").toUpperCase() === "FREE") {
+      if (post.workspaceId) {
+        const ws = await Workspace.findById(post.workspaceId)
+        if (ws) {
+          const ownerUser = await User.findOne({ email: ws.ownerEmail })
+          ownerPlan = (ownerUser?.plan || "FREE").toUpperCase()
+        }
+      } else {
+        ownerPlan = (dbUser?.plan || "FREE").toUpperCase()
+      }
+
+      if (ownerPlan === "FREE") {
         const startOfDay = new Date()
         startOfDay.setHours(0, 0, 0, 0)
         const endOfDay = new Date()
         endOfDay.setHours(23, 59, 59, 999)
 
         const count = await PublishedPost.countDocuments({
-          $or: [
-            { userId: dbUser._id.toString() },
-            { userId: dbUser.email }
-          ],
+          workspaceId: post.workspaceId ? post.workspaceId.toString() : null,
           publishedAt: {
             $gte: startOfDay,
             $lte: endOfDay

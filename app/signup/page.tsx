@@ -15,7 +15,27 @@ function SignupContent() {
 
   useEffect(() => {
     if (session?.user) {
-      router.push("/dashboard")
+      if (session.user.role === "ADMIN") {
+        router.push("/admin")
+        return
+      }
+
+      fetch("/api/workspaces")
+        .then((res) => res.json())
+        .then((data) => {
+          const memberships = data.memberships || []
+          if (memberships.length > 0) {
+            const invited = memberships.find((m: any) => m.role !== "owner" && m.role !== "Workspace Owner")
+            const target = invited || memberships[0]
+            router.push(`/workspace/${target.workspaceId}`)
+          } else {
+            router.push("/dashboard")
+          }
+        })
+        .catch((err) => {
+          console.error(err)
+          router.push("/dashboard")
+        })
     }
   }, [session, router])
 

@@ -22,6 +22,7 @@ import {
   Plus,
   Check,
   ShieldAlert,
+  RotateCcw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -75,15 +76,16 @@ const permissionOptions = [
 const roleConfig: Record<string, { label: string; icon: any; color: string; variant: "default" | "secondary" | "outline" | "ghost" }> = {
   // Legacy
   owner: { label: "Workspace Owner", icon: Crown, color: "text-amber-500", variant: "default" },
-  admin: { label: "Admin", icon: ShieldCheck, color: "text-blue-500", variant: "secondary" },
+  admin: { label: "Workspace Manager", icon: ShieldCheck, color: "text-blue-500", variant: "secondary" },
   editor: { label: "Content Manager", icon: Pencil, color: "text-emerald-500", variant: "outline" },
-  viewer: { label: "Analyst", icon: Eye, color: "text-zinc-500", variant: "ghost" },
+  viewer: { label: "Viewer", icon: Eye, color: "text-zinc-500", variant: "ghost" },
   // New
   "Workspace Owner": { label: "Workspace Owner", icon: Crown, color: "text-amber-500", variant: "default" },
-  "Admin": { label: "Admin", icon: ShieldCheck, color: "text-blue-500", variant: "secondary" },
+  "Workspace Manager": { label: "Workspace Manager", icon: ShieldCheck, color: "text-blue-500", variant: "secondary" },
   "Content Manager": { label: "Content Manager", icon: Pencil, color: "text-emerald-500", variant: "outline" },
-  "Designer": { label: "Designer", icon: Sparkles, color: "text-purple-500", variant: "outline" },
+  "Editor": { label: "Editor", icon: Pencil, color: "text-purple-500", variant: "outline" },
   "Analyst": { label: "Analyst", icon: Eye, color: "text-zinc-500", variant: "ghost" },
+  "Viewer": { label: "Viewer", icon: Eye, color: "text-zinc-500", variant: "ghost" },
 }
 
 export default function TeamPage() {
@@ -226,6 +228,54 @@ export default function TeamPage() {
     }
   }
 
+  // Action: Resend Invite
+  const handleResendInvite = async (memberId: string) => {
+    if (!activeWorkspace) return
+    try {
+      const res = await fetch(`/api/workspaces/${activeWorkspace._id}/members/${memberId}/resend`, {
+        method: "POST",
+      })
+
+      if (res.ok) {
+        showToast("Invitation resent successfully.", "success")
+        loadWorkspaceData()
+      } else {
+        const err = await res.json()
+        showToast(err.error || "An error occurred.", "error")
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  // Action: Toggle Member Suspension
+  const handleToggleSuspend = async (member: any) => {
+    if (!activeWorkspace) return
+    const newStatus = member.status === "suspended" ? "active" : "suspended"
+    try {
+      const res = await fetch(`/api/workspaces/${activeWorkspace._id}/members/${member._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: newStatus,
+        }),
+      })
+
+      if (res.ok) {
+        showToast(
+          `Member ${member.email} has been successfully ${newStatus === "suspended" ? "suspended" : "unsuspended"}.`,
+          "success"
+        )
+        loadWorkspaceData()
+      } else {
+        const err = await res.json()
+        showToast(err.error || "An error occurred.", "error")
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
   // Action: Save Member Permissions Edits
   const handleSaveMemberEdit = async () => {
     if (!activeWorkspace || !editingMember) return
@@ -323,6 +373,9 @@ export default function TeamPage() {
     )
   }
 
+  const activeMembersList = members.filter((m) => m.status !== "pending")
+  const pendingInvitesList = members.filter((m) => m.status === "pending")
+
   return (
     <PageTransition>
       <div className="space-y-6">
@@ -383,10 +436,11 @@ export default function TeamPage() {
                             <DropdownMenuLabel className="text-[9px] uppercase tracking-wider text-text-secondary">
                               System Roles
                             </DropdownMenuLabel>
-                            <SelectItem value="Admin" className="text-xs">Admin</SelectItem>
+                            <SelectItem value="Workspace Manager" className="text-xs">Workspace Manager</SelectItem>
                             <SelectItem value="Content Manager" className="text-xs">Content Manager</SelectItem>
-                            <SelectItem value="Designer" className="text-xs">Designer</SelectItem>
                             <SelectItem value="Analyst" className="text-xs">Analyst</SelectItem>
+                            <SelectItem value="Editor" className="text-xs">Editor</SelectItem>
+                            <SelectItem value="Viewer" className="text-xs">Viewer</SelectItem>
                             {customRoles.length > 0 && (
                               <>
                                 <DropdownMenuSeparator />
@@ -533,7 +587,7 @@ export default function TeamPage() {
                         <p className="text-[10px] uppercase font-bold tracking-wider text-text-secondary">
                           Total Active Members
                         </p>
-                        <h2 className="text-xl font-extrabold">{analytics.totalMembers}</h2>
+                        <h2 className="text-xl font-extrabold">{activeMembersList.length}</h2>
                         <p className="text-[10px] text-muted-foreground">Collaborators in workspace</p>
                       </CardContent>
                     </Card>
@@ -542,7 +596,7 @@ export default function TeamPage() {
                         <p className="text-[10px] uppercase font-bold tracking-wider text-text-secondary">
                           Pending Invitations
                         </p>
-                        <h2 className="text-xl font-extrabold">{analytics.pendingInvites}</h2>
+                        <h2 className="text-xl font-extrabold">{pendingInvitesList.length}</h2>
                         <p className="text-[10px] text-muted-foreground">Sent and waiting responses</p>
                       </CardContent>
                     </Card>
@@ -570,7 +624,7 @@ export default function TeamPage() {
                 )}
 
                 {/* Empty State Onboarding UI */}
-                {members.length === 1 && analytics?.pendingInvites === 0 ? (
+                {activeMembersList.length === 0 ? (
                   <Card className="border-dashed border-2 border-border/80 rounded-2xl py-12 px-6 text-center space-y-4 bg-muted/10 max-w-xl mx-auto mt-6">
                     <div className="flex size-14 items-center justify-center rounded-full bg-brand-green/10 text-brand-green mx-auto">
                       <UserPlus className="size-6" />
@@ -600,21 +654,21 @@ export default function TeamPage() {
                     <div className="px-4 py-3 bg-muted/15 border-b border-border/40 flex justify-between items-center">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
                         <Users className="size-3.5 text-brand-green-dark" />
-                        Members List ({members.length})
+                        Members List ({activeMembersList.length})
                       </h3>
                     </div>
                     <div className="divide-y divide-border/60">
-                      {members.map((member) => {
+                      {activeMembersList.map((member) => {
                         let role = member.role
                         if (role === "owner") role = "Workspace Owner";
-                        if (role === "admin") role = "Admin";
+                        if (role === "admin") role = "Workspace Manager";
                         if (role === "editor") role = "Content Manager";
-                        if (role === "viewer") role = "Analyst";
+                        if (role === "viewer") role = "Viewer";
 
                         const isOwner = ["owner", "Workspace Owner"].includes(role)
                         const roleObj = roleConfig[role] || { label: role, icon: ShieldCheck, color: "text-zinc-500", variant: "outline" }
                         const RoleIcon = roleObj.icon
-                        const isPending = member.status === "pending"
+                        const isSuspended = member.status === "suspended"
 
                         const initials = member.name
                           ? member.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -632,12 +686,12 @@ export default function TeamPage() {
                               </Avatar>
                               <div>
                                 <div className="flex items-center gap-2">
-                                  <p className="text-sm font-extrabold text-foreground leading-none">
+                                  <p className={cn("text-sm font-extrabold text-foreground leading-none", isSuspended && "text-muted-foreground line-through")}>
                                     {member.name || member.email.split("@")[0]}
                                   </p>
-                                  {isPending ? (
-                                    <Badge className="bg-zinc-500 text-white rounded text-[9px] scale-95 font-bold tracking-tight">
-                                      Pending Invite
+                                  {isSuspended ? (
+                                    <Badge className="bg-rose-500 text-white rounded text-[9px] scale-95 font-bold tracking-tight">
+                                      Suspended
                                     </Badge>
                                   ) : isOwner ? (
                                     <Badge className="bg-amber-500 text-[#0F172A] rounded text-[9px] scale-95 font-bold tracking-tight">
@@ -662,10 +716,10 @@ export default function TeamPage() {
                               {/* Dates & Last Active */}
                               <div className="text-right hidden md:block">
                                 <p className="text-[10px] text-text-secondary">
-                                  {isPending ? "Invited On" : "Joined On"}
+                                  Joined On
                                 </p>
                                 <p className="font-medium text-text-primary text-[11px]">
-                                  {new Date(member.createdAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
+                                  {new Date(member.joinedAt || member.createdAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
                                 </p>
                               </div>
 
@@ -674,26 +728,9 @@ export default function TeamPage() {
                                 <p className="font-semibold text-brand-green-dark dark:text-brand-green text-[11px]">
                                   {member.lastActive
                                     ? new Date(member.lastActive).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-                                    : isPending ? "Never" : "Active Now"}
+                                    : "Active Now"}
                                 </p>
                               </div>
-
-                              {/* Invitation Token copy for quick joins */}
-                              {isPending && member.inviteToken && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleCopyLink(member.inviteToken)}
-                                  title="Copy Invite Link"
-                                  className="size-7 hover:bg-muted text-text-secondary"
-                                >
-                                  {copiedToken === member.inviteToken ? (
-                                    <Check className="size-3.5 text-emerald-500" />
-                                  ) : (
-                                    <Link2 className="size-3.5" />
-                                  )}
-                                </Button>
-                              )}
 
                               {/* Actions Dropdown */}
                               {canManageTeam && !isOwner && (
@@ -719,26 +756,122 @@ export default function TeamPage() {
                                       <Settings className="size-3.5" />
                                       <span>Configure Permissions</span>
                                     </DropdownMenuItem>
-                                    {isPending && (
-                                      <DropdownMenuItem
-                                        onClick={() => handleCopyLink(member.inviteToken)}
-                                        className="flex items-center gap-2 text-xs rounded-lg cursor-pointer hover:bg-muted"
-                                      >
-                                        <Link2 className="size-3.5" />
-                                        <span>Copy Invite Link</span>
-                                      </DropdownMenuItem>
-                                    )}
+                                    <DropdownMenuItem
+                                      onClick={() => handleToggleSuspend(member)}
+                                      className="flex items-center gap-2 text-xs rounded-lg cursor-pointer hover:bg-muted"
+                                    >
+                                      <Clock className="size-3.5" />
+                                      <span>{isSuspended ? "Unsuspend Member" : "Suspend Member"}</span>
+                                    </DropdownMenuItem>
                                     <DropdownMenuSeparator className="bg-border-light/60 my-1" />
                                     <DropdownMenuItem
                                       onClick={() => handleRemoveMember(member._id)}
                                       className="flex items-center gap-2 text-xs rounded-lg cursor-pointer text-rose-500 hover:bg-rose-500/10 font-bold"
                                     >
                                       <Trash2 className="size-3.5" />
-                                      <span>{isPending ? "Revoke Invite" : "Remove Member"}</span>
+                                      <span>Remove Member</span>
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </Card>
+                )}
+
+                {/* Pending Invitations Section */}
+                {pendingInvitesList.length > 0 && (
+                  <Card className="border-border/60 rounded-xl bg-card/40 backdrop-blur-md overflow-hidden mt-6">
+                    <div className="px-4 py-3 bg-muted/15 border-b border-border/40 flex justify-between items-center">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
+                        <Clock className="size-3.5 text-brand-green-dark" />
+                        Pending Invitations ({pendingInvitesList.length})
+                      </h3>
+                    </div>
+                    <div className="divide-y divide-border/60">
+                      {pendingInvitesList.map((invite) => {
+                        const role = invite.role
+                        const roleObj = roleConfig[role] || { label: role, icon: ShieldCheck, color: "text-zinc-500", variant: "outline" }
+                        const RoleIcon = roleObj.icon
+
+                        const remainingDays = invite.inviteExpiresAt
+                          ? Math.max(0, Math.ceil((new Date(invite.inviteExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+                          : 7
+
+                        return (
+                          <div key={invite._id} className="flex flex-col gap-3.5 p-4 sm:flex-row sm:items-center sm:justify-between transition-colors hover:bg-muted/10">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-extrabold text-foreground leading-none">
+                                  {invite.email}
+                                </p>
+                                <Badge className="bg-zinc-500 text-white rounded text-[9px] scale-95 font-bold tracking-tight">
+                                  Pending
+                                </Badge>
+                              </div>
+                              <p className="text-[10px] text-text-secondary mt-1">
+                                Invited: {new Date(invite.createdAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })} • Expires in {remainingDays} days
+                              </p>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-4 text-xs sm:justify-end">
+                              <div className="flex items-center gap-1">
+                                <RoleIcon className={cn("size-3.5", roleObj.color)} />
+                                <Badge variant={roleObj.variant as any} className="text-[10px] font-bold py-0.5 rounded px-2">
+                                  {roleObj.label}
+                                </Badge>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCopyLink(invite.inviteToken)}
+                                  title="Copy Invite Link"
+                                  className="h-8 rounded-lg px-2 text-text-secondary hover:bg-muted flex items-center gap-1 cursor-pointer"
+                                >
+                                  {copiedToken === invite.inviteToken ? (
+                                    <>
+                                      <Check className="size-3.5 text-emerald-500" />
+                                      <span className="text-[10px] font-bold text-emerald-500">Copied</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Link2 className="size-3.5" />
+                                      <span className="text-[10px]">Copy Link</span>
+                                    </>
+                                  )}
+                                </Button>
+
+                                {canManageTeam && (
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleResendInvite(invite._id)}
+                                      title="Resend Invite"
+                                      className="h-8 rounded-lg px-2 text-text-secondary hover:bg-muted flex items-center gap-1 text-xs cursor-pointer"
+                                    >
+                                      <RotateCcw className="size-3.5" />
+                                      <span className="text-[10px]">Resend</span>
+                                    </Button>
+
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleRemoveMember(invite._id)}
+                                      title="Cancel Invitation"
+                                      className="h-8 rounded-lg px-2 text-rose-500 hover:bg-rose-500/10 flex items-center gap-1 text-xs cursor-pointer"
+                                    >
+                                      <XCircle className="size-3.5" />
+                                      <span className="text-[10px] font-bold">Cancel</span>
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </div>
                         )
@@ -768,13 +901,11 @@ export default function TeamPage() {
                           const staticPerms: Record<string, string[]> = {
                             "owner": permissionOptions.map(p => p.key),
                             "Workspace Owner": permissionOptions.map(p => p.key),
-                            "admin": ["dashboard", "posts", "scheduling", "analytics", "ai-assistant", "media-library", "channels", "inbox", "team", "settings"],
-                            "Admin": ["dashboard", "posts", "scheduling", "analytics", "ai-assistant", "media-library", "channels", "inbox", "team", "settings"],
-                            "editor": ["dashboard", "posts", "scheduling", "analytics", "ai-assistant", "media-library"],
-                            "Content Manager": ["dashboard", "posts", "scheduling", "analytics", "ai-assistant", "media-library"],
-                            "Designer": ["dashboard", "posts", "media-library"],
-                            "viewer": ["dashboard", "analytics", "inbox"],
+                            "Workspace Manager": ["dashboard", "posts", "scheduling", "analytics", "ai-assistant", "media-library", "channels", "inbox", "team", "settings"],
+                            "Content Manager": ["dashboard", "posts", "scheduling", "ai-assistant", "media-library"],
+                            "Editor": ["dashboard", "posts", "media-library"],
                             "Analyst": ["dashboard", "analytics", "inbox"],
+                            "Viewer": ["dashboard"],
                           }
                           if (staticPerms[val]) {
                             setEditingPermissions(staticPerms[val])
@@ -787,10 +918,14 @@ export default function TeamPage() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Admin" className="text-xs">Admin</SelectItem>
+                            {(userRole === "owner" || userRole === "Workspace Owner") && (
+                              <SelectItem value="Workspace Owner" className="text-xs">Workspace Owner (Transfer)</SelectItem>
+                            )}
+                            <SelectItem value="Workspace Manager" className="text-xs">Workspace Manager</SelectItem>
                             <SelectItem value="Content Manager" className="text-xs">Content Manager</SelectItem>
-                            <SelectItem value="Designer" className="text-xs">Designer</SelectItem>
+                            <SelectItem value="Editor" className="text-xs">Editor</SelectItem>
                             <SelectItem value="Analyst" className="text-xs">Analyst</SelectItem>
+                            <SelectItem value="Viewer" className="text-xs">Viewer</SelectItem>
                             {customRoles.map((cr) => (
                               <SelectItem key={cr.name} value={cr.name} className="text-xs">
                                 {cr.name}

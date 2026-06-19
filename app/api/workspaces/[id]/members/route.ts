@@ -7,6 +7,7 @@ import { WorkspaceMember } from "@/lib/models/workspace-member"
 import { WorkspaceInvitation } from "@/lib/models/workspace-invitation"
 import { verifyMemberPermission, logWorkspaceActivity } from "@/lib/workspaces"
 import crypto from "crypto"
+import { AuditLog } from "@/lib/models/audit-log"
 
 export async function GET(
   request: NextRequest,
@@ -121,6 +122,16 @@ export async function POST(
       "invite_user",
       `Invited user "${email}" as "${role}"`
     )
+
+    // Log to AuditLog
+    await AuditLog.create({
+      action: "Invitation Sent",
+      actor: session.user.email,
+      resource: "team_management",
+      workspaceId,
+      targetEmail: email.trim().toLowerCase(),
+      details: `Invited user "${email}" as "${role}"`,
+    })
 
     return NextResponse.json({ member }, { status: 201 })
   } catch (err: any) {

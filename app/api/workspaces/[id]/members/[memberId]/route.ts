@@ -6,6 +6,7 @@ import { Workspace } from "@/lib/models/workspace"
 import { WorkspaceMember } from "@/lib/models/workspace-member"
 import { WorkspaceInvitation } from "@/lib/models/workspace-invitation"
 import { verifyMemberPermission, logWorkspaceActivity } from "@/lib/workspaces"
+import { AuditLog } from "@/lib/models/audit-log"
 
 export async function PATCH(
   request: NextRequest,
@@ -43,29 +44,60 @@ export async function PATCH(
 
     // 3. Hierarchy Rules Check
     const callerRole = check.role || ""
-    const isCallerAdmin = ["admin", "Admin"].includes(callerRole)
+    const isCallerOwner = ["owner", "Workspace Owner"].includes(callerRole)
+    const isCallerAdmin = ["admin", "Admin", "Workspace Manager"].includes(callerRole)
 
     const targetRole = targetMember.role || ""
     const isTargetOwner = ["owner", "Workspace Owner"].includes(targetRole)
-    const isTargetAdmin = ["admin", "Admin"].includes(targetRole)
+    const isTargetAdmin = ["admin", "Admin", "Workspace Manager"].includes(targetRole)
 
     if (isCallerAdmin) {
-      // Admins cannot change Owners or other Admins
+      // Workspace Managers cannot change Owners or other Workspace Managers
       if (isTargetOwner || isTargetAdmin) {
-        return NextResponse.json({ error: "Forbidden: Admins cannot edit Owners or other Admins" }, { status: 403 })
+        return NextResponse.json({ error: "Forbidden: Workspace Managers cannot edit Owners or other Managers" }, { status: 403 })
       }
-      // Admins cannot elevate a member to Owner or Admin
-      if (role && ["owner", "Workspace Owner", "admin", "Admin"].includes(role)) {
-        return NextResponse.json({ error: "Forbidden: Admins cannot promote members to Owner or Admin" }, { status: 403 })
+      // Workspace Managers cannot elevate a member to Owner or Workspace Manager
+      if (role && ["owner", "Workspace Owner", "admin", "Admin", "Workspace Manager"].includes(role)) {
+        return NextResponse.json({ error: "Forbidden: Workspace Managers cannot promote members to Owner or Workspace Manager" }, { status: 403 })
       }
     }
 
-    // Owners cannot change their own Owner role (to prevent orphan workspaces)
-    if (targetMember.email === session.user.email && isTargetOwner && role && !["owner", "Workspace Owner"].includes(role)) {
-      return NextResponse.json({ error: "Forbidden: You cannot transfer Ownership here. Ownership is transferred automatically by deleting or through explicit billing options" }, { status: 400 })
+    // Owner transfer logic
+    let ownerTransferred = false
+    if (role && ["owner", "Workspace Owner"].includes(role)) {
+      if (!isCallerOwner) {
+        return NextResponse.json({ error: "Forbidden: Only the Workspace Owner can transfer ownership" }, { status: 403 })
+      }
+      if (targetMember.email === session.user.email) {
+        return NextResponse.json({ error: "Forbidden: You are already the owner" }, { status: 400 })
+      }
+
+      // Perform transfer
+      const ws = await Workspace.findById(workspaceId)
+      if (ws) {
+        ws.ownerEmail = targetMember.email.toLowerCase()
+        await ws.save()
+      }
+
+      // Demote current owner to Workspace Manager
+      await WorkspaceMember.updateOne(
+        { workspaceId, email: session.user.email },
+        { $set: { role: "Workspace Manager" } }
+      )
+
+      ownerTransferred = true
+    }
+
+    // Owners cannot change their own Owner role directly (to prevent orphan workspaces) without transferring
+    if (targetMember.email === session.user.email && isTargetOwner && role && !["owner", "Workspace Owner"].includes(role) && !ownerTransferred) {
+      return NextResponse.json({ error: "Forbidden: You cannot directly demote yourself. Transfer ownership to another member first." }, { status: 400 })
     }
 
     // 4. Update the target
+    const oldRole = targetMember.role
+    const oldStatus = (targetMember as any).status
+    const oldPermissions = targetMember.customPermissions || []
+
     if (role) targetMember.role = role
     if (customPermissions !== undefined) targetMember.customPermissions = customPermissions
     
@@ -76,13 +108,61 @@ export async function PATCH(
 
     await targetMember.save()
 
-    // 5. Log Activity
-    await logWorkspaceActivity(
-      workspaceId,
-      session.user.email,
-      "modify_member",
-      `Updated member/invite permissions for "${targetMember.email}"`
-    )
+    // 5. Log Activity specifically
+    if (ownerTransferred) {
+      await logWorkspaceActivity(
+        workspaceId,
+        session.user.email,
+        "role_changed",
+        `Transferred workspace ownership to "${targetMember.email}"`
+      )
+      await AuditLog.create({
+        action: "Role Changed",
+        actor: session.user.email,
+        resource: "team_management",
+        workspaceId,
+        targetEmail: targetMember.email.toLowerCase(),
+        details: `Transferred workspace ownership to "${targetMember.email}"`,
+      })
+    } else if (role && role !== oldRole) {
+      await logWorkspaceActivity(
+        workspaceId,
+        session.user.email,
+        "role_changed",
+        `Changed role of "${targetMember.email}" from "${oldRole}" to "${role}"`
+      )
+      await AuditLog.create({
+        action: "Role Changed",
+        actor: session.user.email,
+        resource: "team_management",
+        workspaceId,
+        targetEmail: targetMember.email.toLowerCase(),
+        details: `Changed role of "${targetMember.email}" from "${oldRole}" to "${role}"`,
+      })
+    } else if (!isInvitation && status && status !== oldStatus) {
+      const action = status === "suspended" ? "member_suspended" : "member_unsuspended"
+      const detail = status === "suspended" ? `Suspended member "${targetMember.email}"` : `Unsuspended member "${targetMember.email}"`
+      await logWorkspaceActivity(
+        workspaceId,
+        session.user.email,
+        action,
+        detail
+      )
+    } else if (customPermissions !== undefined && JSON.stringify(customPermissions) !== JSON.stringify(oldPermissions)) {
+      await logWorkspaceActivity(
+        workspaceId,
+        session.user.email,
+        "permission_updated",
+        `Updated custom permissions for "${targetMember.email}"`
+      )
+    } else {
+      await logWorkspaceActivity(
+        workspaceId,
+        session.user.email,
+        "modify_member",
+        `Modified member details for "${targetMember.email}"`
+      )
+    }
 
     return NextResponse.json({ member: targetMember })
   } catch (err: any) {
@@ -124,16 +204,17 @@ export async function DELETE(
 
     // 3. Hierarchy Rules Check
     const callerRole = check.role || ""
-    const isCallerAdmin = ["admin", "Admin"].includes(callerRole)
+    const isCallerOwner = ["owner", "Workspace Owner"].includes(callerRole)
+    const isCallerAdmin = ["admin", "Admin", "Workspace Manager"].includes(callerRole)
 
     const targetRole = targetMember.role || ""
     const isTargetOwner = ["owner", "Workspace Owner"].includes(targetRole)
-    const isTargetAdmin = ["admin", "Admin"].includes(targetRole)
+    const isTargetAdmin = ["admin", "Admin", "Workspace Manager"].includes(targetRole)
 
     if (isCallerAdmin) {
-      // Admins cannot remove Owners or other Admins
+      // Workspace Managers cannot remove Owners or other Workspace Managers
       if (isTargetOwner || isTargetAdmin) {
-        return NextResponse.json({ error: "Forbidden: Admins cannot remove Owners or other Admins" }, { status: 403 })
+        return NextResponse.json({ error: "Forbidden: Workspace Managers cannot remove Owners or other Managers" }, { status: 403 })
       }
     }
 
@@ -150,12 +231,24 @@ export async function DELETE(
     }
 
     // 5. Log Activity
+    const action = isInvitation ? "invite_cancelled" : "member_removed"
+    const detail = isInvitation ? `Cancelled invitation for "${targetMember.email}"` : `Removed member "${targetMember.email}"`
     await logWorkspaceActivity(
       workspaceId,
       session.user.email,
-      "remove_member",
-      `Removed member/invite "${targetMember.email}"`
+      action,
+      detail
     )
+
+    // Log to AuditLog
+    await AuditLog.create({
+      action: "Member Removed",
+      actor: session.user.email,
+      resource: "team_management",
+      workspaceId,
+      targetEmail: targetMember.email.toLowerCase(),
+      details: isInvitation ? `Cancelled invitation for "${targetMember.email}"` : `Removed member "${targetMember.email}"`,
+    })
 
     return NextResponse.json({ success: true, message: "Member/invite successfully removed" })
   } catch (err: any) {

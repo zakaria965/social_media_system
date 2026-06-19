@@ -9,6 +9,8 @@ declare module "next-auth" {
       subscriptionStatus?: "ACTIVE" | "CANCELLED" | "EXPIRED"
       role?: "USER" | "ADMIN"
       status?: "ACTIVE" | "SUSPENDED"
+      /** True if the user belongs to at least one workspace (own or invited) */
+      hasWorkspaceMembership?: boolean
     } & DefaultSession["user"]
   }
 
@@ -27,5 +29,7 @@ declare module "next-auth/jwt" {
     subscriptionStatus?: "ACTIVE" | "CANCELLED" | "EXPIRED"
     role?: "USER" | "ADMIN"
     status?: "ACTIVE" | "SUSPENDED"
+    /** True if the user belongs to at least one workspace (own or invited) */
+    hasWorkspaceMembership?: boolean
   }
 }

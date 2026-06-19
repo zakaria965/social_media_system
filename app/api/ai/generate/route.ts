@@ -7,6 +7,8 @@ import { AIGeneration } from "@/lib/models/ai-generation"
 import { checkAIQuota, recordAIUsage, getTodayAIUsage, AI_LIMIT_REACHED } from "@/lib/ai-quota"
 import { generateGeminiContent } from "@/lib/ai/gemini"
 import OpenAI from "openai"
+import { getActiveWorkspaceId } from "@/lib/workspaces"
+import { Workspace } from "@/lib/models/workspace"
 
 export const dynamic = "force-dynamic"
 
@@ -21,7 +23,10 @@ export async function POST(request: NextRequest) {
 
     await connectDB()
     const email = session.user.email.toLowerCase().trim()
-    const user = await User.findOne({ email })
+    const workspaceId = await getActiveWorkspaceId(email, request)
+    const ws = await Workspace.findById(workspaceId)
+    const ownerEmail = ws?.ownerEmail || email
+    const user = await User.findOne({ email: ownerEmail })
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }

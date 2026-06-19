@@ -9,6 +9,8 @@ import { User } from "@/lib/models/user"
 import { AIConversation } from "@/lib/models/ai-conversation"
 import { checkAIQuota } from "@/lib/ai-quota"
 import { executeAIOperation } from "@/lib/ai/manager"
+import { getActiveWorkspaceId } from "@/lib/workspaces"
+import { Workspace } from "@/lib/models/workspace"
 
 // Helper to call OpenAI GPT-4o-mini for Analytics Insights and Recommendations
 async function fetchOpenAIIntelligence(
@@ -153,9 +155,10 @@ export async function GET(request: NextRequest) {
       ]}
     })
 
-    // Load user databases records
-    let accounts = await SocialAccount.find({ userId: email }).lean()
-    let posts = await Post.find({ userId: email }).lean()
+    const workspaceId = await getActiveWorkspaceId(email, request)
+    // Load workspace databases records
+    let accounts = await SocialAccount.find({ workspaceId }).lean()
+    let posts = await Post.find({ workspaceId }).lean()
 
     // Filter published posts
     const publishedPosts = posts.filter((p) => p.status === "published")
@@ -540,7 +543,9 @@ Published Posts History Metrics:
 - Worst Day: ${worstDayLabel}`
 
     let aiIntelligence = getFallbackIntelligence()
-    const dbUser = await User.findOne({ email }).select("_id")
+    const ws = await Workspace.findById(workspaceId)
+    const ownerEmail = ws?.ownerEmail || email
+    const dbUser = await User.findOne({ email: ownerEmail }).select("_id")
     const userId = dbUser?._id.toString()
 
     if (userId) {

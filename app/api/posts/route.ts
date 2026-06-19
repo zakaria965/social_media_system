@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db"
 import { Post } from "@/lib/models/post"
 import { ActivityLog } from "@/lib/models/activity"
 import { User } from "@/lib/models/user"
+import { Workspace } from "@/lib/models/workspace"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth.config"
 import { QueueJob } from "@/lib/models/queue"
@@ -15,7 +16,7 @@ class SchedulerLimitError extends Error {
   }
 }
 
-async function getTodayScheduledCount(userId: string) {
+async function getTodayScheduledCount(workspaceId: string) {
   const startOfDay = new Date()
   startOfDay.setHours(0, 0, 0, 0)
 
@@ -23,7 +24,7 @@ async function getTodayScheduledCount(userId: string) {
   endOfDay.setHours(23, 59, 59, 999)
 
   return await Post.countDocuments({
-    userId,
+    workspaceId,
     status: "scheduled",
     createdAt: {
       $gte: startOfDay,
@@ -133,9 +134,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Free User Scheduling Limit Validation
-    const dbUser = await User.findOne({ email: session.user.email })
-    if (dbUser && dbUser.plan?.toLowerCase() === "free" && status === "scheduled") {
-      const todayCount = await getTodayScheduledCount(session.user.email)
+    const ws = await Workspace.findById(workspaceId)
+    const ownerEmail = ws?.ownerEmail || session.user.email
+    const ownerUser = await User.findOne({ email: ownerEmail })
+    if (ownerUser && ownerUser.plan?.toLowerCase() === "free" && status === "scheduled") {
+      const todayCount = await getTodayScheduledCount(workspaceId)
       if (todayCount >= 5) {
         throw new SchedulerLimitError()
       }
@@ -144,7 +147,7 @@ export async function POST(request: NextRequest) {
     // Role Enforcement / Approval Workflow trigger:
     // If the role is Editor or Custom and doesn't have owner/admin rights, they cannot schedule or publish directly.
     // They must request review, and the post status is set as draft/pending review.
-    const isOwnerOrAdmin = ["owner", "admin"].includes(check.role || "")
+    const isOwnerOrAdmin = ["owner", "admin", "Workspace Owner", "Admin", "Workspace Manager", "Content Manager"].includes(check.role || "")
     let finalStatus = status || "draft"
     let approvalStatus: "none" | "pending_review" | "approved" | "rejected" = "none"
 
@@ -236,9 +239,11 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Free User Scheduling Limit Validation
-    const dbUser = await User.findOne({ email: session.user.email })
-    if (dbUser && dbUser.plan?.toLowerCase() === "free" && updates.status === "scheduled" && existingPost.status !== "scheduled") {
-      const todayCount = await getTodayScheduledCount(session.user.email)
+    const ws = await Workspace.findById(workspaceId)
+    const ownerEmail = ws?.ownerEmail || session.user.email
+    const ownerUser = await User.findOne({ email: ownerEmail })
+    if (ownerUser && ownerUser.plan?.toLowerCase() === "free" && updates.status === "scheduled" && existingPost.status !== "scheduled") {
+      const todayCount = await getTodayScheduledCount(workspaceId)
       if (todayCount >= 5) {
         throw new SchedulerLimitError()
       }

@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
 
 interface Workspace {
   _id: string
@@ -76,6 +77,7 @@ const staticPermissions: Record<string, string[]> = {
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession()
+  const router = useRouter()
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [memberships, setMemberships] = useState<Membership[]>([])
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null)
@@ -96,9 +98,18 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         setMemberships(msList)
 
         if (wsList.length > 0) {
-          // Check localStorage or fallback to first workspace
-          const cachedId = localStorage.getItem("growwave-active-workspace-id")
-          const matched = wsList.find((w: Workspace) => w._id === cachedId)
+          // Check URL first, then localStorage, then fallback
+          let targetId = null
+          if (typeof window !== "undefined") {
+            const match = window.location.pathname.match(/^\/workspace\/([a-fA-F0-9]{24})/)
+            if (match) {
+              targetId = match[1]
+            }
+          }
+          if (!targetId) {
+            targetId = localStorage.getItem("growwave-active-workspace-id")
+          }
+          const matched = wsList.find((w: Workspace) => w._id === targetId)
           const target = matched || wsList[0]
           
           setActiveWorkspace(target)
@@ -186,8 +197,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       setActiveWorkspace(matched)
       localStorage.setItem("growwave-active-workspace-id", id)
       document.cookie = `growwave-active-workspace-id=${id}; path=/; max-age=31536000; SameSite=Lax`
+      router.push(`/workspace/${id}`)
     }
-  }, [workspaces])
+  }, [workspaces, router])
 
   const createWorkspace = async (name: string): Promise<Workspace> => {
     setIsLoading(true)

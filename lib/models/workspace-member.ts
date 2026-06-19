@@ -26,7 +26,7 @@ const WorkspaceMemberSchema = new Schema<IWorkspaceMember>(
     role: { type: String, required: true },
     status: {
       type: String,
-      enum: ["active", "pending", "declined"],
+      enum: ["active", "pending", "declined", "suspended"],
       default: "active",
       index: true,
     },

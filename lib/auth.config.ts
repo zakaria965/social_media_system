@@ -37,6 +37,76 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        const creds = credentials as any
+        if (creds?.isInvite === "true") {
+          if (!creds?.email || !creds?.token) {
+            return null
+          }
+          await connectDB()
+          const email = creds.email.toLowerCase().trim()
+          
+          // Verify token against WorkspaceInvitation
+          const { WorkspaceInvitation } = await import("./models/workspace-invitation")
+          const invitation = await WorkspaceInvitation.findOne({
+            inviteToken: creds.token,
+            email,
+          })
+          if (!invitation) {
+            throw new Error("Invalid or expired invitation token.")
+          }
+          
+          if (invitation.inviteExpiresAt && invitation.inviteExpiresAt < new Date()) {
+            throw new Error("This invitation has expired.")
+          }
+          
+          // Find or create user passwordlessly
+          let user = await User.findOne({ email })
+          if (!user) {
+            const name = email.split("@")[0]
+            user = await User.create({
+              email,
+              name: name.charAt(0).toUpperCase() + name.slice(1),
+              username: name,
+              googleConnected: false,
+              plan: "FREE",
+              subscriptionStatus: "ACTIVE",
+              role: "USER",
+              status: "ACTIVE",
+              passwordHash: bcrypt.hashSync(crypto.randomBytes(32).toString("hex"), 10),
+            })
+            
+            await Subscription.create({
+              userId: user._id,
+              plan: "FREE",
+              status: "ACTIVE",
+              billingCycle: "free",
+            })
+            await getOrCreateDefaultWorkspace(email, user.name)
+          }
+          
+          // Setup active session history
+          const sessionHistoryId = crypto.randomUUID()
+          user.activeSessions.push({
+            id: sessionHistoryId,
+            device: "Desktop / Browser",
+            browser: "Chrome / Safari",
+            ip: "127.0.0.1",
+            location: "Local Host",
+            lastActive: new Date(),
+            current: true,
+          })
+          await user.save()
+          
+          return {
+            id: user._id.toString(),
+            email: user.email,
+            name: user.name,
+            image: user.avatar,
+            role: user.role || "USER",
+            status: user.status || "ACTIVE",
+          }
+        }
+
         if (!credentials?.email || !credentials?.password) {
           return null
         }

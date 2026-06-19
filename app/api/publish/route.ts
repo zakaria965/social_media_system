@@ -9,6 +9,7 @@ import { publisherMap } from "@/lib/publisher"
 import { User } from "@/lib/models/user"
 import { PublishedPost } from "@/lib/models/published-post"
 import { WorkspaceMember } from "@/lib/models/workspace-member"
+import { Workspace } from "@/lib/models/workspace"
 import { getActiveWorkspaceId } from "@/lib/workspaces"
 
 interface PublishResult {
@@ -69,17 +70,23 @@ export async function POST(request: NextRequest) {
       }, { status: 403 })
     }
 
-    if ((dbUser.plan || "FREE").toUpperCase() === "FREE") {
+    const workspace = await Workspace.findById(workspaceId)
+    if (!workspace) {
+      return NextResponse.json({ error: "Workspace not found" }, { status: 404 })
+    }
+
+    const ownerEmail = workspace.ownerEmail || session.user.email
+    const ownerUser = await User.findOne({ email: ownerEmail })
+    const ownerPlan = (ownerUser?.plan || "FREE").toUpperCase()
+
+    if (ownerPlan === "FREE") {
       const startOfDay = new Date()
       startOfDay.setHours(0, 0, 0, 0)
       const endOfDay = new Date()
       endOfDay.setHours(23, 59, 59, 999)
 
       const count = await PublishedPost.countDocuments({
-        $or: [
-          { userId: dbUser._id.toString() },
-          { userId: dbUser.email }
-        ],
+        workspaceId: workspace._id.toString(),
         publishedAt: {
           $gte: startOfDay,
           $lte: endOfDay

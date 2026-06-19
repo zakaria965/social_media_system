@@ -5,6 +5,8 @@ import { connectDB } from "@/lib/db"
 import { User } from "@/lib/models/user"
 import { checkAIQuota, recordAIUsage } from "@/lib/ai-quota"
 import { AIGeneration } from "@/lib/models/ai-generation"
+import { getActiveWorkspaceId } from "@/lib/workspaces"
+import { Workspace } from "@/lib/models/workspace"
 
 
 type Action =
@@ -55,7 +57,10 @@ export async function POST(request: NextRequest) {
     }
 
     const email = session.user.email.toLowerCase()
-    const dbUser = await User.findOne({ email })
+    const workspaceId = await getActiveWorkspaceId(email, request)
+    const ws = await Workspace.findById(workspaceId)
+    const ownerEmail = ws?.ownerEmail || email
+    const dbUser = await User.findOne({ email: ownerEmail })
     if (!dbUser) {
       return NextResponse.json({ error: "User record not found" }, { status: 401 })
     }

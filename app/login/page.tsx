@@ -17,11 +17,29 @@ function LoginContent() {
     if (session?.user) {
       if (session.user.role === "ADMIN") {
         router.push("/admin")
-      } else if (session.user.plan === "PRO") {
-        router.push("/dashboard")
-      } else {
-        router.push("/dashboard-lite")
+        return
       }
+
+      fetch("/api/workspaces")
+        .then((res) => res.json())
+        .then((data) => {
+          const memberships = data.memberships || []
+          if (memberships.length > 0) {
+            const invited = memberships.find((m: any) => m.role !== "owner" && m.role !== "Workspace Owner")
+            const target = invited || memberships[0]
+            router.push(`/workspace/${target.workspaceId}`)
+          } else {
+            if (session.user.plan === "PRO") {
+              router.push("/dashboard")
+            } else {
+              router.push("/dashboard-lite")
+            }
+          }
+        })
+        .catch((err) => {
+          console.error(err)
+          router.push("/dashboard-lite")
+        })
     }
   }, [session, router])
 

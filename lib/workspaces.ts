@@ -105,9 +105,10 @@ export async function verifyMemberPermission(
   // Normalize legacy role names
   let role = member.role
   if (role === "owner") role = "Workspace Owner";
-  if (role === "admin") role = "Admin";
+  if (role === "admin" || role === "Admin") role = "Workspace Manager";
   if (role === "editor") role = "Content Manager";
-  if (role === "viewer") role = "Analyst";
+  if (role === "viewer") role = "Viewer";
+  if (role === "Designer") role = "Editor";
 
   // Workspace Owner always has full permissions
   if (role === "Workspace Owner") {
@@ -129,7 +130,7 @@ export async function verifyMemberPermission(
       "settings",
       "billing",
     ],
-    "Admin": [
+    "Workspace Manager": [
       "dashboard",
       "posts",
       "scheduling",
@@ -145,11 +146,10 @@ export async function verifyMemberPermission(
       "dashboard",
       "posts",
       "scheduling",
-      "analytics",
       "ai-assistant",
       "media-library",
     ],
-    "Designer": [
+    "Editor": [
       "dashboard",
       "posts",
       "media-library",
@@ -158,6 +158,9 @@ export async function verifyMemberPermission(
       "dashboard",
       "analytics",
       "inbox",
+    ],
+    "Viewer": [
+      "dashboard",
     ],
   }
 

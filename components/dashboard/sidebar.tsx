@@ -82,6 +82,7 @@ const navigationItems: SidebarLink[] = [
   { id: "scheduled", href: "/dashboard/scheduled", label: "Scheduled Posts", icon: "Calendar", badgeType: "failed" },
   { id: "calendar", href: "/dashboard/calendar", label: "Calendar", icon: "Calendar" },
   { id: "analytics", href: "/dashboard/analytics", label: "Analytics", icon: "BarChart3" },
+  { id: "reports", href: "/dashboard/reports", label: "Reports", icon: "FileText" },
   { id: "ai_assistant", href: "/dashboard/ai-assistant", label: "AI Assistant", icon: "Sparkles", isAI: true },
   { id: "media", href: "/dashboard/media", label: "Media Library", icon: "Image" },
   { id: "channels", href: "/dashboard/channels", label: "Channels", icon: "Link2" },
@@ -94,7 +95,7 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
   const pathname = usePathname()
   const { data: session } = useSession()
   const { theme, setTheme } = useTheme()
-  const { activeWorkspace, workspaces, switchWorkspace, createWorkspace } = useWorkspace()
+  const { activeWorkspace, workspaces, switchWorkspace, createWorkspace, role, permissions } = useWorkspace()
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false)
   const [newWorkspaceName, setNewWorkspaceName] = useState("")
 
@@ -286,123 +287,148 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
           {/* Sidebar Navigation Links */}
           <ScrollArea className="flex-1 py-4 px-3">
             <div className="flex flex-col gap-1 list-none outline-none">
-              {navigationItems.map(({ id, href, label, icon, badgeType, isAI }) => {
-                const active =
-                  pathname === href || (href !== "/dashboard" && pathname.startsWith(href))
-                
-                const IconComp = resolveIcon(icon)
+              {(() => {
+                const normalizedRole = (role || "").toLowerCase().trim()
+                const prefix = activeWorkspace ? `/workspace/${activeWorkspace._id}` : "/dashboard"
 
-                // Minimal Severity Badges
-                const renderBadge = () => {
-                  if (isCollapsed) return null
-                  if (badgeType === "failed" && failedPostsCount > 0) {
-                    return (
-                      <span className="ml-auto rounded bg-rose-500/10 px-1.5 py-0.5 text-[8.5px] font-bold text-rose-600 dark:text-rose-400 border border-rose-500/20 animate-pulse">
-                        {failedPostsCount} Failed
-                      </span>
-                    )
-                  }
-                  if (badgeType === "inbox") {
-                    return (
-                      <span className="ml-auto rounded bg-emerald-500/10 px-1.5 py-0.5 text-[8.5px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                        4
-                      </span>
-                    )
-                  }
-                  if (badgeType === "notifications" && unreadNotifications > 0) {
-                    return (
-                      <span className="ml-auto rounded bg-amber-500/10 px-1.5 py-0.5 text-[8.5px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20 animate-pulse">
-                        {unreadNotifications}
-                      </span>
-                    )
-                  }
-                  if (isAI) {
-                    return (
-                      <span className="ml-auto rounded-full bg-gradient-to-r from-violet-500/20 to-indigo-500/20 px-1.5 py-0.5 text-[8px] font-bold text-violet-600 dark:text-violet-300 border border-violet-500/20 tracking-wider animate-pulse">
-                        AI
-                      </span>
-                    )
-                  }
-                  return null
+                let filtered = navigationItems
+                if (normalizedRole === "viewer") {
+                  filtered = navigationItems.filter(item => ["dashboard", "reports"].includes(item.id))
+                } else if (normalizedRole === "analyst") {
+                  filtered = navigationItems.filter(item => ["dashboard", "analytics", "reports"].includes(item.id))
+                } else if (["content manager", "editor", "content_manager"].includes(normalizedRole)) {
+                  filtered = navigationItems.filter(item => ["dashboard", "create", "bulk", "scheduled", "calendar", "media", "ai_assistant", "notifications"].includes(item.id))
+                } else if (["workspace manager", "admin", "workspace_manager"].includes(normalizedRole)) {
+                  filtered = navigationItems.filter(item => item.id !== "billing" && item.id !== "reports")
+                } else {
+                  filtered = navigationItems.filter(item => item.id !== "reports")
                 }
 
-                // Collapsed Indicators
-                const renderCollapsedIndicator = () => {
-                  if (!isCollapsed) return null
-                  if (badgeType === "failed" && failedPostsCount > 0) {
-                    return <span className="absolute top-1.5 right-1.5 flex size-1.5 rounded-full bg-rose-500 animate-pulse" />
+                return filtered.map(({ id, href: staticHref, label, icon, badgeType, isAI }) => {
+                  let href = staticHref
+                  if (activeWorkspace) {
+                    if (id === "dashboard") href = prefix
+                    else if (id === "team") href = `${prefix}/team`
+                    else href = `${prefix}${staticHref.substring(10)}`
                   }
-                  if (badgeType === "inbox") {
-                    return <span className="absolute top-1.5 right-1.5 flex size-1.5 rounded-full bg-emerald-500" />
-                  }
-                  if (badgeType === "notifications" && unreadNotifications > 0) {
-                    return <span className="absolute top-1.5 right-1.5 flex size-1.5 rounded-full bg-amber-500" />
-                  }
-                  if (isAI) {
-                    return <span className="absolute top-1.5 right-1.5 flex size-1.5 rounded-full bg-violet-500 animate-pulse" />
-                  }
-                  return null
-                }
 
-                const linkContent = (
-                  <div className="group relative flex items-center select-none w-full">
-                    <Link
-                      href={href}
-                      onClick={onClose}
-                      className={cn(
-                        "relative flex-1 flex items-center transition-all duration-300 ease-in-out select-none outline-none",
-                        isCollapsed
-                          ? "size-10 justify-center rounded-xl mx-auto"
-                          : "gap-2.5 rounded-xl px-3 py-2.5 text-xs font-semibold",
-                        active
-                          ? isAI
-                            ? "bg-violet-500/[0.08] dark:bg-violet-500/[0.06] text-violet-600 dark:text-violet-400 border border-violet-500/20 dark:border-violet-500/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
-                            : "bg-brand-green/10 text-brand-green-dark dark:text-brand-green border border-brand-green/20 dark:border-brand-green/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
-                          : "text-text-secondary dark:text-muted-foreground hover:bg-muted/50 hover:text-text-primary border border-transparent"
-                      )}
-                    >
-                      {/* Left glowing vertical bar */}
-                      {active && !isCollapsed && (
-                        <div
-                          className={cn(
-                            "absolute left-0 top-1/4 h-1/2 w-0.5 rounded-r",
-                            isAI ? "bg-violet-500" : "bg-brand-green"
-                          )}
-                        />
-                      )}
+                  const active =
+                    pathname === href || (href !== "/dashboard" && pathname === href) || (href !== "/dashboard" && pathname.startsWith(href + "/"))
+                  
+                  const IconComp = resolveIcon(icon)
 
-                      <IconComp
+                  // Minimal Severity Badges
+                  const renderBadge = () => {
+                    if (isCollapsed) return null
+                    if (badgeType === "failed" && failedPostsCount > 0) {
+                      return (
+                        <span className="ml-auto rounded bg-rose-500/10 px-1.5 py-0.5 text-[8.5px] font-bold text-rose-600 dark:text-rose-400 border border-rose-500/20 animate-pulse">
+                          {failedPostsCount} Failed
+                        </span>
+                      )
+                    }
+                    if (badgeType === "inbox") {
+                      return (
+                        <span className="ml-auto rounded bg-emerald-500/10 px-1.5 py-0.5 text-[8.5px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          4
+                        </span>
+                      )
+                    }
+                    if (badgeType === "notifications" && unreadNotifications > 0) {
+                      return (
+                        <span className="ml-auto rounded bg-amber-500/10 px-1.5 py-0.5 text-[8.5px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20 animate-pulse">
+                          {unreadNotifications}
+                        </span>
+                      )
+                    }
+                    if (isAI) {
+                      return (
+                        <span className="ml-auto rounded-full bg-gradient-to-r from-violet-500/20 to-indigo-500/20 px-1.5 py-0.5 text-[8px] font-bold text-violet-600 dark:text-violet-300 border border-violet-500/20 tracking-wider animate-pulse">
+                          AI
+                        </span>
+                      )
+                    }
+                    return null
+                  }
+
+                  // Collapsed Indicators
+                  const renderCollapsedIndicator = () => {
+                    if (!isCollapsed) return null
+                    if (badgeType === "failed" && failedPostsCount > 0) {
+                      return <span className="absolute top-1.5 right-1.5 flex size-1.5 rounded-full bg-rose-500 animate-pulse" />
+                    }
+                    if (badgeType === "inbox") {
+                      return <span className="absolute top-1.5 right-1.5 flex size-1.5 rounded-full bg-emerald-500" />
+                    }
+                    if (badgeType === "notifications" && unreadNotifications > 0) {
+                      return <span className="absolute top-1.5 right-1.5 flex size-1.5 rounded-full bg-amber-500" />
+                    }
+                    if (isAI) {
+                      return <span className="absolute top-1.5 right-1.5 flex size-1.5 rounded-full bg-violet-500 animate-pulse" />
+                    }
+                    return null
+                  }
+
+                  const linkContent = (
+                    <div className="group relative flex items-center select-none w-full">
+                      <Link
+                        href={href}
+                        onClick={onClose}
                         className={cn(
-                          "size-3.5 shrink-0 transition-transform duration-300",
+                          "relative flex-1 flex items-center transition-all duration-300 ease-in-out select-none outline-none",
+                          isCollapsed
+                            ? "size-10 justify-center rounded-xl mx-auto"
+                            : "gap-2.5 rounded-xl px-3 py-2.5 text-xs font-semibold",
                           active
                             ? isAI
-                              ? "text-violet-500 dark:text-violet-400 scale-105"
-                              : "text-brand-green-dark dark:text-brand-green scale-105"
-                            : "text-text-secondary/70 dark:text-muted-foreground/75",
-                          isAI && "animate-pulse"
+                              ? "bg-violet-500/[0.08] dark:bg-violet-500/[0.06] text-violet-600 dark:text-violet-400 border border-violet-500/20 dark:border-violet-500/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
+                              : "bg-brand-green/10 text-brand-green-dark dark:text-brand-green border border-brand-green/20 dark:border-brand-green/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
+                            : "text-text-secondary dark:text-muted-foreground hover:bg-muted/50 hover:text-text-primary border border-transparent"
                         )}
-                      />
+                      >
+                        {/* Left glowing vertical bar */}
+                        {active && !isCollapsed && (
+                          <div
+                            className={cn(
+                              "absolute left-0 top-1/4 h-1/2 w-0.5 rounded-r",
+                              isAI ? "bg-violet-500" : "bg-brand-green"
+                            )}
+                          />
+                        )}
 
-                      {!isCollapsed && <span className="truncate leading-none">{label}</span>}
-                      {renderBadge()}
-                      {renderCollapsedIndicator()}
-                    </Link>
-                  </div>
-                )
+                        <IconComp
+                          className={cn(
+                            "size-3.5 shrink-0 transition-transform duration-300",
+                            active
+                              ? isAI
+                                ? "text-violet-500 dark:text-violet-400 scale-105"
+                                : "text-brand-green-dark dark:text-brand-green scale-105"
+                              : "text-text-secondary/70 dark:text-muted-foreground/75",
+                            isAI && "animate-pulse"
+                          )}
+                        />
 
-                return isCollapsed ? (
-                  <Tooltip key={id}>
-                    <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-                    <TooltipContent side="right" className="font-bold text-xs py-1.5 px-3">
-                      {label}
-                    </TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <div key={id} className="w-full">
-                    {linkContent}
-                  </div>
-                )
-              })}
+                        {!isCollapsed && <span className="truncate leading-none">{label}</span>}
+                        {renderBadge()}
+                        {renderCollapsedIndicator()}
+                      </Link>
+                    </div>
+                  )
+
+                  return isCollapsed ? (
+                    <Tooltip key={id}>
+                      <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                      <TooltipContent side="right" className="font-bold text-xs py-1.5 px-3">
+                        {label}
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <div key={id} className="w-full">
+                      {linkContent}
+                    </div>
+                  )
+                })
+              })()}
             </div>
           </ScrollArea>
 
@@ -450,24 +476,33 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
                     Account & Workspace
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-border-light/60 dark:bg-zinc-800/40 my-1" />
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href="/dashboard/settings"
-                      className="flex items-center gap-2 px-2.5 py-2 text-xs font-bold cursor-pointer rounded-lg text-text-primary dark:text-foreground hover:bg-muted/70 transition-colors"
-                    >
-                      <User className="size-3.5 text-text-secondary" />
-                      <span>Profile Settings</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href="/dashboard/settings"
-                      className="flex items-center gap-2 px-2.5 py-2 text-xs font-bold cursor-pointer rounded-lg text-text-primary dark:text-foreground hover:bg-muted/70 transition-colors"
-                    >
-                      <Building className="size-3.5 text-text-secondary" />
-                      <span>Workspace Settings</span>
-                    </Link>
-                  </DropdownMenuItem>
+                  {(() => {
+                    const prefix = activeWorkspace ? `/workspace/${activeWorkspace._id}` : "/dashboard"
+                    return (
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href={`${prefix}/settings`}
+                            className="flex items-center gap-2 px-2.5 py-2 text-xs font-bold cursor-pointer rounded-lg text-text-primary dark:text-foreground hover:bg-muted/70 transition-colors"
+                          >
+                            <User className="size-3.5 text-text-secondary" />
+                            <span>Profile Settings</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        {["owner", "Workspace Owner", "admin", "Workspace Manager", "Admin", "Manager"].includes(role || "") && (
+                          <DropdownMenuItem asChild>
+                            <Link
+                              href={`${prefix}/settings?tab=workspace`}
+                              className="flex items-center gap-2 px-2.5 py-2 text-xs font-bold cursor-pointer rounded-lg text-text-primary dark:text-foreground hover:bg-muted/70 transition-colors"
+                            >
+                              <Building className="size-3.5 text-text-secondary" />
+                              <span>Workspace Settings</span>
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
+                      </>
+                    )
+                  })()}
                   <DropdownMenuItem asChild>
                     <a
                       href="mailto:support@growwave.ai?subject=GrowWave%20Support%20Request"

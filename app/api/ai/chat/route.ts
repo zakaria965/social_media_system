@@ -11,6 +11,7 @@ import { ActivityLog } from "@/lib/models/activity"
 import { AIConversation } from "@/lib/models/ai-conversation"
 import { AIGeneration } from "@/lib/models/ai-generation"
 import { getActiveWorkspaceId } from "@/lib/workspaces"
+import { Workspace } from "@/lib/models/workspace"
 import { User } from "@/lib/models/user"
 import { checkAIQuota, recordAIUsage, getTodayAIUsage, AI_LIMIT_REACHED } from "@/lib/ai-quota"
 import OpenAI from "openai"
@@ -105,7 +106,9 @@ export async function POST(request: NextRequest) {
     const aiLanguage = settings.aiLanguage || "English (US)"
 
     // Plan check
-    dbUser = await User.findOne({ email })
+    const ws = await Workspace.findById(workspaceId)
+    const ownerEmail = ws?.ownerEmail || email
+    dbUser = await User.findOne({ email: ownerEmail })
     if (!dbUser) {
       return NextResponse.json({ error: "User record not found" }, { status: 401 })
     }
