@@ -95,10 +95,17 @@ export async function verifyMemberPermission(
   const member = await WorkspaceMember.findOne({
     workspaceId,
     email: userEmail,
-    status: "active",
   })
 
   if (!member) {
+    return { allowed: false, error: "You are not an active member of this workspace" }
+  }
+
+  if (member.status === "suspended") {
+    return { allowed: false, error: "USER_SUSPENDED", role: member.role, member }
+  }
+
+  if (member.status !== "active") {
     return { allowed: false, error: "You are not an active member of this workspace" }
   }
 

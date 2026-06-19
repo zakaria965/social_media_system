@@ -62,6 +62,9 @@ export default async function WorkspaceSlugPage({
   const check = await verifyMemberPermission(session.user.email, workspaceId, matched.permission)
 
   if (!check.allowed) {
+    if (check.error === "USER_SUSPENDED") {
+      redirect("/workspace-suspended")
+    }
     // Render a premium 403 Forbidden page matching GrowWave's sleek floating SaaS design
     return (
       <div className="flex min-h-[70vh] items-center justify-center p-4 bg-[#FCFAF6] select-none">

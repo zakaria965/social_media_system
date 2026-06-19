@@ -6,7 +6,7 @@ export interface IWorkspaceMember extends Document {
   name: string
   avatar: string
   role: "owner" | "admin" | "editor" | "viewer" | string
-  status: "active" | "pending" | "declined"
+  status: "active" | "pending" | "declined" | "suspended"
   joinedAt: Date | null
   lastActive: Date | null
   customPermissions: string[]

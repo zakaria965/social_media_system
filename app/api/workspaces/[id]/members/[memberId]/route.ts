@@ -7,6 +7,7 @@ import { WorkspaceMember } from "@/lib/models/workspace-member"
 import { WorkspaceInvitation } from "@/lib/models/workspace-invitation"
 import { verifyMemberPermission, logWorkspaceActivity } from "@/lib/workspaces"
 import { AuditLog } from "@/lib/models/audit-log"
+import { syncManager } from "@/lib/sync"
 
 export async function PATCH(
   request: NextRequest,
@@ -148,6 +149,14 @@ export async function PATCH(
         action,
         detail
       )
+      await AuditLog.create({
+        action: status === "suspended" ? "Member Suspended" : "Member Activated",
+        actor: session.user.email,
+        resource: "team_management",
+        workspaceId,
+        targetEmail: targetMember.email.toLowerCase(),
+        details: status === "suspended" ? `Suspended member "${targetMember.email}"` : `Activated member "${targetMember.email}"`,
+      })
     } else if (customPermissions !== undefined && JSON.stringify(customPermissions) !== JSON.stringify(oldPermissions)) {
       await logWorkspaceActivity(
         workspaceId,
@@ -155,6 +164,14 @@ export async function PATCH(
         "permission_updated",
         `Updated custom permissions for "${targetMember.email}"`
       )
+      await AuditLog.create({
+        action: "Permissions Updated",
+        actor: session.user.email,
+        resource: "team_management",
+        workspaceId,
+        targetEmail: targetMember.email.toLowerCase(),
+        details: `Updated custom permissions for "${targetMember.email}"`,
+      })
     } else {
       await logWorkspaceActivity(
         workspaceId,
@@ -162,6 +179,21 @@ export async function PATCH(
         "modify_member",
         `Modified member details for "${targetMember.email}"`
       )
+    }
+
+    // Real-time synchronization broadcasts
+    if (!isInvitation) {
+      const targetEmail = targetMember.email.toLowerCase()
+      if (status && status !== oldStatus) {
+        const event = status === "suspended" ? "member.suspended" : "member.activated"
+        syncManager.broadcastMemberUpdate(targetEmail, event, { workspaceId })
+      }
+      if (role && role !== oldRole) {
+        syncManager.broadcastMemberUpdate(targetEmail, "member.role_changed", { workspaceId, role })
+      }
+      if (customPermissions !== undefined && JSON.stringify(customPermissions) !== JSON.stringify(oldPermissions)) {
+        syncManager.broadcastMemberUpdate(targetEmail, "member.permissions_updated", { workspaceId, customPermissions })
+      }
     }
 
     return NextResponse.json({ member: targetMember })
@@ -249,6 +281,11 @@ export async function DELETE(
       targetEmail: targetMember.email.toLowerCase(),
       details: isInvitation ? `Cancelled invitation for "${targetMember.email}"` : `Removed member "${targetMember.email}"`,
     })
+
+    // Real-time synchronization broadcasts for removal
+    if (!isInvitation) {
+      syncManager.broadcastMemberUpdate(targetMember.email, "member.removed", { workspaceId })
+    }
 
     return NextResponse.json({ success: true, message: "Member/invite successfully removed" })
   } catch (err: any) {
