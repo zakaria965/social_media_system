@@ -257,12 +257,12 @@ export default function FreePublishPage() {
 
       {/* Daily Publishing Usage Card (Free Plan only) */}
       {userPlan.toUpperCase() === "FREE" && (
-        <Card className="rounded-2xl border-0 bg-white p-5 shadow-card">
+        <Card className="rounded-2xl border-0 bg-white dark:bg-[#1F2937] p-5 shadow-card">
           <CardContent className="p-0 space-y-3">
             <div className="flex justify-between items-center text-xs font-medium">
               <div>
                 <h3 className="text-sm font-extrabold text-slate-800 dark:text-white">Daily Publishing Usage</h3>
-                <p className="text-xs text-slate-500 mt-0.5">Your daily publishing resets at 12:00 AM.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Your daily publishing resets at 12:00 AM.</p>
               </div>
               <span className="text-sm font-extrabold text-slate-800 dark:text-white">
                 {publishedTodayCount} / 3 Published Today
@@ -297,7 +297,7 @@ export default function FreePublishPage() {
       )}
 
       {/* Filter and Search Bar */}
-      <div className="grid gap-3 sm:grid-cols-12 bg-white p-4 rounded-2xl border-0 shadow-card">
+      <div className="grid gap-3 sm:grid-cols-12 bg-white dark:bg-[#1F2937] p-4 rounded-2xl border-0 shadow-card">
         {/* Search */}
         <div className="relative sm:col-span-8">
           <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
@@ -315,7 +315,7 @@ export default function FreePublishPage() {
           <select
             value={selectedPlatform}
             onChange={(e) => setSelectedPlatform(e.target.value)}
-            className="w-full text-xs font-bold text-slate-600 bg-slate-50 border border-slate-250 p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] h-9 dark:bg-slate-800 dark:border-slate-700"
+            className="w-full text-xs font-bold text-slate-650 bg-slate-50 dark:bg-slate-800/40 border border-slate-250 dark:border-slate-700 p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] h-9 text-[#0F172A] dark:text-slate-200"
           >
             <option value="all">All Channels</option>
             <option value="facebook">Facebook</option>
@@ -342,12 +342,12 @@ export default function FreePublishPage() {
               className={`px-4 py-2 text-xs font-bold transition-all relative border-b-2 -mb-[2px] flex items-center gap-1.5 ${
                 activeTab === tab
                   ? "border-[var(--brand-primary)] text-slate-950 dark:text-white"
-                  : "border-transparent text-slate-500 hover:text-slate-900"
+                  : "border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-slate-200"
               }`}
             >
               {labels[tab]}
               <span className={`text-[9px] px-1.5 py-0.2 rounded-full ${
-                activeTab === tab ? "bg-[var(--brand-primary)]/20 text-emerald-700" : "bg-slate-100 text-slate-500 dark:bg-slate-800"
+                activeTab === tab ? "bg-[var(--brand-primary)]/20 text-emerald-700" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
               }`}>
                 {count}
               </span>
@@ -359,7 +359,7 @@ export default function FreePublishPage() {
       {/* Lists */}
       <div className="space-y-4">
         {filteredPosts.map((post) => (
-          <Card key={post.id} className="rounded-2xl border-0 bg-white shadow-card hover:shadow-card-hover transition-all duration-300">
+          <Card key={post.id} className="rounded-2xl border-0 bg-white dark:bg-[#1F2937] shadow-card hover:shadow-card-hover transition-all duration-300">
             <CardContent className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               
               {/* Left detail */}
@@ -371,7 +371,7 @@ export default function FreePublishPage() {
                       <span key={plat} title={plat}>{renderPlatformBadge(plat)}</span>
                     ))}
                   </div>
-                  <Badge variant="outline" className={`text-[8px] font-black uppercase px-2 py-0.2 select-none border-slate-200 text-slate-500`}>
+                  <Badge variant="outline" className={`text-[8px] font-black uppercase px-2 py-0.2 select-none border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400`}>
                     {post.status}
                   </Badge>
                 </div>

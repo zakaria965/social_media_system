@@ -237,24 +237,24 @@ export default function FreeAIAssistantPage() {
   return (
     <div className="max-w-[700px] mx-auto w-full flex flex-col min-h-[calc(100vh-140px)] space-y-6 px-4 py-4">
       {/* Top Header Section */}
-      <div className="border-b border-slate-100 pb-6 select-none">
+      <div className="border-b border-slate-100 dark:border-slate-800 pb-6 select-none">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex flex-col gap-1.5 w-full">
             <div className="flex flex-wrap items-baseline justify-between sm:justify-start gap-x-3 gap-y-2">
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F172A]">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F172A] dark:text-white">
                 GrowWave AI Assistant
               </h1>
               <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-black rounded-full shadow-xs ${
                 remaining === 0
-                  ? "bg-[#FEE2E2] text-[#EF4444]"
+                  ? "bg-[#FEE2E2] dark:bg-red-950/40 text-[#EF4444]"
                   : remaining === 1
-                  ? "bg-[#FEF3C7] text-[#D97706]"
-                  : "bg-[#E8FAD0] text-[#22C55E]"
+                  ? "bg-[#FEF3C7] dark:bg-amber-950/40 text-[#D97706]"
+                  : "bg-[#E8FAD0] dark:bg-emerald-950/40 text-[#22C55E] dark:text-[var(--brand-primary)]"
               }`}>
                 ✨ {remaining} AI Credit{remaining === 1 ? "" : "s"} Remaining
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-[#64748B] max-w-lg font-medium leading-relaxed mt-1">
+            <p className="text-xs sm:text-sm text-[#64748B] dark:text-slate-400 max-w-lg font-medium leading-relaxed mt-1">
               Create captions, content ideas, campaigns, hashtags and social media strategies powered by AI.
             </p>
           </div>
@@ -266,15 +266,15 @@ export default function FreeAIAssistantPage() {
         {messages.length === 0 ? (
           /* Empty State */
           <div className="flex-1 flex flex-col items-center justify-center text-center space-y-5 py-12 select-none my-auto max-w-[500px] mx-auto">
-            <div className="p-4 bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-slate-100 text-[#22C55E]">
+            <div className="p-4 bg-white dark:bg-[#1F2937] rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-slate-100 dark:border-slate-800 text-[#22C55E]">
               <Sparkles className="size-10 fill-current animate-pulse" />
             </div>
             <div className="space-y-2">
-              <h3 className="text-lg font-extrabold text-[#0F172A]">✨ Start Creating</h3>
-              <p className="text-sm text-[#64748B] font-medium leading-relaxed">
+              <h3 className="text-lg font-extrabold text-[#0F172A] dark:text-white">✨ Start Creating</h3>
+              <p className="text-sm text-[#64748B] dark:text-slate-400 font-medium leading-relaxed">
                 Ask GrowWave AI to generate captions, ideas, campaigns and content strategies.
               </p>
-              <p className="text-xs text-[#94A3B8] font-bold">
+              <p className="text-xs text-[#94A3B8] dark:text-slate-500 font-bold">
                 You have 5 free AI generations.
               </p>
             </div>
@@ -299,10 +299,10 @@ export default function FreeAIAssistantPage() {
                   <div
                     className={`max-w-[85%] px-4.5 py-3 text-sm font-medium leading-relaxed ${
                       isUser
-                        ? "bg-[#DCFCE7] text-[#0F172A] rounded-2xl rounded-tr-none ml-auto shadow-xs font-semibold"
+                        ? "bg-[#DCFCE7] dark:bg-[rgba(48,252,71,0.15)] text-[#0F172A] dark:text-[#F8FAFC] rounded-2xl rounded-tr-none ml-auto shadow-xs font-semibold"
                         : isError
-                        ? "bg-[#FEF2F2] text-[#EF4444] rounded-2xl rounded-tl-none shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)] border border-red-100 font-semibold"
-                        : "bg-white text-[#0F172A] rounded-2xl rounded-tl-none shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)] border border-slate-100/50"
+                        ? "bg-[#FEF2F2] dark:bg-rose-950/20 text-[#EF4444] rounded-2xl rounded-tl-none shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)] border border-red-100 dark:border-rose-900/30 font-semibold"
+                        : "bg-white dark:bg-[#1F2937] text-[#0F172A] dark:text-[#F8FAFC] rounded-2xl rounded-tl-none shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)] border border-slate-100/50 dark:border-slate-800/50"
                     }`}
                   >
                     <p className="whitespace-pre-wrap select-text">{msg.content}</p>
@@ -320,7 +320,7 @@ export default function FreeAIAssistantPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleCopyToClipboard(msg.content, idx)}
-                            className="h-7 text-[10px] font-bold text-[#64748B] hover:text-[#0F172A] hover:bg-white/50 px-2 rounded-lg gap-1 border-0"
+                            className="h-7 text-[10px] font-bold text-[#64748B] dark:text-slate-400 hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-white/50 dark:hover:bg-slate-800/50 px-2 rounded-lg gap-1 border-0"
                           >
                             {copiedIndex === idx ? (
                               <>
@@ -339,7 +339,7 @@ export default function FreeAIAssistantPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleSaveDraft(msg.content)}
-                            className="h-7 text-[10px] font-bold text-[#64748B] hover:text-[#0F172A] hover:bg-white/50 px-2 rounded-lg gap-1 border-0"
+                            className="h-7 text-[10px] font-bold text-[#64748B] dark:text-slate-400 hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-white/50 dark:hover:bg-slate-800/50 px-2 rounded-lg gap-1 border-0"
                           >
                             <Bookmark className="size-3 text-[#22C55E]" />
                             Save Draft
@@ -349,7 +349,7 @@ export default function FreeAIAssistantPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleUseInComposer(msg.content)}
-                            className="h-7 text-[10px] font-bold text-[#64748B] hover:text-[#0F172A] hover:bg-white/50 px-2 rounded-lg gap-1 border-0"
+                            className="h-7 text-[10px] font-bold text-[#64748B] dark:text-slate-400 hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-white/50 dark:hover:bg-slate-800/50 px-2 rounded-lg gap-1 border-0"
                           >
                             Use in Post
                             <ArrowRight className="size-3 text-[#22C55E]" />
@@ -360,7 +360,7 @@ export default function FreeAIAssistantPage() {
                             size="sm"
                             onClick={() => handleRegenerate(messages[idx - 1]?.content || "")}
                             disabled={loading || remaining <= 0}
-                            className="h-7 text-[10px] font-bold text-[#64748B] hover:text-[#0F172A] hover:bg-white/50 px-2 rounded-lg gap-1 border-0"
+                            className="h-7 text-[10px] font-bold text-[#64748B] dark:text-slate-400 hover:text-[#0F172A] dark:hover:text-[#F8FAFC] hover:bg-white/50 dark:hover:bg-slate-800/50 px-2 rounded-lg gap-1 border-0"
                           >
                             <RefreshCw className="size-3" />
                             Regenerate
@@ -383,12 +383,12 @@ export default function FreeAIAssistantPage() {
             {/* Thinking state bubble */}
             {loading && (
               <div className="flex flex-col items-start w-full space-y-1 animate-pulse">
-                <div className="max-w-[85%] px-4.5 py-3 bg-white text-[#0F172A] rounded-2xl rounded-tl-none shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)] border border-slate-100/50">
+                <div className="max-w-[85%] px-4.5 py-3 bg-white dark:bg-[#1F2937] text-[#0F172A] dark:text-[#F8FAFC] rounded-2xl rounded-tl-none shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)] border border-slate-100/50 dark:border-slate-800/50">
                   <div className="flex items-center gap-2">
                     <RefreshCw className="size-4 text-[#22C55E] animate-spin" />
-                    <span className="text-sm font-semibold text-[#0F172A]">Thinking...</span>
+                    <span className="text-sm font-semibold text-[#0F172A] dark:text-white">Thinking...</span>
                   </div>
-                  <p className="text-[10px] text-[#64748B] mt-1 font-bold">Powered by Gemini</p>
+                  <p className="text-[10px] text-[#64748B] dark:text-slate-400 mt-1 font-bold">Powered by Gemini</p>
                 </div>
               </div>
             )}
@@ -398,9 +398,9 @@ export default function FreeAIAssistantPage() {
       </div>
 
       {remaining > 0 ? (
-        <div className="bg-white rounded-3xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-slate-100/50 space-y-4">
+        <div className="bg-white dark:bg-[#111827] rounded-3xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-slate-100/50 dark:border-slate-800/50 space-y-4">
           {remaining === 1 && (
-            <div className="bg-[#FEF3C7] border border-[#F59E0B]/20 rounded-2xl p-4 flex items-center gap-2.5 text-[#B45309] text-xs font-bold select-none">
+            <div className="bg-[#FEF3C7] dark:bg-amber-950/40 border border-[#F59E0B]/20 rounded-2xl p-4 flex items-center gap-2.5 text-[#B45309] dark:text-amber-300 text-xs font-bold select-none">
               <span className="text-sm">⚠</span>
               <span>You have 1 free AI request remaining today.</span>
             </div>
@@ -419,13 +419,13 @@ export default function FreeAIAssistantPage() {
                   handleGenerate()
                 }
               }}
-              className="text-sm border-0 bg-[#FCFAF6] rounded-2xl focus-visible:ring-[#22C55E] focus-visible:ring-offset-0 resize-none p-4 placeholder:text-slate-400 text-[#0F172A] font-semibold w-full outline-hidden h-[140px] min-h-[140px] max-h-[140px]"
+              className="text-sm border-0 bg-[#FCFAF6] dark:bg-[#1F2937]/50 rounded-2xl focus-visible:ring-[#22C55E] focus-visible:ring-offset-0 resize-none p-4 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-[#0F172A] dark:text-[#F8FAFC] font-semibold w-full outline-hidden h-[140px] min-h-[140px] max-h-[140px] border border-transparent dark:border-slate-800"
             />
           </div>
 
           {/* Quick Actions Chip Grid (Responsive: 4/3/2 layout) */}
           <div className="space-y-2 select-none">
-            <span className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider block">
+            <span className="text-[10px] font-bold text-[#64748B] dark:text-slate-400 uppercase tracking-wider block">
               Quick Actions
             </span>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -435,7 +435,7 @@ export default function FreeAIAssistantPage() {
                   type="button"
                   onClick={() => setPrompt(chip.preset)}
                   disabled={remaining <= 0}
-                  className="text-[11px] font-bold bg-[#FCFAF6] text-[#0F172A] px-3 py-2.5 rounded-xl border border-slate-100 hover:bg-[#DCFCE7] hover:text-[#22C55E] transition-all text-center truncate disabled:opacity-40 cursor-pointer"
+                  className="text-[11px] font-bold bg-[#FCFAF6] dark:bg-[#1F2937]/50 text-[#0F172A] dark:text-[#F8FAFC] px-3 py-2.5 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-[#DCFCE7] dark:hover:bg-[rgba(48,252,71,0.10)] hover:text-[#22C55E] dark:hover:text-[#22C55E] transition-all text-center truncate disabled:opacity-40 cursor-pointer"
                   title={chip.label}
                 >
                   {chip.label}
@@ -467,13 +467,13 @@ export default function FreeAIAssistantPage() {
         </div>
       ) : (
         /* Limit Reached Card replacing the Composer directly in the same location */
-        <div className="bg-white rounded-3xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-slate-100 text-center space-y-6 select-none w-full">
-          <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-red-50 text-red-500">
+        <div className="bg-white dark:bg-[#111827] rounded-3xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-slate-100 dark:border-slate-800 text-center space-y-6 select-none w-full">
+          <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-red-50 dark:bg-red-950/20 text-red-500 dark:text-red-455">
             <Sparkles className="size-6 fill-current animate-pulse" />
           </div>
           <div className="space-y-2">
-            <h3 className="text-lg font-black text-[#0F172A]">AI Credit Limit Reached</h3>
-            <p className="text-sm text-[#64748B] max-w-sm mx-auto font-medium">
+            <h3 className="text-lg font-black text-[#0F172A] dark:text-white">AI Credit Limit Reached</h3>
+            <p className="text-sm text-[#64748B] dark:text-slate-400 max-w-sm mx-auto font-medium">
               You have used all available AI credits. Upgrade your plan or contact your administrator.
             </p>
           </div>
@@ -489,7 +489,7 @@ export default function FreeAIAssistantPage() {
             </Button>
             <Button
               onClick={() => router.push("/contact")}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs uppercase tracking-wider px-8 py-3.5 rounded-full border border-slate-200 shadow-sm transition-all cursor-pointer font-bold"
+              className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-350 font-black text-xs uppercase tracking-wider px-8 py-3.5 rounded-full border border-slate-200 dark:border-slate-750 shadow-sm transition-all cursor-pointer font-bold"
             >
               Contact Support
             </Button>

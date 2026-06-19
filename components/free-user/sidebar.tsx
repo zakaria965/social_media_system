@@ -75,9 +75,8 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
 
       {/* Sidebar Container */}
       <aside
-        style={{ backgroundColor: '#FCFAF6', borderRight: '1px solid #EEF2F7' }}
         className={cn(
-          "fixed top-0 bottom-0 left-0 z-40 flex flex-col transition-[width] duration-300 ease-in-out",
+          "fixed top-0 bottom-0 left-0 z-40 flex flex-col transition-[width] duration-300 ease-in-out bg-sidebar border-r border-border transition-colors duration-200",
           isCollapsed ? "w-20" : "w-64",
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
@@ -90,7 +89,7 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
             </div>
             {!isCollapsed && (
               <div className="flex flex-col">
-                <span className="text-sm font-black text-[#1F2937] tracking-tight">
+                <span className="text-sm font-black text-[#1F2937] dark:text-[#F8FAFC] tracking-tight">
                   GrowWave <span className="text-emerald-600 font-bold">Lite</span>
                 </span>
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">
@@ -103,7 +102,7 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
           {/* Desktop Toggle Button */}
           <button
             onClick={onToggleCollapse}
-            className="hidden lg:flex size-6 items-center justify-center rounded-md border border-[#EEF2F7] bg-white text-slate-500 hover:text-[var(--brand-primary)] hover:scale-105 active:scale-95 transition-all"
+            className="hidden lg:flex size-6 items-center justify-center rounded-md border border-border bg-card text-slate-500 dark:text-slate-400 hover:text-[var(--brand-primary)] hover:scale-105 active:scale-95 transition-all"
           >
             {isCollapsed ? <ChevronRight className="size-3.5" /> : <ChevronLeft className="size-3.5" />}
           </button>
@@ -127,8 +126,8 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-xs font-bold transition-all group relative",
                     isActive
-                      ? "bg-[#F0FDF4] text-[var(--brand-primary)] font-extrabold"
-                      : "text-[#6B7280] hover:bg-[#F0FDF4]/50 hover:text-[var(--brand-primary)]"
+                      ? "bg-[#F0FDF4] dark:bg-[rgba(48,252,71,0.15)] text-[var(--brand-primary)] font-extrabold"
+                      : "text-[#6B7280] dark:text-slate-400 hover:bg-[#F0FDF4]/50 dark:hover:bg-[rgba(48,252,71,0.10)] hover:text-[var(--brand-primary)]"
                   )}
                 >
                   <Icon

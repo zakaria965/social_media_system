@@ -129,7 +129,7 @@
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
     --radius: var(--border-radius, 16px);
-    --sidebar: var(--bg-main);
+    --sidebar: #111827;
     --sidebar-foreground: var(--text-primary);
     --sidebar-primary: var(--brand-primary);
     --sidebar-primary-foreground: var(--text-white);

@@ -296,7 +296,7 @@ export default function FreeCalendarPage() {
       </div>
 
       {/* Date navigation and Platform filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border-0 shadow-card">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#1F2937] p-4 rounded-2xl border-0 shadow-card">
         
         {/* Navigation arrow buttons */}
         <div className="flex items-center gap-3">
@@ -319,7 +319,7 @@ export default function FreeCalendarPage() {
           <select
             value={platformFilter}
             onChange={(e) => setPlatformFilter(e.target.value)}
-            className="text-xs font-bold text-slate-600 bg-slate-50 border border-slate-250 p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] h-8 dark:bg-slate-800 dark:border-slate-700"
+            className="text-xs font-bold text-slate-655 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/40 border border-slate-250 dark:border-slate-700 p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] h-8"
           >
             <option value="all">All Channels</option>
             <option value="facebook">Facebook</option>
@@ -332,16 +332,16 @@ export default function FreeCalendarPage() {
       {/* Calendar Grid rendering */}
       {viewMode === "month" ? (
         /* ================= MONTH VIEW ================= */
-        <Card className="rounded-2xl border-0 bg-white overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300">
-          <div className="grid grid-cols-7 border-b border-[#EEF2F7] bg-transparent">
+        <Card className="rounded-2xl border-0 bg-white dark:bg-[#1F2937] overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300">
+          <div className="grid grid-cols-7 border-b border-border bg-transparent">
             {dayNames.map((d) => (
-              <span key={d} className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-center py-2 border-r border-[#EEF2F7]/30">
+              <span key={d} className="text-[10px] font-black text-slate-400 uppercase tracking-wider text-center py-2 border-r border-border/30">
                 {d}
               </span>
             ))}
           </div>
 
-          <div className="grid grid-cols-7 grid-rows-6 divide-x divide-y divide-[#EEF2F7]/30 border-l border-t border-[#EEF2F7]/30">
+          <div className="grid grid-cols-7 grid-rows-6 divide-x divide-y divide-border/30 border-l border-t border-border/30">
             {getMonthDays().map((cell, idx) => {
               const cellPosts = getPostsForDay(cell.day, cell.month, cell.year)
               const isToday =
@@ -385,7 +385,7 @@ export default function FreeCalendarPage() {
         </Card>
       ) : viewMode === "week" ? (
         /* ================= WEEK VIEW ================= */
-        <Card className="rounded-2xl border-0 bg-white p-6 shadow-card hover:shadow-card-hover transition-all">
+        <Card className="rounded-2xl border-0 bg-white dark:bg-[#1F2937] p-6 shadow-card hover:shadow-card-hover transition-all">
           <div className="grid grid-cols-7 gap-3">
             {Array.from({ length: 7 }).map((_, idx) => {
               const dayDate = new Date(currentDate)
@@ -400,7 +400,7 @@ export default function FreeCalendarPage() {
                 <div
                   key={idx}
                   className={`rounded-xl border-0 p-3 min-h-[200px] flex flex-col gap-3 transition-colors ${
-                    isToday ? "bg-[var(--brand-primary)]/5" : "bg-[#FCFAF6]/60"
+                    isToday ? "bg-[var(--brand-primary)]/5" : "bg-[#FCFAF6]/60 dark:bg-slate-900/40"
                   }`}
                 >
                   <div className="text-center pb-2 border-b border-slate-100 dark:border-slate-800">
@@ -437,9 +437,9 @@ export default function FreeCalendarPage() {
         </Card>
       ) : (
         /* ================= DAY VIEW ================= */
-        <Card className="rounded-2xl border-0 bg-white p-6 shadow-card hover:shadow-card-hover transition-all">
+        <Card className="rounded-2xl border-0 bg-white dark:bg-[#1F2937] p-6 shadow-card hover:shadow-card-hover transition-all">
           <div className="space-y-3">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block border-b pb-2">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block border-b pb-2 border-slate-100 dark:border-slate-800">
               Scheduled for today ({currentDate.toLocaleDateString()})
             </span>
             
@@ -487,12 +487,12 @@ export default function FreeCalendarPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div onClick={() => setSelectedPost(null)} className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" />
           
-          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border-0 bg-white shadow-modal p-6 z-10 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
+          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-transparent dark:border-slate-800 bg-white dark:bg-slate-900 shadow-modal p-6 z-10 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-850 pb-3">
               <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider dark:text-white">
                 Reschedule Post
               </h3>
-              <button onClick={() => setSelectedPost(null)} className="text-slate-400 hover:text-slate-600 rounded">
+              <button onClick={() => setSelectedPost(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded">
                 <X className="size-4.5" />
               </button>
             </div>

@@ -11,13 +11,13 @@
   --bg-card: #FFFFFF;
 
   /* Text Colors */
-  --text-primary: #111827;
+  --text-primary: #0F172A;
   --text-secondary: #64748B;
   --text-muted: #9CA3AF;
   --text-white: #FFFFFF;
 
   /* Borders & Radius */
-  --border: #EEF2F7;
+  --border: #E5E7EB;
   --radius: 16px;
 
   /* Shadows */
@@ -32,7 +32,7 @@
 .dark {
   /* Background Colors */
   --bg-main: #0F172A;
-  --bg-card: #111827;
+  --bg-card: #1F2937;
   --bg-secondary-card: #1F2937;
 
   /* Text Colors */

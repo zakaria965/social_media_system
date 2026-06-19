@@ -264,17 +264,17 @@ export default function FreeScheduledPage() {
       </div>
 
       {/* Quota Progress meter */}
-      <Card className="rounded-2xl border-0 bg-white p-6 shadow-card hover:shadow-card-hover transition-all">
+      <Card className="rounded-2xl border-0 bg-white dark:bg-[#1F2937] p-6 shadow-card hover:shadow-card-hover transition-all">
         <CardContent className="p-0 space-y-3">
           <div className="flex items-center justify-between text-xs font-medium">
-            <span className="text-slate-500">Scheduler limits tracker (5 Scheduled Posts Today)</span>
+            <span className="text-slate-500 dark:text-slate-400">Scheduler limits tracker (5 Scheduled Posts Today)</span>
             <span className="text-slate-900 font-bold dark:text-white">
               {todayCount} / 5 Scheduled Today
             </span>
           </div>
           <Progress 
             value={(todayCount / 5) * 100} 
-            className="h-2 rounded-full bg-slate-100" 
+            className="h-2 rounded-full bg-slate-100 dark:bg-slate-800" 
             indicatorClassName={todayCount >= 4 ? "bg-amber-500" : "bg-[var(--brand-primary)]"}
           />
           <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
@@ -299,7 +299,7 @@ export default function FreeScheduledPage() {
             const isReschedulingThis = reschedulePostId === post.id
 
             return (
-              <Card key={post.id} className="rounded-2xl border-0 bg-white shadow-card hover:shadow-card-hover transition-all duration-300">
+              <Card key={post.id} className="rounded-2xl border-0 bg-white dark:bg-[#1F2937] shadow-card hover:shadow-card-hover transition-all duration-300">
                 <CardContent className="p-4 md:p-5 flex flex-col md:flex-row md:items-start justify-between gap-4">
                   
                   {/* Left segment */}

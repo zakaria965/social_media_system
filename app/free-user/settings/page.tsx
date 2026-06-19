@@ -372,13 +372,13 @@ function SettingsContent() {
 
           {/* PROFILE SETTINGS */}
           {activeTab === "profile" && (
-            <Card className="rounded-2xl border-0 bg-white shadow-card hover:shadow-card-hover transition-all">
-              <CardHeader className="pb-3 border-b">
+            <Card className="rounded-2xl border-0 bg-white dark:bg-[#1F2937] shadow-card hover:shadow-card-hover transition-all">
+              <CardHeader className="pb-3 border-b border-border">
                 <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-white">Profile Settings</CardTitle>
               </CardHeader>
               <CardContent className="p-5 md:p-6 space-y-4">
-                <div className="flex items-center gap-4 border-b pb-4">
-                  <div className="size-14 rounded-full bg-slate-100 flex items-center justify-center font-black text-lg text-slate-500 border border-slate-200">
+                <div className="flex items-center gap-4 border-b border-border pb-4">
+                  <div className="size-14 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-lg text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                     GW
                   </div>
                   <div>
@@ -432,8 +432,8 @@ function SettingsContent() {
 
           {/* PASSWORD SETTINGS */}
           {activeTab === "password" && (
-            <Card className="rounded-2xl border-0 bg-white shadow-card hover:shadow-card-hover transition-all">
-              <CardHeader className="pb-3 border-b">
+            <Card className="rounded-2xl border-0 bg-white dark:bg-[#1F2937] shadow-card hover:shadow-card-hover transition-all">
+              <CardHeader className="pb-3 border-b border-border">
                 <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-white">Update Password</CardTitle>
               </CardHeader>
               <CardContent className="p-5 md:p-6">
@@ -484,8 +484,8 @@ function SettingsContent() {
           {/* ACCOUNTS / CHANNEL LIMITS */}
           {activeTab === "accounts" && (
             <div className="space-y-6">
-              <Card className="rounded-2xl border-0 bg-white shadow-card hover:shadow-card-hover transition-all">
-                <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
+              <Card className="rounded-2xl border-0 bg-white dark:bg-[#1F2937] shadow-card hover:shadow-card-hover transition-all">
+                <CardHeader className="pb-3 border-b border-border flex flex-row items-center justify-between">
                   <div>
                     <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-white">Linked Channels</CardTitle>
                     <p className="text-[11px] text-[#6B7280] mt-0.5">Link or unlink Facebook Pages. Max 1 active account on Free Plan.</p>
@@ -571,10 +571,10 @@ function SettingsContent() {
               </Card>
 
               {/* Upgrade To Pro Card */}
-              <Card className="rounded-2xl border-0 bg-[#F0FDF4] shadow-card hover:shadow-card-hover transition-all p-6">
+              <Card className="rounded-2xl border-0 bg-[#F0FDF4] dark:bg-emerald-950/20 shadow-card hover:shadow-card-hover transition-all p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="space-y-1">
-                    <h4 className="text-sm font-extrabold text-purple-950 dark:text-purple-400">Upgrade to GrowWave Pro</h4>
+                    <h4 className="text-sm font-extrabold text-purple-950 dark:text-purple-300">Upgrade to GrowWave Pro</h4>
                     <p className="text-xs text-slate-500 dark:text-slate-400 leading-normal">
                       Link additional accounts and unlock publishing to premium platforms.
                     </p>
@@ -602,8 +602,8 @@ function SettingsContent() {
 
           {/* NOTIFICATION SETTINGS */}
           {activeTab === "notifications" && (
-            <Card className="rounded-2xl border-0 bg-white shadow-card hover:shadow-card-hover transition-all">
-              <CardHeader className="pb-3 border-b">
+            <Card className="rounded-2xl border-0 bg-white dark:bg-[#1F2937] shadow-card hover:shadow-card-hover transition-all">
+              <CardHeader className="pb-3 border-b border-border">
                 <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-white">Notification Preferences</CardTitle>
               </CardHeader>
               <CardContent className="p-5 md:p-6 space-y-4">
@@ -677,8 +677,8 @@ function SettingsContent() {
 
           {/* BILLING & PLAN DETAILS */}
           {activeTab === "billing" && (
-            <Card className="rounded-xl border border-slate-200 bg-background shadow-sm dark:bg-slate-900 dark:border-slate-800 overflow-hidden">
-              <CardHeader className="pb-3 border-b bg-slate-50 dark:bg-slate-850/50">
+            <Card className="rounded-xl border border-border bg-card shadow-sm dark:bg-[#1F2937] overflow-hidden">
+              <CardHeader className="pb-3 border-b border-border bg-slate-50 dark:bg-slate-850/50">
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-white">Billing & Plan status</CardTitle>
@@ -831,8 +831,8 @@ function SettingsContent() {
 
           {/* APPEARANCE SETTINGS */}
           {activeTab === "appearance" && (
-            <Card className="rounded-2xl border-0 bg-white shadow-card hover:shadow-card-hover transition-all">
-              <CardHeader className="pb-3 border-b">
+            <Card className="rounded-2xl border-0 bg-white dark:bg-[#1F2937] shadow-card hover:shadow-card-hover transition-all">
+              <CardHeader className="pb-3 border-b border-border">
                 <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-white">Appearance Settings</CardTitle>
                 <p className="text-[11px] text-[#6B7280] dark:text-slate-400 mt-0.5">Customize how GrowWave Lite looks on your device.</p>
               </CardHeader>

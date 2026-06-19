@@ -62,83 +62,6 @@ interface IdeaItem {
   mediaFile?: { name: string; size: number; url: string } | null
 }
 
-const generateMockIdeas = (topic: string, audience: string, goal: string, platform: string): IdeaItem[] => {
-  const selectedPlatform = platform.toLowerCase() === "all" ? "instagram" : platform.toLowerCase()
-  const list = [
-    {
-      title: `Top 3 common mistakes in ${topic}`,
-      content: `Are you making these mistakes with ${topic}? Here's how to fix them easily to boost your results!`,
-      notes: "Visual idea: Split graphic showing Right vs Wrong way.",
-      tags: `${topic.toLowerCase().replace(/\s+/g, "")}, mistakes, tips`
-    },
-    {
-      title: `How to reach your ${goal} goal`,
-      content: `Fulfilling your goal of ${goal} doesn't have to be hard. Use this step-by-step strategy for ${audience || "beginners"}.`,
-      notes: "Visual idea: Clean progress bar infographic.",
-      tags: `goals, ${goal.toLowerCase().replace(/\s+/g, "")}, advice`
-    },
-    {
-      title: `Behind the scenes: ${topic} workflows`,
-      content: `A sneak peek into how we manage ${topic} every single day. Swipe to see our full workspace setup!`,
-      notes: "Visual idea: High-quality photo of workspace or carousel.",
-      tags: "workflow, workspace, behindthescenes"
-    },
-    {
-      title: `My favorite hack for ${topic}`,
-      content: `If you want to save hours on ${topic}, try this simple automation hack. Let us know if this helps!`,
-      notes: "Visual idea: Quick screencast showing the tool setup.",
-      tags: `${topic.toLowerCase().replace(/\s+/g, "")}, automation, timesaver`
-    },
-    {
-      title: `Debunking 3 myths about ${topic}`,
-      content: `Don't believe everything you hear. Here is the truth about ${topic} that will save you time and money.`,
-      notes: "Visual idea: Bold text slide deck.",
-      tags: "myths, truth, facts"
-    },
-    {
-      title: `Why ${audience || "professionals"} love this tool`,
-      content: `This single tool changed the way we handle ${topic}. Perfect for anyone focusing on ${goal}.`,
-      notes: "Visual idea: Product screenshot with callouts.",
-      tags: "tools, recommendations, reviews"
-    },
-    {
-      title: `A quick checklist for ${topic}`,
-      content: `Save this checklist for your next ${topic} session so you never miss a critical detail again.`,
-      notes: "Visual idea: Clean checkmark list infographic.",
-      tags: "checklist, guidance, study"
-    },
-    {
-      title: `Case study: Achieving ${goal}`,
-      content: `How we helped a client double their performance and reach their ${goal} milestone in 30 days.`,
-      notes: "Visual idea: Growth chart graph.",
-      tags: `casestudy, growth, ${goal.toLowerCase().replace(/\s+/g, "")}`
-    },
-    {
-      title: `Q&A: Answering your ${topic} questions`,
-      content: `Ask us anything about ${topic} and we'll reply directly in the comments. Let's learn together!`,
-      notes: "Visual idea: Simple headshot of the team.",
-      tags: "qa, askus, discussion"
-    },
-    {
-      title: `The future of ${topic} in 2026`,
-      content: `The industry is changing fast. Here are the top trends you must prepare for to stay ahead of the curve.`,
-      notes: "Visual idea: Futuristic graphic with minimal typography.",
-      tags: "trends, future, strategy"
-    }
-  ]
-
-  return list.map((item, idx) => ({
-    id: `idea_mock_${Date.now()}_${idx}`,
-    title: item.title,
-    content: item.content,
-    contentNotes: item.notes,
-    tags: item.tags,
-    platform: selectedPlatform,
-    column: "Ideas" as const,
-    createdAt: new Date(Date.now() - idx * 3600000).toISOString()
-  }))
-}
-
 function CreateContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -148,14 +71,6 @@ function CreateContent() {
   const [ideas, setIdeas] = useState<IdeaItem[]>([])
   const [ideaFormOpen, setIdeaFormOpen] = useState(false)
   const [editingIdea, setEditingIdea] = useState<IdeaItem | null>(null)
-  
-  // AI Ideas Generator Modal State (for generating 10 ideas)
-  const [aiGeneratorOpen, setAiGeneratorOpen] = useState(false)
-  const [aiGenerating, setAiGenerating] = useState(false)
-  const [aiTopic, setAiTopic] = useState("")
-  const [aiAudience, setAiAudience] = useState("")
-  const [aiGoal, setAiGoal] = useState("")
-  const [aiPlatform, setAiPlatform] = useState("all")
 
   // Onboarding Card Visibility
   const [onboardVisible, setOnboardVisible] = useState(true)
@@ -859,122 +774,10 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
     setEmojiDropdownOpen(false)
   }
 
-  // AI Generate 10 Content Ideas
-  const handleGenerateIdeasAI = async () => {
-    if (!aiTopic.trim()) {
-      showToast("⚠️ Topic is required!", "error")
-      return
-    }
-    setAiGenerating(true)
-    try {
-      const userPrompt = `Generate exactly 10 content ideas for:
-Topic: "${aiTopic}"
-Audience: "${aiAudience || "followers"}"
-Goal: "${aiGoal || "engagement"}"
-Platform: "${aiPlatform}"
-
-You MUST return the output as a valid JSON array of objects. Do not write any explanations, headers, markdown backticks or code blocks. Return ONLY the raw JSON array string.
-Each object must contain these keys:
-- "title": a short, catchy title (max 40 characters)
-- "content": the actual social media post copy (1-3 sentences)
-- "platform": the platform name (lowercase, e.g. "facebook", "instagram", "linkedin", "twitter")`
-
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "content-ideas",
-          prompt: userPrompt,
-          provider: "openai"
-        })
-      })
-
-      if (res.status === 429) {
-        setUpgradeReason("ai_quota")
-        setUpgradeOpen(true)
-        return
-      }
-
-      if (!res.ok) {
-        throw new Error("AI API failed")
-      }
-
-      const data = await res.json()
-      let cleaned = (data.result || "").trim()
-      if (cleaned.startsWith("```")) {
-        cleaned = cleaned.replace(/^```json\s*/i, "").replace(/```$/, "").trim()
-      }
-
-      const parsed = JSON.parse(cleaned)
-      if (Array.isArray(parsed)) {
-        for (let idx = 0; idx < parsed.length; idx++) {
-          const item = parsed[idx]
-          await fetch("/api/ideas", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              title: item.title || `Idea ${idx + 1}`,
-              content: item.content || "",
-              platform: item.platform || (aiPlatform === "all" ? "instagram" : aiPlatform.toLowerCase()),
-              media: null,
-              status: "idea"
-            })
-          })
-        }
-
-        showToast("✓ Content Generated")
-        setOnboardVisible(false)
-        localStorage.setItem("growwave-lite-create-onboard", "dismissed")
-        setAiGeneratorOpen(false)
-        setAiTopic("")
-        setAiAudience("")
-        setAiGoal("")
-
-        await fetchIdeas()
-      } else {
-        throw new Error("Result is not an array")
-      }
-    } catch (err) {
-      console.warn("AI generation error, using fallback content engine:", err)
-      const fallbackIdeas = generateMockIdeas(aiTopic, aiAudience, aiGoal, aiPlatform)
-      
-      for (const idea of fallbackIdeas) {
-        await fetch("/api/ideas", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: idea.title,
-            content: idea.content,
-            platform: idea.platform,
-            media: null,
-            status: "idea"
-          })
-        })
-      }
-
-      showToast("✓ Content Generated")
-      setOnboardVisible(false)
-      localStorage.setItem("growwave-lite-create-onboard", "dismissed")
-      setAiGeneratorOpen(false)
-      setAiTopic("")
-      setAiAudience("")
-      setAiGoal("")
-
-      await fetchIdeas()
-    } finally {
-      setAiGenerating(false)
-    }
-  }
-
   // Dismiss Onboarding Card
   const handleDismissOnboard = () => {
     setOnboardVisible(false)
     localStorage.setItem("growwave-lite-create-onboard", "dismissed")
-  }
-
-  // Open modal preselected with AI generate
-  const handleOpenAiGenerate = () => {
-    setAiGeneratorOpen(true)
   }
 
   // Render Platform Social Icon
@@ -1137,13 +940,6 @@ Each object must contain these keys:
             >
               Create First Idea
             </Button>
-            <Button
-              variant="outline"
-              onClick={handleOpenAiGenerate}
-              className="border-[var(--border)] hover:bg-[var(--brand-surface)] text-emerald-700 font-extrabold text-xs px-4 py-2.5 rounded-xl uppercase tracking-wider bg-white dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-[var(--brand-primary)]"
-            >
-              Generate With AI
-            </Button>
             <Link href="/free-user/settings?tab=accounts">
               <Button
                 variant="outline"
@@ -1157,18 +953,7 @@ Each object must contain these keys:
       )}
 
       {/* Top Action Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2">
-        {/* Left: Generate Ideas */}
-        <div>
-          <Button
-            onClick={() => setAiGeneratorOpen(true)}
-            className="bg-[var(--brand-primary)]/10 hover:bg-[#DDFBE3] border border-[var(--border)] text-emerald-800 dark:text-[var(--brand-primary)] dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 font-extrabold text-xs px-4.5 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-xs"
-          >
-            <Sparkles className="size-4 text-[var(--brand-primary)] fill-current animate-pulse" />
-            Generate Ideas
-          </Button>
-        </div>
-
+      <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 py-2">
         {/* Right: Search, Filter, Sort, New Idea */}
         <div className="flex flex-wrap items-center gap-3">
 
@@ -1178,7 +963,7 @@ Each object must contain these keys:
             <select
               value={filterPlatform}
               onChange={(e) => setFilterPlatform(e.target.value)}
-              className="pl-8.5 pr-8 py-2 text-xs bg-white border border-[#EEF2F7] rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] appearance-none font-bold text-slate-700"
+              className="pl-8.5 pr-8 py-2 text-xs bg-card dark:bg-[#1F2937]/50 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] appearance-none font-bold text-foreground dark:text-slate-200"
             >
               <option value="all">All Channels</option>
               <option value="facebook">Facebook</option>
@@ -1196,7 +981,7 @@ Each object must contain these keys:
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="pl-8.5 pr-8 py-2 text-xs bg-white border border-[#EEF2F7] rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] appearance-none font-bold text-slate-700"
+              className="pl-8.5 pr-8 py-2 text-xs bg-card dark:bg-[#1F2937]/50 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] appearance-none font-bold text-foreground dark:text-slate-200"
             >
               <option value="dateNewest">Newest First</option>
               <option value="dateOldest">Oldest First</option>
@@ -1227,13 +1012,13 @@ Each object must contain these keys:
 
       {/* Main Kanban Board or Global Empty State */}
       {ideas.length === 0 ? (
-        <div className="flex flex-col items-center justify-center border border-dashed border-[#EEF2F7] rounded-2xl bg-[#FCFAF6] p-16 text-center max-w-2xl mx-auto shadow-xs mt-8 animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex flex-col items-center justify-center border border-dashed border-border rounded-2xl bg-card p-16 text-center max-w-2xl mx-auto shadow-xs mt-8 animate-in fade-in zoom-in-95 duration-200">
           <div className="flex size-14 items-center justify-center rounded-2xl bg-[var(--brand-surface)] dark:bg-slate-800 mb-6">
             <Sparkles className="size-7 text-[var(--brand-primary)] fill-current" />
           </div>
-          <h2 className="text-xl font-black text-[#111827] dark:text-white">No items yet</h2>
+          <h2 className="text-xl font-black text-foreground">No items yet</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-sm leading-relaxed">
-            Create your first content idea or generate content pipelines using AI to start building your workflow.
+            Create your first content idea to start building your workflow.
           </p>
           
           <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
@@ -1251,13 +1036,6 @@ Each object must contain these keys:
             >
               + New Idea
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => setAiGeneratorOpen(true)}
-              className="border-[var(--border)] hover:bg-[var(--brand-surface)] text-emerald-700 font-extrabold text-xs px-6 py-2.5 rounded-xl uppercase tracking-wider bg-white dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-[var(--brand-primary)]"
-            >
-              🪄 Generate With AI
-            </Button>
           </div>
         </div>
       ) : (
@@ -1268,7 +1046,7 @@ Each object must contain these keys:
             return (
               <div
                 key={columnName}
-                className="bg-[#F5F2EB]/65 border border-[#EEF2F7] rounded-2xl flex flex-col min-h-[580px] transition-all p-3 shadow-xs"
+                className="bg-[#F5F2EB]/65 dark:bg-slate-900/40 border border-border rounded-2xl flex flex-col min-h-[580px] transition-all p-3 shadow-xs"
                 onDragOver={(e) => handleDragOver(e, columnName)}
                 onDrop={(e) => handleDrop(e, columnName)}
               >
@@ -1876,105 +1654,7 @@ Each object must contain these keys:
         </div>
       )}
 
-      {/* AI Generate Ideas Modal (for generating 10 ideas) */}
-      {aiGeneratorOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div onClick={() => setAiGeneratorOpen(false)} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" />
-          
-          <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-slate-250 bg-white shadow-2xl p-6 dark:border-slate-800 dark:bg-slate-900 z-10 space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div className="flex items-center gap-1.5">
-                <Sparkles className="size-4 text-[var(--brand-primary)]" />
-                <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider dark:text-white">
-                  Generate Ideas with AI
-                </h3>
-              </div>
-              <button onClick={() => setAiGeneratorOpen(false)} className="text-slate-400 hover:text-slate-655 rounded">
-                <X className="size-4.5" />
-              </button>
-            </div>
 
-            <div className="space-y-3.5">
-              <div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Topic / Keywords</span>
-                <Input
-                  placeholder="e.g. coffee brewing hacks, nextjs features"
-                  value={aiTopic}
-                  onChange={(e) => setAiTopic(e.target.value)}
-                  className="h-9 text-xs font-semibold focus-visible:ring-[var(--brand-primary)]"
-                />
-              </div>
-
-              <div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Target Audience</span>
-                <Input
-                  placeholder="e.g. tech developers, home baristas"
-                  value={aiAudience}
-                  onChange={(e) => setAiAudience(e.target.value)}
-                  className="h-9 text-xs font-semibold focus-visible:ring-[var(--brand-primary)]"
-                />
-              </div>
-
-              <div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Primary Goal</span>
-                <Input
-                  placeholder="e.g. lead generation, brand education"
-                  value={aiGoal}
-                  onChange={(e) => setAiGoal(e.target.value)}
-                  className="h-9 text-xs font-semibold focus-visible:ring-[var(--brand-primary)]"
-                />
-              </div>
-
-              <div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Platform</span>
-                <select
-                  value={aiPlatform}
-                  onChange={(e) => setAiPlatform(e.target.value)}
-                  className="w-full text-xs font-bold text-slate-650 bg-white border border-slate-200 p-2 rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] h-9 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-350"
-                >
-                  <option value="all">All Channels</option>
-                  <option value="facebook">Facebook</option>
-                  <option value="instagram">Instagram</option>
-                  <option value="linkedin">LinkedIn</option>
-                  <option value="twitter">Twitter / X</option>
-                </select>
-              </div>
-
-              <div className="bg-[var(--brand-surface)]/60 dark:bg-slate-850 p-3.5 rounded-xl border border-[var(--border)]/60 dark:border-slate-800 text-[11px] text-[#6B7280] dark:text-slate-455 leading-relaxed font-medium">
-                💡 AI will return <strong>exactly 10 creative post ideas</strong> populated directly into your <strong>Ideas</strong> column as draft templates.
-              </div>
-            </div>
-
-            <div className="pt-3 border-t flex justify-end gap-2.5">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setAiGeneratorOpen(false)}
-                className="text-xs font-bold rounded-lg uppercase tracking-wider h-9"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleGenerateIdeasAI}
-                disabled={aiGenerating}
-                className="bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs px-5 rounded-lg uppercase tracking-wider h-9 flex items-center gap-1.5 disabled:opacity-60"
-              >
-                {aiGenerating ? (
-                  <>
-                    <Loader2 className="size-3.5 animate-spin" />
-                    <span>Generating...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="size-3.5 text-white" />
-                    <span>Generate 10 Ideas</span>
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <UpgradeModal isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={upgradeReason} />
 
