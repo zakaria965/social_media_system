@@ -693,8 +693,8 @@ function CreatePostContent() {
       <div className="grid gap-6 lg:grid-cols-5 items-start">
         {/* Post Form */}
         <div className="lg:col-span-3 space-y-4">
-          <Card className="rounded-xl border-border/60 shadow-sm bg-card/95 backdrop-blur-xl">
-            <CardHeader className="border-b border-border/40 pb-4">
+          <Card className="rounded-[20px] border border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] shadow-[0_2px_8px_rgba(15,23,42,0.04)] bg-card/95 backdrop-blur-xl">
+            <CardHeader className="border-b border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] pb-4">
               <CardTitle className="text-sm font-semibold flex items-center justify-between">
                 <span>Compose Post</span>
                 <Button
@@ -710,7 +710,7 @@ function CreatePostContent() {
             <CardContent className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label className="text-xs font-semibold text-muted-foreground">CAPTION / CONTENT</Label>
-                <div className="relative border border-border/60 rounded-xl bg-muted/20 overflow-hidden focus-within:border-primary/50 transition-colors">
+                <div className="relative border border-[rgba(15,23,42,0.06)] dark:border-[rgba(255,255,255,0.06)] rounded-xl bg-muted/20 overflow-hidden focus-within:border-brand-green/30 focus-within:ring-2 focus-within:ring-brand-green/20 transition-all">
                   <Textarea
                     ref={textareaRef}
                     placeholder="What's on your mind? Introduce your campaign, drop ideas..."
@@ -754,10 +754,10 @@ function CreatePostContent() {
                 <Label className="text-xs font-semibold text-muted-foreground">ATTACH MEDIA FILES</Label>
                 <div
                   className={cn(
-                    "flex flex-col items-center gap-3 rounded-xl border-2 border-dashed px-4 py-8 transition-all cursor-pointer",
+                    "flex flex-col items-center gap-3 rounded-xl border border-dashed px-4 py-8 transition-all cursor-pointer",
                     dragOver
-                      ? "border-primary bg-primary/[0.03] scale-[0.99]"
-                      : "border-border/60 hover:border-primary/50 bg-muted/[0.02]"
+                      ? "border-brand-green bg-brand-green/10 scale-[0.99]"
+                      : "border-[rgba(15,23,42,0.15)] dark:border-[rgba(255,255,255,0.15)] hover:border-brand-green/50 bg-[rgba(48,252,71,0.02)] hover:bg-[rgba(48,252,71,0.05)] dark:bg-brand-green/[0.02] dark:hover:bg-brand-green/[0.05]"
                   )}
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
@@ -849,8 +849,8 @@ function CreatePostContent() {
         {/* Side Panel: Platform Selector & Actions */}
         <div className="lg:col-span-2 space-y-4">
           {/* Platforms Selector */}
-          <Card className="rounded-xl border-border/60 shadow-sm bg-card/95 backdrop-blur-xl">
-            <CardHeader className="pb-3 border-b border-border/40">
+          <Card className="rounded-[20px] border border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] shadow-[0_2px_8px_rgba(15,23,42,0.04)] bg-card/95 backdrop-blur-xl">
+            <CardHeader className="pb-3 border-b border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)]">
               <CardTitle className="text-xs font-semibold text-muted-foreground uppercase">Publishing Channels</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2.5 pt-4">
@@ -879,7 +879,7 @@ function CreatePostContent() {
                           "flex w-full items-center gap-3.5 rounded-xl border p-3 text-left transition-all hover:bg-muted/10 relative",
                           active
                             ? cn("bg-primary/[0.02] shadow-sm", p.border)
-                            : "border-border/60"
+                            : "border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)]"
                         )}
                       >
                         <div className={cn("flex size-8 items-center justify-center rounded-full text-sm font-bold text-white shadow-sm shrink-0", p.color)}>
@@ -904,8 +904,8 @@ function CreatePostContent() {
           </Card>
 
           {/* Social Previews Panel */}
-          <Card className="rounded-xl border-border/60 shadow-sm bg-card/95 backdrop-blur-xl overflow-hidden">
-            <CardHeader className="pb-2 border-b border-border/40 bg-muted/10 flex flex-row items-center justify-between px-4">
+          <Card className="rounded-[20px] border border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] shadow-[0_2px_8px_rgba(15,23,42,0.04)] bg-card/95 backdrop-blur-xl overflow-hidden">
+            <CardHeader className="pb-2 border-b border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] bg-muted/10 flex flex-row items-center justify-between px-4">
               <CardTitle className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
                 <Eye className="size-4 text-primary" /> Live Social Previews
               </CardTitle>
@@ -933,7 +933,7 @@ function CreatePostContent() {
             <div className="p-4 bg-muted/10 border-b border-border/20 min-h-[180px] flex items-center justify-center">
               {/* FACEBOOK PREVIEW */}
               {previewPlatform === "facebook" && (
-                <div className="border border-border/40 rounded-xl bg-card shadow-sm p-4 w-full max-w-sm space-y-3 text-left">
+                <div className="border border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] rounded-[20px] bg-card shadow-sm p-4 w-full max-w-sm space-y-3 text-left">
                   <div className="flex items-center gap-3">
                     <div className="size-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
                       F
@@ -964,7 +964,7 @@ function CreatePostContent() {
 
               {/* TWITTER PREVIEW */}
               {previewPlatform === "twitter" && (
-                <div className="border border-border/40 rounded-xl bg-zinc-950 text-white shadow-sm p-4 w-full max-w-sm space-y-3 text-left">
+                <div className="border border-zinc-800/80 rounded-[20px] bg-zinc-950 text-white shadow-sm p-4 w-full max-w-sm space-y-3 text-left">
                   <div className="flex items-center gap-3">
                     <div className="size-9 rounded-full bg-white text-zinc-950 flex items-center justify-center font-bold text-sm shrink-0">
                       X
@@ -996,7 +996,7 @@ function CreatePostContent() {
 
               {/* LINKEDIN PREVIEW */}
               {previewPlatform === "linkedin" && (
-                <div className="border border-border/40 rounded-xl bg-card shadow-sm p-4 w-full max-w-sm space-y-3 text-left">
+                <div className="border border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] rounded-[20px] bg-card shadow-sm p-4 w-full max-w-sm space-y-3 text-left">
                   <div className="flex items-center gap-3">
                     <div className="size-9 rounded-full bg-blue-700 flex items-center justify-center text-white font-bold text-sm shrink-0">
                       L
@@ -1028,7 +1028,7 @@ function CreatePostContent() {
 
               {/* TIKTOK PREVIEW */}
               {previewPlatform === "tiktok" && (
-                <div className="border border-border/60 rounded-2xl bg-zinc-950 text-white shadow-lg overflow-hidden h-[360px] w-[200px] relative text-left select-none">
+                <div className="border border-zinc-800/80 rounded-[20px] bg-zinc-950 text-white shadow-lg overflow-hidden h-[360px] w-[200px] relative text-left select-none">
                   {mediaFiles.length > 0 && mediaTypes[0] === "video" ? (
                     <video src={mediaFiles[0]} className="absolute inset-0 w-full h-full object-cover brightness-[0.8]" muted loop autoPlay />
                   ) : (
@@ -1047,7 +1047,7 @@ function CreatePostContent() {
 
               {/* INSTAGRAM PREVIEW */}
               {previewPlatform === "instagram" && (
-                <div className="border border-border/40 rounded-xl bg-card shadow-sm w-full max-w-sm overflow-hidden text-left">
+                <div className="border border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] rounded-[20px] bg-card shadow-sm w-full max-w-sm overflow-hidden text-left">
                   <div className="flex items-center gap-3 p-3 border-b border-border/30">
                     <div className="size-8 rounded-full bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
                       I
@@ -1088,8 +1088,8 @@ function CreatePostContent() {
           </Card>
 
           {/* Action triggers */}
-          <Card className="rounded-xl border-border/60 shadow-sm bg-card/95 backdrop-blur-xl">
-            <CardHeader className="pb-2 border-b border-border/40">
+          <Card className="rounded-[20px] border border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] shadow-[0_2px_8px_rgba(15,23,42,0.04)] bg-card/95 backdrop-blur-xl">
+            <CardHeader className="pb-2 border-b border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)]">
               <CardTitle className="text-xs font-semibold text-muted-foreground uppercase">Publishing Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 pt-4">

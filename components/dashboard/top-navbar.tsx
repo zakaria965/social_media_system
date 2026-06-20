@@ -81,7 +81,7 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
     : "U"
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background px-4 md:px-6 transition-colors duration-200">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] bg-background px-4 md:px-6 transition-colors duration-200">
       <div className="flex items-center gap-4 flex-1">
         {/* Mobile menu trigger */}
         <Button variant="ghost" size="icon" className="lg:hidden shrink-0" onClick={onMenuClick}>
@@ -108,7 +108,7 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search posts, accounts..."
-            className="h-9 rounded-full border border-border bg-[#F8FAFC] dark:bg-[#1F2937]/50 pl-9 text-sm placeholder:text-muted-foreground/60 shadow-xs focus-visible:ring-1 focus-visible:ring-[#22C55E]/40"
+            className="h-9 rounded-full border border-[rgba(15,23,42,0.08)] dark:border-[rgba(255,255,255,0.06)] bg-[#F8FAFC] dark:bg-[#1F2937]/50 pl-9 text-sm placeholder:text-muted-foreground/60 shadow-xs focus-visible:border-brand-green/30 focus-visible:ring-2 focus-visible:ring-brand-green/20"
           />
         </div>
       </div>

@@ -38,7 +38,7 @@ export function StatsCard({ title, value, change, trend, icon: Icon, sparkline, 
   }
 
   return (
-    <Card className="group relative overflow-hidden rounded-2xl border-none bg-white dark:bg-[#111827] transition-all duration-200 shadow-card hover:-translate-y-0.5 hover:shadow-card-hover">
+    <Card className="group relative overflow-hidden rounded-2xl border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] bg-white dark:bg-[#111827] transition-all duration-200 shadow-[0_2px_8px_rgba(15,23,42,0.04)] dark:shadow-none hover:-translate-y-0.5 hover:shadow-card-hover">
       <CardContent className="flex flex-col justify-between p-4 h-full min-h-[120px]">
         <div className="flex items-start justify-between">
           <div className="space-y-1">

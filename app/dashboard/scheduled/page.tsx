@@ -425,22 +425,11 @@ export default function ScheduledPostsPage() {
         </Button>
       </div>
 
-      {/* Pro User Active Scheduler Status Card */}
-      <Card className="rounded-2xl border-0 bg-white dark:bg-slate-900 p-5 shadow-sm border border-border/50 hover:shadow-md transition-all mb-6">
-        <CardContent className="p-0 flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
-            Unlimited Scheduling Active
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 select-none">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            GrowWave Pro
-          </span>
-        </CardContent>
-      </Card>
+
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-border/40 pb-2">
-          <TabsList className="bg-muted/65 p-0.5 rounded-xl border border-border/50 flex flex-wrap gap-1 md:flex-nowrap">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] pb-2">
+          <TabsList className="bg-muted/65 p-0.5 rounded-xl border border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] flex flex-wrap gap-1 md:flex-nowrap">
             <TabsTrigger value="all" className="rounded-lg px-3 py-1.5 text-[11px] font-medium">All</TabsTrigger>
             {isOwnerOrAdmin && (
               <TabsTrigger value="review" className="rounded-lg px-3 py-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-500 border border-amber-500/10 bg-amber-500/5 hover:bg-amber-500/10">
@@ -457,23 +446,21 @@ export default function ScheduledPostsPage() {
 
           <div className="flex items-center gap-2">
             {/* Search Input */}
-            <div className="relative w-full sm:w-48 md:w-56">
-              <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2.5 top-2 size-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search posts..."
+                placeholder="Search campaigns..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-8 rounded-lg border-border/60 bg-muted/40 pl-8 text-xs focus:bg-background"
+                className="h-8 rounded-lg border border-[rgba(15,23,42,0.08)] dark:border-[rgba(255,255,255,0.08)] bg-muted/40 pl-8 text-xs focus:bg-background focus-visible:border-brand-green/30 focus-visible:ring-2 focus-visible:ring-brand-green/20"
               />
             </div>
-
-            {/* Platform Filter */}
-            <div className="relative flex items-center shrink-0">
-              <Filter className="pointer-events-none absolute left-2.5 size-3.5 text-muted-foreground" />
+            <div className="relative">
+              <Filter className="absolute left-2.5 top-2 size-3.5 text-muted-foreground" />
               <select
                 value={platformFilter}
                 onChange={(e) => setPlatformFilter(e.target.value)}
-                className="h-8 pl-8 pr-3 rounded-lg border border-border/60 bg-muted/40 text-xs font-medium text-muted-foreground focus:text-foreground focus:bg-background outline-none appearance-none cursor-pointer"
+                className="h-8 pl-8 pr-3 rounded-lg border border-[rgba(15,23,42,0.08)] dark:border-[rgba(255,255,255,0.08)] bg-muted/40 text-xs font-medium text-muted-foreground focus:text-foreground focus:bg-background focus:border-brand-green/30 focus:ring-2 focus:ring-brand-green/20 outline-none appearance-none cursor-pointer"
               >
                 <option value="all">All Platforms</option>
                 <option value="facebook">Facebook</option>
@@ -489,7 +476,7 @@ export default function ScheduledPostsPage() {
           {loading ? (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {[...Array(6)].map((_, i) => (
-                <Card key={i} className="rounded-xl border-border/60 p-5 h-44 animate-pulse bg-muted/10">
+                <Card key={i} className="rounded-[20px] border border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] shadow-[0_2px_8px_rgba(15,23,42,0.04)] dark:shadow-none p-5 h-44 animate-pulse bg-muted/10">
                   <div className="flex justify-between items-center mb-4">
                     <div className="h-4 w-1/3 bg-muted rounded" />
                     <div className="h-4 w-10 bg-muted rounded" />
@@ -500,7 +487,7 @@ export default function ScheduledPostsPage() {
               ))}
             </div>
           ) : filteredPosts.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 py-20 text-center border border-dashed border-border/60 rounded-2xl bg-muted/[0.01]">
+            <div className="flex flex-col items-center gap-3 py-20 text-center border border-dashed border-[rgba(15,23,42,0.15)] dark:border-[rgba(255,255,255,0.15)] rounded-[20px] bg-muted/[0.01]">
               <AlertCircle className="size-8 text-muted-foreground opacity-50" />
               <div>
                 <p className="text-sm font-medium text-foreground">No posts found.</p>
@@ -512,9 +499,9 @@ export default function ScheduledPostsPage() {
               {filteredPosts.map((post) => {
                 const TypeIcon = typeIcons[post.type] ?? FileText
                 return (
-                  <Card key={post._id} className="group rounded-xl border-border/60 hover:shadow-md transition-all hover:border-border overflow-hidden bg-card/95 flex flex-col justify-between">
+                  <Card key={post._id} className="group rounded-[20px] border border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] shadow-[0_2px_8px_rgba(15,23,42,0.04)] dark:shadow-none hover:shadow-md transition-all overflow-hidden bg-card/95 flex flex-col justify-between">
                     <div>
-                      <CardHeader className="flex flex-row items-center justify-between gap-2 p-4 pb-3 border-b border-border/30">
+                      <CardHeader className="flex flex-row items-center justify-between gap-2 p-4 pb-3 border-b border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)]">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {post.platforms.map((plat) => (
                             <Badge key={plat} className={cn("text-[9px] font-semibold text-white tracking-wide shadow-sm py-0.5 px-1.5", platformColors[plat] || "bg-muted-foreground")}>
@@ -528,7 +515,7 @@ export default function ScheduledPostsPage() {
                               <MoreHorizontal className="size-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="border-border/60 rounded-xl">
+                          <DropdownMenuContent align="end" className="border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] rounded-[12px]">
                             <DropdownMenuItem onClick={() => router.push(`/dashboard/create?edit=${post._id}`)}>
                               <Edit3 className="size-3.5 mr-1.5 text-muted-foreground" /> Edit Post
                             </DropdownMenuItem>
@@ -565,7 +552,7 @@ export default function ScheduledPostsPage() {
                                 key={idx}
                                 src={url}
                                 alt={`Media ${idx}`}
-                                className="h-10 w-10 object-cover rounded-lg border border-border/40 shrink-0"
+                                className="h-10 w-10 object-cover rounded-lg border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] shrink-0"
                               />
                             ))}
                           </div>
@@ -576,7 +563,7 @@ export default function ScheduledPostsPage() {
                     <div className="p-4 pt-0">
                       {/* Countdown Timer */}
                       {post.status === "scheduled" && (
-                        <div className="mb-2 bg-blue-500/5 text-blue-600 text-[10px] py-1 px-2.5 rounded-lg border border-blue-500/10 font-medium flex items-center gap-1">
+                        <div className="mb-2 bg-blue-500/5 text-blue-600 text-[10px] py-1 px-2.5 rounded-lg border border-blue-500/5 font-medium flex items-center gap-1">
                           <Clock className="size-3 animate-pulse" />
                           {getCountdown(post.scheduledAt)}
                         </div>
@@ -584,7 +571,7 @@ export default function ScheduledPostsPage() {
 
                       {/* Publishing Progress Indicator */}
                       {post.status === "publishing" && (
-                        <div className="mb-2 bg-amber-500/5 text-amber-600 text-[10px] py-1 px-2.5 rounded-lg border border-amber-500/10 font-medium flex items-center gap-1.5 animate-pulse">
+                        <div className="mb-2 bg-amber-500/5 text-amber-600 text-[10px] py-1 px-2.5 rounded-lg border border-amber-500/5 font-medium flex items-center gap-1.5 animate-pulse">
                           <Loader2 className="size-3 animate-spin" />
                           Publishing to active platforms...
                         </div>
@@ -592,13 +579,13 @@ export default function ScheduledPostsPage() {
 
                       {/* Retry Tracker for Failed attempts */}
                       {post.retryCount > 0 && post.status !== "published" && (
-                        <div className="mb-2 bg-destructive/[0.03] text-destructive text-[10px] py-1 px-2.5 rounded-lg border border-destructive/10 font-medium flex items-center justify-between">
+                        <div className="mb-2 bg-destructive/[0.03] text-destructive text-[10px] py-1 px-2.5 rounded-lg border border-destructive/5 font-medium flex items-center justify-between">
                           <span className="flex items-center gap-1"><RefreshCw className="size-3 animate-spin" /> Attempt {post.retryCount}/3 failed</span>
                           {post.lastAttempt && <span className="text-[9px] text-muted-foreground opacity-80">Last: {new Date(post.lastAttempt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between border-t border-border/30 pt-3">
+                      <div className="flex items-center justify-between border-t border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] pt-3">
                         <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                           <TypeIcon className="size-3.5" />
                           <span className="capitalize font-medium">{post.type}</span>
@@ -632,20 +619,20 @@ export default function ScheduledPostsPage() {
                       </div>
                       
                       {post.status === "failed" && post.errorMessage && (
-                        <p className="text-[10px] text-destructive bg-rose-500/[0.03] border border-destructive/10 rounded-lg p-2.5 mt-2 break-words leading-relaxed">
+                        <p className="text-[10px] text-destructive bg-rose-500/[0.03] border border-destructive/5 rounded-lg p-2.5 mt-2 break-words leading-relaxed">
                           {post.errorMessage}
                         </p>
                       )}
 
                       {/* Quick Actions Footer Buttons for Scheduled/Failed/Cancelled posts */}
                       {(post.status === "scheduled" || post.status === "failed" || post.status === "cancelled") && (
-                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/25">
+                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)]">
                           {post.status === "scheduled" && (
                             <>
                               <Button
                                 variant="outline"
                                 size="xs"
-                                className="flex-1 rounded-lg text-[10px] gap-1 border-border/60"
+                                className="flex-1 rounded-lg text-[10px] gap-1 border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)]"
                                 onClick={() => handleCancelSchedule(post._id)}
                                 disabled={performingAction === post._id}
                               >
@@ -707,12 +694,12 @@ export default function ScheduledPostsPage() {
                       )}
 
                       {/* Collaboration Comments & Review controls */}
-                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/25">
+                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)]">
                         {/* Private Comment Bubble Button */}
                         <Button
                           variant="outline"
                           size="xs"
-                          className="rounded-lg text-[10px] gap-1.5 border-border/60 text-muted-foreground hover:text-foreground cursor-pointer animate-in fade-in duration-200"
+                          className="rounded-lg text-[10px] gap-1.5 border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] text-muted-foreground hover:text-foreground cursor-pointer animate-in fade-in duration-200"
                           onClick={() => {
                             setCommentingPost(post)
                             fetchComments(post._id)
@@ -762,8 +749,8 @@ export default function ScheduledPostsPage() {
 
       {/* Rescheduling Dialog Modal */}
       <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
-        <DialogContent className="max-w-md rounded-2xl p-5 border-border/60 shadow-xl bg-card">
-          <DialogHeader className="border-b border-border/40 pb-3">
+        <DialogContent className="max-w-md rounded-2xl p-5 border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] shadow-xl bg-card">
+          <DialogHeader className="border-b border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] pb-3">
             <DialogTitle className="flex items-center gap-1.5 text-sm font-bold"><Clock className="size-4.5" /> Reschedule Post</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground mt-0.5">
               Select a new date and time to automatically queue this post for publishing.
@@ -777,7 +764,7 @@ export default function ScheduledPostsPage() {
                 value={rescheduleDate}
                 onChange={(e) => setRescheduleDate(e.target.value)}
                 min={new Date().toISOString().split("T")[0]}
-                className="w-full rounded-xl border border-border/60 bg-muted/20 px-3.5 py-2.5 text-xs text-foreground outline-none"
+                className="w-full rounded-xl border border-[rgba(15,23,42,0.08)] dark:border-[rgba(255,255,255,0.08)] bg-muted/20 px-3.5 py-2.5 text-xs text-foreground outline-none focus:border-brand-green/30 focus:ring-2 focus:ring-brand-green/20"
               />
             </div>
             <div className="space-y-1.5">
@@ -786,11 +773,11 @@ export default function ScheduledPostsPage() {
                 type="time"
                 value={rescheduleTime}
                 onChange={(e) => setRescheduleTime(e.target.value)}
-                className="w-full rounded-xl border border-border/60 bg-muted/20 px-3.5 py-2.5 text-xs text-foreground outline-none"
+                className="w-full rounded-xl border border-[rgba(15,23,42,0.08)] dark:border-[rgba(255,255,255,0.08)] bg-muted/20 px-3.5 py-2.5 text-xs text-foreground outline-none focus:border-brand-green/30 focus:ring-2 focus:ring-brand-green/20"
               />
             </div>
           </div>
-          <DialogFooter className="border-t border-border/40 pt-4 flex gap-2">
+          <DialogFooter className="border-t border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] pt-4 flex gap-2">
             <Button variant="outline" size="sm" className="rounded-lg text-xs" onClick={() => setRescheduleOpen(false)}>
               Cancel
             </Button>
@@ -803,8 +790,8 @@ export default function ScheduledPostsPage() {
 
       {/* Rejection Notes Dialog */}
       <Dialog open={!!rejectingPost} onOpenChange={(open) => !open && setRejectingPost(null)}>
-        <DialogContent className="max-w-sm rounded-2xl p-5 border-border/60 shadow-xl bg-card">
-          <DialogHeader className="border-b border-border/40 pb-3">
+        <DialogContent className="max-w-sm rounded-2xl p-5 border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] shadow-xl bg-card">
+          <DialogHeader className="border-b border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] pb-3">
             <DialogTitle className="flex items-center gap-1.5 text-sm font-bold text-rose-600"><XCircle className="size-4.5" /> Reject Draft Post</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground mt-0.5">
               Provide feedback notes to the editor explaining why this draft was rejected.
@@ -817,11 +804,11 @@ export default function ScheduledPostsPage() {
                 value={rejectionNotes}
                 onChange={(e) => setRejectionNotes(e.target.value)}
                 placeholder="E.g. Please alter the caption to highlight our campaign deadline next Tuesday..."
-                className="w-full rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-xs text-foreground outline-none min-h-20 resize-y"
+                className="w-full rounded-xl border border-[rgba(15,23,42,0.08)] dark:border-[rgba(255,255,255,0.08)] bg-muted/20 px-3 py-2 text-xs text-foreground outline-none min-h-20 resize-y focus:border-brand-green/30 focus:ring-2 focus:ring-brand-green/20"
               />
             </div>
           </div>
-          <DialogFooter className="border-t border-border/40 pt-4 flex gap-2">
+          <DialogFooter className="border-t border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] pt-4 flex gap-2">
             <Button variant="outline" size="sm" className="rounded-lg text-xs" onClick={() => setRejectingPost(null)}>
               Cancel
             </Button>
@@ -834,8 +821,8 @@ export default function ScheduledPostsPage() {
 
       {/* Private Internal Comments Dialog */}
       <Dialog open={!!commentingPost} onOpenChange={(open) => !open && setCommentingPost(null)}>
-        <DialogContent className="max-w-md rounded-2xl p-5 border-border/60 shadow-xl bg-card flex flex-col max-h-[85vh]">
-          <DialogHeader className="border-b border-border/40 pb-3">
+        <DialogContent className="max-w-md rounded-2xl p-5 border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] shadow-xl bg-card flex flex-col max-h-[85vh]">
+          <DialogHeader className="border-b border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] pb-3">
             <DialogTitle className="flex items-center gap-1.5 text-sm font-bold text-foreground">
               <History className="size-4.5 text-brand-green" /> Private Collaboration Comments
             </DialogTitle>
@@ -856,7 +843,7 @@ export default function ScheduledPostsPage() {
               </div>
             ) : (
               comments.map((c) => (
-                <div key={c._id} className="flex items-start gap-2.5 p-2 rounded-xl bg-muted/20 border border-border/40 transition-colors">
+                <div key={c._id} className="flex items-start gap-2.5 p-2 rounded-xl bg-muted/20 border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] transition-colors">
                   <div className="flex size-7 items-center justify-center rounded-full bg-brand-green/15 text-brand-green-dark dark:text-brand-green font-bold text-[9px] uppercase shrink-0">
                     {c.authorName ? c.authorName.slice(0, 2) : "US"}
                   </div>
@@ -875,12 +862,12 @@ export default function ScheduledPostsPage() {
           </div>
 
           {/* New Comment Textarea */}
-          <div className="space-y-2 border-t border-border/40 pt-3">
+          <div className="space-y-2 border-t border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] pt-3">
             <textarea
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Type your private comment here (e.g. Replace this image, looks good to publish...)"
-              className="w-full rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 text-xs text-foreground outline-none min-h-16 resize-none focus:border-primary/50 transition-colors"
+              className="w-full rounded-xl border border-[rgba(15,23,42,0.08)] dark:border-[rgba(255,255,255,0.08)] bg-muted/20 px-3 py-2.5 text-xs text-foreground outline-none min-h-16 resize-none focus:border-brand-green/30 focus:ring-2 focus:ring-brand-green/20 transition-colors"
             />
             <div className="flex justify-end gap-2">
               <Button

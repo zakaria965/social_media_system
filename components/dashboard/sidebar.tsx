@@ -163,7 +163,10 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
         )}
 
         <aside
-          style={{ backgroundColor: 'var(--bg-main)', borderRight: '1px solid var(--border)' }}
+          style={{
+            backgroundColor: 'var(--bg-main)',
+            borderRight: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(15, 23, 42, 0.05)'
+          }}
           className={cn(
             "fixed top-0 left-0 z-50 flex h-full flex-col transition-all duration-300 lg:translate-x-0 ease-in-out select-none",
             isCollapsed ? "lg:w-20 w-[260px]" : "w-[260px]",
@@ -171,7 +174,7 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
           )}
         >
           {/* Top Section — Workspace switcher */}
-          <div className="flex h-16 items-center justify-between border-b border-border-light/60 dark:border-zinc-800/40 px-4">
+          <div className="flex h-16 items-center justify-between border-b border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] px-4">
             <div className="flex items-center gap-2.5 overflow-hidden">
               <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-brand-green text-[#0F172A] font-black text-xs shadow-sm">
                 G
@@ -184,11 +187,11 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
                       <span className="text-[9px] text-text-secondary shrink-0">▼</span>
                     </span>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56 rounded-xl border border-border-light shadow-lg bg-card p-1">
+                  <DropdownMenuContent align="start" className="w-56 rounded-xl border border-border/60 dark:border-border/40 shadow-lg bg-card p-1">
                     <div className="px-2.5 py-1.5 text-[9px] uppercase tracking-wider text-text-secondary font-black">
                       Switch Workspace
                     </div>
-                    <DropdownMenuSeparator className="bg-border-light/60 my-1" />
+                    <DropdownMenuSeparator className="bg-border/60 dark:bg-zinc-800/40 my-1" />
                     {workspaces.map((w) => (
                       <DropdownMenuItem
                         key={w._id}
@@ -202,7 +205,7 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
                         {activeWorkspace?._id === w._id && <span className="text-[10px]">✓</span>}
                       </DropdownMenuItem>
                     ))}
-                    <DropdownMenuSeparator className="bg-border-light/60 my-1" />
+                    <DropdownMenuSeparator className="bg-border/60 dark:bg-zinc-800/40 my-1" />
                     <DropdownMenuItem
                       onClick={() => setIsCreateWorkspaceOpen(true)}
                       className="flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-lg cursor-pointer text-brand-green-dark dark:text-brand-green font-bold hover:bg-brand-green/10"
@@ -217,7 +220,7 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
 
             {/* Create Workspace Dialog (Triggered from dropdown) */}
             <Dialog open={isCreateWorkspaceOpen} onOpenChange={setIsCreateWorkspaceOpen}>
-              <DialogContent className="max-w-sm rounded-2xl bg-card border border-border-light shadow-xl backdrop-blur-xl">
+              <DialogContent className="max-w-sm rounded-2xl bg-card border border-border/60 dark:border-border/40 shadow-xl backdrop-blur-xl">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2 text-foreground">
                     <Icons.Building className="size-4 text-brand-green-dark dark:text-brand-green" />
@@ -433,13 +436,13 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
           </ScrollArea>
 
           {/* User Section (Minimalist bottom fixed area) */}
-          <div className="mt-auto border-t border-border-light dark:border-zinc-800/40 pt-2 pb-3">
+          <div className="mt-auto border-t border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] pt-2 pb-3">
             <div className="px-3">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   {isCollapsed ? (
-                    <button className="mx-auto flex size-10 items-center justify-center rounded-xl hover:bg-muted/50 text-text-secondary transition-all outline-none border border-transparent hover:border-border-light/40 select-none">
-                      <Avatar className="size-8 ring-1 ring-border-light">
+                    <button className="mx-auto flex size-10 items-center justify-center rounded-xl hover:bg-muted/50 text-text-secondary transition-all outline-none border border-transparent hover:border-border/30 select-none">
+                      <Avatar className="size-8 ring-1 ring-border/50">
                         {userImage ? <AvatarImage src={userImage} alt={userName} /> : null}
                         <AvatarFallback className="bg-brand-green/10 text-brand-green-dark text-xs font-black select-none">
                           {initials}
@@ -447,8 +450,8 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
                       </Avatar>
                     </button>
                   ) : (
-                    <button className="flex w-full items-center gap-3 rounded-xl p-2 hover:bg-muted/50 border border-transparent hover:border-border-light/40 transition-all duration-300 text-left outline-none select-none">
-                      <Avatar className="size-9 ring-1 ring-border-light">
+                    <button className="flex w-full items-center gap-3 rounded-xl p-2 hover:bg-muted/50 border border-transparent hover:border-border/30 transition-all duration-300 text-left outline-none select-none">
+                      <Avatar className="size-9 ring-1 ring-border/50">
                         {userImage ? <AvatarImage src={userImage} alt={userName} /> : null}
                         <AvatarFallback className="bg-brand-green/10 text-brand-green-dark text-xs font-black select-none">
                           {initials}
@@ -470,7 +473,7 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
                 <DropdownMenuContent
                   align={isCollapsed ? "start" : "end"}
                   side="top"
-                  className="w-54 rounded-xl border border-border-light dark:border-zinc-800/40 p-1.5 shadow-lg backdrop-blur-xl bg-card"
+                  className="w-54 rounded-xl border border-border/60 dark:border-border/40 p-1.5 shadow-lg backdrop-blur-xl bg-card"
                 >
                   <DropdownMenuLabel className="px-2.5 py-2 text-[10px] font-extrabold text-text-secondary uppercase tracking-widest leading-none">
                     Account & Workspace

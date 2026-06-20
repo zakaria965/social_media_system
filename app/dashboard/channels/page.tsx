@@ -383,7 +383,7 @@ function ChannelsContent() {
             Manage and connect your social media accounts before publishing content.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleVerifySyncAll} disabled={refreshing || loading} className="rounded-xl border-border/60 hover:bg-muted self-start sm:self-auto">
+        <Button variant="outline" size="sm" onClick={handleVerifySyncAll} disabled={refreshing || loading} className="rounded-xl border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] hover:bg-muted self-start sm:self-auto">
           <RefreshCw className={cn("size-3.5 mr-2", refreshing && "animate-spin")} />
           Sync & Audit Health
         </Button>
@@ -398,7 +398,7 @@ function ChannelsContent() {
         <div className="space-y-8">
           {/* Channels System Stats Row */}
           <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-            <Card className="rounded-xl border-border/60 shadow-sm bg-card/60 backdrop-blur-xl">
+            <Card className="rounded-xl border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] shadow-sm bg-card/60 backdrop-blur-xl">
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase">Total Accounts</p>
@@ -410,7 +410,7 @@ function ChannelsContent() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-xl border-border/60 shadow-sm bg-card/60 backdrop-blur-xl">
+            <Card className="rounded-xl border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] shadow-sm bg-card/60 backdrop-blur-xl">
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase">Platforms Active</p>
@@ -422,7 +422,7 @@ function ChannelsContent() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-xl border-border/60 shadow-sm bg-card/60 backdrop-blur-xl">
+            <Card className="rounded-xl border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] shadow-sm bg-card/60 backdrop-blur-xl">
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase">Connection Health</p>
@@ -436,7 +436,7 @@ function ChannelsContent() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-xl border-border/60 shadow-sm bg-card/60 backdrop-blur-xl">
+            <Card className="rounded-xl border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] shadow-sm bg-card/60 backdrop-blur-xl">
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase">Last Synced</p>
@@ -451,7 +451,7 @@ function ChannelsContent() {
 
           {/* Empty state when no channels connected */}
           {accounts.length === 0 && (
-            <div className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed border-border/60 rounded-2xl bg-card/30 backdrop-blur-xl space-y-6">
+            <div className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] rounded-2xl bg-card/30 backdrop-blur-xl space-y-6">
               <div className="p-4 bg-primary/5 rounded-full ring-4 ring-primary/2">
                 <Link2 className="size-10 text-primary animate-pulse" />
               </div>
@@ -467,7 +467,7 @@ function ChannelsContent() {
                   <Button
                     key={id}
                     onClick={() => handleConnectClick(id)}
-                    className="flex flex-col items-center gap-3 py-6 px-4 h-auto rounded-xl bg-card border border-border/60 hover:border-primary/40 hover:bg-muted/10 text-foreground transition-all duration-300 group hover:shadow-md shadow-sm"
+                    className="flex flex-col items-center gap-3 py-6 px-4 h-auto rounded-xl bg-card border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] hover:border-primary/40 hover:bg-muted/10 text-foreground transition-all duration-300 group hover:shadow-md shadow-sm"
                   >
                     <div className={cn("size-10 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm group-hover:scale-105 transition-transform", config.color)}>
                       <config.icon className="size-5" />
@@ -500,7 +500,7 @@ function ChannelsContent() {
                               <span className="text-[10px] text-muted-foreground font-semibold">OFFLINE</span>
                             </div>
                           </div>
-                          <Badge variant="outline" className="border-border/60 text-muted-foreground bg-muted/20">Offline</Badge>
+                          <Badge variant="outline" className="border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] text-muted-foreground bg-muted/20">Offline</Badge>
                         </CardHeader>
                         <CardContent className="pb-4 pt-1 space-y-4 flex-1 flex flex-col justify-between">
                           <p className="text-xs text-muted-foreground leading-relaxed">
@@ -528,7 +528,7 @@ function ChannelsContent() {
                   const lastSyncStr = connected.updatedAt ? new Date(connected.updatedAt).toLocaleDateString() + " " + new Date(connected.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Never"
                   
                   return (
-                    <Card key={id} className="rounded-2xl border-border/60 hover:border-primary/30 transition-all duration-300 overflow-hidden bg-card hover:shadow-lg flex flex-col justify-between group relative ring-1 ring-primary/5 bg-primary/[0.005]">
+                    <Card key={id} className="rounded-2xl border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] hover:border-primary/30 transition-all duration-300 overflow-hidden bg-card hover:shadow-lg flex flex-col justify-between group relative ring-1 ring-primary/5 bg-primary/[0.005]">
                       <CardHeader className="pb-3 border-b border-border/30 flex flex-row items-center justify-between space-y-0 bg-muted/10">
                         <div className="flex items-center gap-3">
                           <div className={cn("size-9 rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm group-hover:scale-105 transition-transform relative", config.color)}>
@@ -548,7 +548,7 @@ function ChannelsContent() {
                         <div className="flex items-center gap-3 pb-3 border-b border-border/30">
                           {connected.avatar ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={connected.avatar} alt={connected.username} className="size-10 rounded-full border border-border/60 object-cover shadow-sm" />
+                            <img src={connected.avatar} alt={connected.username} className="size-10 rounded-full border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] object-cover shadow-sm" />
                           ) : (
                             <div className="size-10 rounded-full bg-primary/10 text-primary font-bold text-sm flex items-center justify-center">
                               {connected.username[0]?.toUpperCase() || config.label[0]}
@@ -583,7 +583,7 @@ function ChannelsContent() {
                         </div>
 
                         <div className="flex gap-2 pt-2 border-t border-border/30">
-                          <Button onClick={() => handleConnectClick(id)} variant="outline" size="sm" className="flex-1 rounded-xl text-xs h-8 border-border/60 bg-card hover:bg-muted/10">
+                          <Button onClick={() => handleConnectClick(id)} variant="outline" size="sm" className="flex-1 rounded-xl text-xs h-8 border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] bg-card hover:bg-muted/10">
                             Reconnect
                           </Button>
                           <Button onClick={() => handleDisconnect(connected._id, config.label)} variant="ghost" size="sm" className="rounded-xl text-xs h-8 text-rose-500 hover:text-rose-600 hover:bg-rose-50/10">
@@ -601,7 +601,7 @@ function ChannelsContent() {
           {/* Health Diagnostics Dashboard & Activity Logs */}
           <div className="grid gap-6 lg:grid-cols-5 items-start">
             {/* Health Diagnostics Tab */}
-            <Card className="rounded-2xl border-border/60 shadow-sm bg-card/60 backdrop-blur-xl lg:col-span-3">
+            <Card className="rounded-2xl border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] shadow-sm bg-card/60 backdrop-blur-xl lg:col-span-3">
               <CardHeader className="pb-3 border-b border-border/40">
                 <CardTitle className="text-sm font-bold flex items-center gap-2">
                   <Activity className="size-4.5 text-primary animate-pulse" /> Diagnostics Monitoring Center
@@ -636,7 +636,7 @@ function ChannelsContent() {
                               </Badge>
                             )
                           ) : (
-                            <Badge variant="outline" className="bg-muted text-muted-foreground border-border/60 rounded-lg text-[10px] py-0.5">
+                            <Badge variant="outline" className="bg-muted text-muted-foreground border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] rounded-lg text-[10px] py-0.5">
                               Endpoint Offline
                             </Badge>
                           )}
@@ -659,7 +659,7 @@ function ChannelsContent() {
             </Card>
 
             {/* Connection / Action logs */}
-            <Card className="rounded-2xl border-border/60 shadow-sm bg-card/60 backdrop-blur-xl lg:col-span-2">
+            <Card className="rounded-2xl border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] shadow-sm bg-card/60 backdrop-blur-xl lg:col-span-2">
               <CardHeader className="pb-3 border-b border-border/40">
                 <CardTitle className="text-sm font-bold flex items-center gap-2">
                   <History className="size-4.5 text-primary" /> Activity History
@@ -698,7 +698,7 @@ function ChannelsContent() {
 
       {/* Facebook Page Selector Modal */}
       <Dialog open={fbPagesModalOpen} onOpenChange={setFbPagesModalOpen}>
-        <DialogContent className="max-w-md rounded-2xl p-5 border-border/60 shadow-xl bg-card">
+        <DialogContent className="max-w-md rounded-2xl p-5 border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] shadow-xl bg-card">
           <DialogHeader className="border-b border-border/40 pb-3">
             <DialogTitle className="flex items-center gap-2 text-md font-bold">
               <IconFacebook className="size-5 text-[#1877F2]" /> Select Facebook Page
@@ -732,7 +732,7 @@ function ChannelsContent() {
                       "flex w-full items-center gap-3.5 rounded-xl border p-3 text-left transition-all hover:bg-muted/10 relative",
                       selectedFbPageId === page.id
                         ? "bg-[#1877F2]/5 border-[#1877F2]/40 shadow-sm"
-                        : "border-border/60"
+                        : "border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)]"
                     )}
                   >
                     {page.picture ? (
@@ -775,7 +775,7 @@ function ChannelsContent() {
 
       {/* Sandbox Connection Configuration Modal */}
       <Dialog open={sandboxModalOpen} onOpenChange={setSandboxModalOpen}>
-        <DialogContent className="max-w-md rounded-2xl p-5 border-border/60 shadow-xl bg-card">
+        <DialogContent className="max-w-md rounded-2xl p-5 border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] shadow-xl bg-card">
           <DialogHeader className="border-b border-border/40 pb-3">
             <DialogTitle className="flex items-center gap-2 text-md font-bold">
               <Link2 className="size-5 text-primary" /> Setup Sandbox Connection
@@ -793,7 +793,7 @@ function ChannelsContent() {
                 value={sandboxUsername}
                 onChange={(e) => setSandboxUsername(e.target.value)}
                 placeholder="E.g. brand_social"
-                className="w-full rounded-xl border border-border/60 bg-muted/20 px-3.5 py-2.5 text-xs text-foreground outline-none focus-within:border-primary/50 transition-all font-semibold"
+                className="w-full rounded-xl border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] bg-muted/20 px-3.5 py-2.5 text-xs text-foreground outline-none focus-within:border-primary/50 transition-all font-semibold"
               />
             </div>
 
@@ -804,7 +804,7 @@ function ChannelsContent() {
                   type="number"
                   value={sandboxFollowers}
                   onChange={(e) => setSandboxFollowers(parseInt(e.target.value) || 0)}
-                  className="w-full rounded-xl border border-border/60 bg-muted/20 px-3.5 py-2.5 text-xs text-foreground outline-none focus-within:border-primary/50 transition-all"
+                  className="w-full rounded-xl border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] bg-muted/20 px-3.5 py-2.5 text-xs text-foreground outline-none focus-within:border-primary/50 transition-all"
                 />
               </div>
 
@@ -813,7 +813,7 @@ function ChannelsContent() {
                 <select
                   value={sandboxRole}
                   onChange={(e) => setSandboxRole(e.target.value)}
-                  className="w-full rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5 text-xs text-foreground outline-none focus-within:border-primary/50 transition-all h-9.5 cursor-pointer font-medium"
+                  className="w-full rounded-xl border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] bg-muted/20 px-3 py-2.5 text-xs text-foreground outline-none focus-within:border-primary/50 transition-all h-9.5 cursor-pointer font-medium"
                 >
                   {sandboxPlatform === "linkedin" ? (
                     <>
@@ -842,7 +842,7 @@ function ChannelsContent() {
                 value={sandboxPlatformAccountId}
                 onChange={(e) => setSandboxPlatformAccountId(e.target.value)}
                 placeholder="Simulated platform database unique ID"
-                className="w-full rounded-xl border border-border/60 bg-muted/20 px-3.5 py-2.5 text-xs text-foreground font-mono outline-none focus-within:border-primary/50 transition-all"
+                className="w-full rounded-xl border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] bg-muted/20 px-3.5 py-2.5 text-xs text-foreground font-mono outline-none focus-within:border-primary/50 transition-all"
               />
             </div>
           </div>

@@ -401,7 +401,7 @@ export default function TeamPage() {
                     Invite Member
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-md bg-card border border-border-light shadow-xl rounded-2xl">
+                <DialogContent className="max-w-md bg-card border border-border/60 dark:border-border/40 shadow-xl rounded-2xl">
                   <form onSubmit={handleSendInvite}>
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2">
@@ -582,7 +582,7 @@ export default function TeamPage() {
                 {/* Stats Summary cards */}
                 {analytics && (
                   <div className="grid gap-4 md:grid-cols-4 sm:grid-cols-2">
-                    <Card className="border-border/60 rounded-xl bg-card/40 backdrop-blur-md">
+                    <Card className="border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] shadow-sm rounded-xl bg-card/40 backdrop-blur-md">
                       <CardContent className="p-4 space-y-1">
                         <p className="text-[10px] uppercase font-bold tracking-wider text-text-secondary">
                           Total Active Members
@@ -591,7 +591,7 @@ export default function TeamPage() {
                         <p className="text-[10px] text-muted-foreground">Collaborators in workspace</p>
                       </CardContent>
                     </Card>
-                    <Card className="border-border/60 rounded-xl bg-card/40 backdrop-blur-md">
+                    <Card className="border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] shadow-sm rounded-xl bg-card/40 backdrop-blur-md">
                       <CardContent className="p-4 space-y-1">
                         <p className="text-[10px] uppercase font-bold tracking-wider text-text-secondary">
                           Pending Invitations
@@ -600,7 +600,7 @@ export default function TeamPage() {
                         <p className="text-[10px] text-muted-foreground">Sent and waiting responses</p>
                       </CardContent>
                     </Card>
-                    <Card className="border-border/60 rounded-xl bg-card/40 backdrop-blur-md">
+                    <Card className="border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] shadow-sm rounded-xl bg-card/40 backdrop-blur-md">
                       <CardContent className="p-4 space-y-1">
                         <p className="text-[10px] uppercase font-bold tracking-wider text-text-secondary">
                           Connected Channels
@@ -609,7 +609,7 @@ export default function TeamPage() {
                         <p className="text-[10px] text-muted-foreground">Social campaign channels</p>
                       </CardContent>
                     </Card>
-                    <Card className="border-border/60 rounded-xl bg-card/40 backdrop-blur-md">
+                    <Card className="border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] shadow-sm rounded-xl bg-card/40 backdrop-blur-md">
                       <CardContent className="p-4 space-y-1">
                         <p className="text-[10px] uppercase font-bold tracking-wider text-text-secondary">
                           Shared Media Assets
@@ -650,14 +650,14 @@ export default function TeamPage() {
                   </Card>
                 ) : (
                   /* Members Table Grid */
-                  <Card className="border-border/60 rounded-xl bg-card/40 backdrop-blur-md overflow-hidden">
+                  <Card className="border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] shadow-sm rounded-xl bg-card/40 backdrop-blur-md overflow-hidden">
                     <div className="px-4 py-3 bg-muted/15 border-b border-border/40 flex justify-between items-center">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
                         <Users className="size-3.5 text-brand-green-dark" />
                         Members List ({activeMembersList.length})
                       </h3>
                     </div>
-                    <div className="divide-y divide-border/60">
+                    <div className="divide-y divide-[rgba(15,23,42,0.04)] dark:divide-[rgba(255,255,255,0.06)]">
                       {activeMembersList.map((member) => {
                         let role = member.role
                         if (role === "owner") role = "Workspace Owner";
@@ -678,7 +678,7 @@ export default function TeamPage() {
                           <div key={member._id} className="flex flex-col gap-3.5 p-4 sm:flex-row sm:items-center sm:justify-between transition-colors hover:bg-muted/10">
                             {/* Member Identity */}
                             <div className="flex items-center gap-3">
-                              <Avatar className="size-10 border border-border-light shadow-sm">
+                              <Avatar className="size-10 border border-border/60 shadow-sm">
                                 {member.avatar && <AvatarImage src={member.avatar} />}
                                 <AvatarFallback className="bg-brand-green/10 text-brand-green-dark dark:text-brand-green font-bold text-xs">
                                   {initials}
@@ -740,11 +740,11 @@ export default function TeamPage() {
                                       <MoreHorizontal className="size-3.5" />
                                     </Button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-48 bg-card border border-border-light shadow-md rounded-xl p-1">
+                                  <DropdownMenuContent align="end" className="w-48 bg-card border border-border/60 dark:border-border/40 shadow-md rounded-xl p-1">
                                     <DropdownMenuLabel className="text-[9px] uppercase tracking-wider text-text-secondary px-2">
                                       Collaborator Actions
                                     </DropdownMenuLabel>
-                                    <DropdownMenuSeparator className="bg-border-light/60 my-1" />
+                                    <DropdownMenuSeparator className="bg-border/60 dark:bg-zinc-800/40 my-1" />
                                     <DropdownMenuItem
                                       onClick={() => {
                                         setEditingMember(member)
@@ -763,7 +763,7 @@ export default function TeamPage() {
                                       <Clock className="size-3.5" />
                                       <span>{isSuspended ? "Unsuspend Member" : "Suspend Member"}</span>
                                     </DropdownMenuItem>
-                                    <DropdownMenuSeparator className="bg-border-light/60 my-1" />
+                                    <DropdownMenuSeparator className="bg-border/60 dark:bg-zinc-800/40 my-1" />
                                     <DropdownMenuItem
                                       onClick={() => handleRemoveMember(member._id)}
                                       className="flex items-center gap-2 text-xs rounded-lg cursor-pointer text-rose-500 hover:bg-rose-500/10 font-bold"
@@ -784,14 +784,14 @@ export default function TeamPage() {
 
                 {/* Pending Invitations Section */}
                 {pendingInvitesList.length > 0 && (
-                  <Card className="border-border/60 rounded-xl bg-card/40 backdrop-blur-md overflow-hidden mt-6">
+                  <Card className="border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] shadow-sm rounded-xl bg-card/40 backdrop-blur-md overflow-hidden mt-6">
                     <div className="px-4 py-3 bg-muted/15 border-b border-border/40 flex justify-between items-center">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
                         <Clock className="size-3.5 text-brand-green-dark" />
                         Pending Invitations ({pendingInvitesList.length})
                       </h3>
                     </div>
-                    <div className="divide-y divide-border/60">
+                    <div className="divide-y divide-[rgba(15,23,42,0.04)] dark:divide-[rgba(255,255,255,0.06)]">
                       {pendingInvitesList.map((invite) => {
                         const role = invite.role
                         const roleObj = roleConfig[role] || { label: role, icon: ShieldCheck, color: "text-zinc-500", variant: "outline" }
@@ -882,7 +882,7 @@ export default function TeamPage() {
 
                 {/* Edit Permissions Modal */}
                 <Dialog open={!!editingMember} onOpenChange={(open) => !open && setEditingMember(null)}>
-                  <DialogContent className="max-w-md bg-card border border-border-light shadow-xl rounded-2xl">
+                  <DialogContent className="max-w-md bg-card border border-border/60 dark:border-border/40 shadow-xl rounded-2xl">
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2">
                         <Settings className="size-5 text-brand-green-dark" />
@@ -994,7 +994,7 @@ export default function TeamPage() {
             {activeTab === "roles" && canManageTeam && (
               <div className="grid gap-6 md:grid-cols-3">
                 {/* Create Custom Role panel */}
-                <Card className="border-border/60 rounded-xl bg-card/40 backdrop-blur-md md:col-span-1">
+                <Card className="border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] shadow-sm rounded-xl bg-card/40 backdrop-blur-md md:col-span-1">
                   <CardHeader>
                     <CardTitle className="text-sm font-extrabold flex items-center gap-1.5">
                       <ShieldCheck className="size-4 text-brand-green-dark" />
@@ -1064,13 +1064,13 @@ export default function TeamPage() {
                 </Card>
 
                 {/* List Custom Roles */}
-                <Card className="border-border/60 rounded-xl bg-card/40 backdrop-blur-md md:col-span-2 overflow-hidden">
+                <Card className="border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] shadow-sm rounded-xl bg-card/40 backdrop-blur-md md:col-span-2 overflow-hidden">
                   <div className="px-4 py-3 bg-muted/15 border-b border-border/40">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-text-secondary">
                       Active Custom Workspace Roles ({customRoles.length})
                     </h3>
                   </div>
-                  <div className="divide-y divide-border/60">
+                  <div className="divide-y divide-[rgba(15,23,42,0.04)] dark:divide-[rgba(255,255,255,0.06)]">
                     {customRoles.length === 0 ? (
                       <div className="p-8 text-center text-xs text-muted-foreground">
                         No custom roles configured yet. Start building custom team roles above.
@@ -1114,14 +1114,14 @@ export default function TeamPage() {
 
             {/* Tab 3: Workspace Activity Feed */}
             {activeTab === "activity" && (
-              <Card className="border-border/60 rounded-xl bg-card/40 backdrop-blur-md overflow-hidden">
+              <Card className="border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] shadow-sm rounded-xl bg-card/40 backdrop-blur-md overflow-hidden">
                 <div className="px-4 py-3 bg-muted/15 border-b border-border/40">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
                     <Activity className="size-3.5 text-brand-green-dark" />
                     Workspace Activity logs ({activities.length})
                   </h3>
                 </div>
-                <div className="divide-y divide-border/60 max-h-[60vh] overflow-y-auto pr-1">
+                <div className="divide-y divide-[rgba(15,23,42,0.04)] dark:divide-[rgba(255,255,255,0.06)] max-h-[60vh] overflow-y-auto pr-1">
                   {activities.length === 0 ? (
                     <div className="p-8 text-center text-xs text-muted-foreground">
                       No activities logged yet. Collaborative campaign events will record here.
@@ -1133,7 +1133,7 @@ export default function TeamPage() {
                         : "U"
                       return (
                         <div key={act._id} className="p-4 flex items-start gap-3 transition-colors hover:bg-muted/10">
-                          <Avatar className="size-8 shrink-0 border border-border-light shadow-sm">
+                          <Avatar className="size-8 shrink-0 border border-border/60 shadow-sm">
                             {act.memberAvatar && <AvatarImage src={act.memberAvatar} />}
                             <AvatarFallback className="bg-brand-green/10 text-brand-green-dark font-bold text-[10px]">
                               {initials}
@@ -1167,7 +1167,7 @@ export default function TeamPage() {
               <div className="grid gap-6 md:grid-cols-3">
                 {/* Collaboration Score card */}
                 {analytics && (
-                  <Card className="border-border/60 rounded-xl bg-card/40 backdrop-blur-md md:col-span-1 text-center py-6 flex flex-col justify-between">
+                  <Card className="border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] shadow-sm rounded-xl bg-card/40 backdrop-blur-md md:col-span-1 text-center py-6 flex flex-col justify-between">
                     <CardHeader className="p-0">
                       <CardTitle className="text-xs font-bold uppercase tracking-wider text-text-secondary">
                         Team Collaboration Score
@@ -1207,7 +1207,7 @@ export default function TeamPage() {
 
                 {/* Performance stats cards */}
                 {analytics && (
-                  <Card className="border-border/60 rounded-xl bg-card/40 backdrop-blur-md md:col-span-2 overflow-hidden">
+                  <Card className="border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] shadow-sm rounded-xl bg-card/40 backdrop-blur-md md:col-span-2 overflow-hidden">
                     <div className="px-4 py-3 bg-muted/15 border-b border-border/40">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-text-secondary">
                         Productivity & Collaboration Insights

@@ -162,7 +162,7 @@ export function PerformanceChart({ timeseries }: PerformanceChartProps) {
   const hoveredPoint = hoveredIndex !== null ? activeData[hoveredIndex] : null
 
   return (
-    <Card className="rounded-xl border border-border/50 bg-card/45 backdrop-blur-md">
+    <Card className="rounded-[20px] border border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] bg-card/45 backdrop-blur-md shadow-[0_4px_20px_rgba(15,23,42,0.02)] dark:shadow-none">
       <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
         <div>
           <CardTitle className="text-base font-semibold text-foreground">Performance Overview</CardTitle>

@@ -220,7 +220,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
 
         <CardContent className="space-y-5 px-8 pb-6">
           {/* Target account info banner */}
-          <div className="rounded-2xl border border-border-light/60 dark:border-zinc-800/40 p-4 bg-muted/5 flex items-center justify-between text-xs">
+          <div className="rounded-2xl border border-border/60 dark:border-zinc-800/20 p-4 bg-muted/5 flex items-center justify-between text-xs">
             <div className="space-y-0.5">
               <p className="text-[10px] text-text-secondary uppercase tracking-wider font-extrabold">Recipient Email</p>
               <p className="font-bold text-foreground truncate max-w-[240px]">{inviteDetails?.invitedEmail}</p>
@@ -234,7 +234,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
           <div className="space-y-3">
             <p className="text-[10px] text-text-secondary uppercase tracking-wider font-extrabold px-1">Permissions & Workspace Access</p>
             
-            <div className="rounded-2xl border border-border-light/50 dark:border-zinc-800/30 p-4 bg-muted/10 space-y-4">
+            <div className="rounded-2xl border border-border/50 dark:border-zinc-800/20 p-4 bg-muted/10 space-y-4">
               {/* Allowed Perks */}
               {roleInfo.allowed.length > 0 && (
                 <div className="space-y-2">
@@ -255,7 +255,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
 
               {/* Separator if both list exist */}
               {roleInfo.allowed.length > 0 && roleInfo.forbidden.length > 0 && (
-                <div className="border-t border-border-light/40 dark:border-zinc-850 my-1" />
+                <div className="border-t border-border/40 dark:border-zinc-800/20 my-1" />
               )}
 
               {/* Forbidden Perks */}

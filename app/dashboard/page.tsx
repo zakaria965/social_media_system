@@ -281,10 +281,10 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={plat}
-                      className="group relative flex flex-col justify-between p-3.5 rounded-2xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FFFFFF] dark:bg-[#111827] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover/20"
+                      className="group relative flex flex-col justify-between p-3.5 rounded-2xl border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] bg-[#FFFFFF] dark:bg-[#111827] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover/20"
                     >
                       <div className="flex items-start justify-between">
-                        <div className={cn("size-8 rounded-lg flex items-center justify-center bg-[#FCFAF6] dark:bg-[#1F2937] border border-[#EEF2F7] dark:border-[#374151] transition-transform duration-200 group-hover:scale-105", brand.text)}>
+                        <div className={cn("size-8 rounded-lg flex items-center justify-center bg-[#FCFAF6] dark:bg-[#1F2937] border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] transition-transform duration-200 group-hover:scale-105", brand.text)}>
                           <BrandIcon className="size-4" />
                         </div>
                         <Badge
@@ -312,7 +312,7 @@ export default function DashboardPage() {
                         </p>
                       </div>
 
-                      <div className="mt-3.5 pt-3.5 border-t border-[#EEF2F7] dark:border-[#374151] flex items-center justify-between">
+                      <div className="mt-3.5 pt-3.5 border-t border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] flex items-center justify-between">
                         <span className="text-[10px] text-[#64748B] dark:text-[#CBD5E1]">
                           {account ? "Sync active" : "Available"}
                         </span>
@@ -387,7 +387,7 @@ export default function DashboardPage() {
                             </p>
                             <div className="flex items-center gap-2 mt-0.5">
                               {brand && (
-                                <Badge variant="outline" className="text-[8px] tracking-wider font-semibold uppercase px-1 py-0 border-[#EEF2F7] dark:border-[#374151] text-[#64748B] dark:text-[#CBD5E1] flex items-center gap-0.5 rounded-sm">
+                                <Badge variant="outline" className="text-[8px] tracking-wider font-semibold uppercase px-1 py-0 border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] text-[#64748B] dark:text-[#CBD5E1] flex items-center gap-0.5 rounded-sm">
                                   {brand.label}
                                 </Badge>
                               )}
@@ -423,7 +423,7 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-2 p-4 pt-0">
-                <Link href="/dashboard/create" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FFFFFF] dark:bg-[#111827] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
+                <Link href="/dashboard/create" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] bg-[#FFFFFF] dark:bg-[#111827] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
                   <div className="size-7 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                     <PenSquare className="size-4" />
                   </div>
@@ -431,7 +431,7 @@ export default function DashboardPage() {
                   <span className="text-[10px] text-[#64748B] dark:text-[#CBD5E1] mt-0.5 block truncate">Design & share</span>
                 </Link>
 
-                <Link href="/dashboard/bulk" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FFFFFF] dark:bg-[#111827] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
+                <Link href="/dashboard/bulk" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] bg-[#FFFFFF] dark:bg-[#111827] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
                   <div className="size-7 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                     <Clock className="size-4" />
                   </div>
@@ -439,7 +439,7 @@ export default function DashboardPage() {
                   <span className="text-[10px] text-[#64748B] dark:text-[#CBD5E1] mt-0.5 block truncate">Queue posts</span>
                 </Link>
 
-                <Link href="/dashboard/ai-assistant" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FFFFFF] dark:bg-[#111827] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
+                <Link href="/dashboard/ai-assistant" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] bg-[#FFFFFF] dark:bg-[#111827] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
                   <div className="size-7 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                     <Sparkles className="size-4" />
                   </div>
@@ -447,7 +447,7 @@ export default function DashboardPage() {
                   <span className="text-[10px] text-[#64748B] dark:text-[#CBD5E1] mt-0.5 block truncate">Generate copy</span>
                 </Link>
 
-                <Link href="/dashboard/analytics" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FFFFFF] dark:bg-[#111827] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
+                <Link href="/dashboard/analytics" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] bg-[#FFFFFF] dark:bg-[#111827] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
                   <div className="size-7 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                     <BarChart3 className="size-4" />
                   </div>
@@ -455,7 +455,7 @@ export default function DashboardPage() {
                   <span className="text-[10px] text-[#64748B] dark:text-[#CBD5E1] mt-0.5 block truncate">Deep insights</span>
                 </Link>
 
-                <Link href="/dashboard/media" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FFFFFF] dark:bg-[#111827] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
+                <Link href="/dashboard/media" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] bg-[#FFFFFF] dark:bg-[#111827] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
                   <div className="size-7 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                     <ImageIcon className="size-4" />
                   </div>
@@ -463,7 +463,7 @@ export default function DashboardPage() {
                   <span className="text-[10px] text-[#64748B] dark:text-[#CBD5E1] mt-0.5 block truncate">Upload assets</span>
                 </Link>
 
-                <Link href="/dashboard/inbox" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FFFFFF] dark:bg-[#111827] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
+                <Link href="/dashboard/inbox" className="group flex flex-col justify-between p-3.5 rounded-xl border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] bg-[#FFFFFF] dark:bg-[#111827] hover:border-[#22C55E]/40 hover:-translate-y-0.5 hover:shadow-card-hover/20 transition-all duration-200">
                   <div className="size-7 rounded-lg bg-[#DCFCE7] text-[#22C55E] flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                     <MessageSquare className="size-4" />
                   </div>
@@ -489,7 +489,7 @@ export default function DashboardPage() {
               
               <CardContent className="space-y-4 p-4 pt-0">
                 {today.length === 0 && tomorrow.length === 0 && thisWeek.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center p-6 text-center border border-dashed border-[#EEF2F7] dark:border-[#374151] rounded-2xl bg-[#FCFAF6] dark:bg-[#1F2937]">
+                  <div className="flex flex-col items-center justify-center p-6 text-center border border-dashed border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] rounded-2xl bg-[#FCFAF6] dark:bg-[#1F2937]">
                     <CalendarCheck className="size-7 text-[#64748B] dark:text-[#CBD5E1]/55 mb-2" />
                     <p className="text-xs font-semibold text-[#111827] dark:text-[#F8FAFC]">Planning queue empty</p>
                     <p className="text-[10px] text-[#64748B] dark:text-[#CBD5E1] mt-1 mb-3">No scheduled posts scheduled for this week.</p>
@@ -508,9 +508,9 @@ export default function DashboardPage() {
                         <span className="text-[10px] font-bold text-[#22C55E] uppercase tracking-wider">Today</span>
                         <div className="space-y-2">
                           {today.map((post: any) => (
-                            <div key={post.id} className="rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FCFAF6] dark:bg-[#1F2937]/40 p-3 flex flex-col justify-between hover:bg-[#FCFAF6] dark:bg-[#1F2937]/80 transition-all duration-200">
+                            <div key={post.id} className="rounded-xl border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] bg-[#FCFAF6] dark:bg-[#1F2937]/40 p-3 flex flex-col justify-between hover:bg-[#FCFAF6] dark:bg-[#1F2937]/80 transition-all duration-200">
                               <p className="text-xs font-bold text-[#111827] dark:text-[#F8FAFC] leading-normal line-clamp-2">{post.title || post.content}</p>
-                              <div className="mt-3 flex items-center justify-between border-t border-[#EEF2F7] dark:border-[#374151] pt-2 text-[10px] text-[#64748B] dark:text-[#CBD5E1]">
+                              <div className="mt-3 flex items-center justify-between border-t border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] pt-2 text-[10px] text-[#64748B] dark:text-[#CBD5E1]">
                                 <span className="font-semibold uppercase tracking-wider">{post.platforms.join(" • ")}</span>
                                 <span className="flex items-center gap-1 font-semibold">
                                   <Clock className="size-3" />
@@ -529,9 +529,9 @@ export default function DashboardPage() {
                         <span className="text-[10px] font-bold text-[#64748B] dark:text-[#CBD5E1] uppercase tracking-wider">Tomorrow</span>
                         <div className="space-y-2">
                           {tomorrow.map((post: any) => (
-                            <div key={post.id} className="rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FCFAF6] dark:bg-[#1F2937]/40 p-3 flex flex-col justify-between hover:bg-[#FCFAF6] dark:bg-[#1F2937]/80 transition-all duration-200">
+                            <div key={post.id} className="rounded-xl border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] bg-[#FCFAF6] dark:bg-[#1F2937]/40 p-3 flex flex-col justify-between hover:bg-[#FCFAF6] dark:bg-[#1F2937]/80 transition-all duration-200">
                               <p className="text-xs font-bold text-[#111827] dark:text-[#F8FAFC] leading-normal line-clamp-2">{post.title || post.content}</p>
-                              <div className="mt-3 flex items-center justify-between border-t border-[#EEF2F7] dark:border-[#374151] pt-2 text-[10px] text-[#64748B] dark:text-[#CBD5E1]">
+                              <div className="mt-3 flex items-center justify-between border-t border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] pt-2 text-[10px] text-[#64748B] dark:text-[#CBD5E1]">
                                 <span className="font-semibold uppercase tracking-wider">{post.platforms.join(" • ")}</span>
                                 <span className="flex items-center gap-1 font-semibold">
                                   <Clock className="size-3" />
@@ -550,9 +550,9 @@ export default function DashboardPage() {
                         <span className="text-[10px] font-bold text-[#64748B] dark:text-[#CBD5E1] uppercase tracking-wider">Later This Week</span>
                         <div className="space-y-2">
                           {thisWeek.map((post: any) => (
-                            <div key={post.id} className="rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FCFAF6] dark:bg-[#1F2937]/40 p-3 flex flex-col justify-between hover:bg-[#FCFAF6] dark:bg-[#1F2937]/80 transition-all duration-200">
+                            <div key={post.id} className="rounded-xl border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] bg-[#FCFAF6] dark:bg-[#1F2937]/40 p-3 flex flex-col justify-between hover:bg-[#FCFAF6] dark:bg-[#1F2937]/80 transition-all duration-200">
                               <p className="text-xs font-bold text-[#111827] dark:text-[#F8FAFC] leading-normal line-clamp-2">{post.title || post.content}</p>
-                              <div className="mt-3 flex items-center justify-between border-t border-[#EEF2F7] dark:border-[#374151] pt-2 text-[10px] text-[#64748B] dark:text-[#CBD5E1]">
+                              <div className="mt-3 flex items-center justify-between border-t border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] pt-2 text-[10px] text-[#64748B] dark:text-[#CBD5E1]">
                                 <span className="font-semibold uppercase tracking-wider">{post.platforms.join(" • ")}</span>
                                 <span className="flex items-center gap-1 font-semibold">
                                   <Clock className="size-3" />
@@ -578,7 +578,7 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 p-4 pt-0">
-                <div className="rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FCFAF6] dark:bg-[#1F2937] p-3 text-xs leading-relaxed">
+                <div className="rounded-xl border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] bg-[#FCFAF6] dark:bg-[#1F2937] p-3 text-xs leading-relaxed">
                   <span className="font-bold text-[#22C55E] flex items-center gap-1 mb-1">
                     <Brain className="size-3.5" />
                     Posting Time Opportunity
@@ -586,7 +586,7 @@ export default function DashboardPage() {
                   Audience retention analytics indicate that <span className="font-semibold text-[#111827] dark:text-[#F8FAFC]">educational content</span> performs best on <span className="font-semibold text-[#111827] dark:text-[#F8FAFC]">Tuesdays at 11:30 AM</span>. Consider scheduling your next thread.
                 </div>
 
-                <div className="rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FFFFFF] dark:bg-[#111827] p-3 text-xs flex flex-col justify-between gap-2.5">
+                <div className="rounded-xl border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] bg-[#FFFFFF] dark:bg-[#111827] p-3 text-xs flex flex-col justify-between gap-2.5">
                   <div>
                     <span className="font-bold text-[#111827] dark:text-[#F8FAFC] block">Weekly Performance Spike</span>
                     Your LinkedIn engagement rate peaked up <span className="font-semibold text-[#22C55E]">18%</span> compared to the average. Maintain momentum by posting another visual industry insight.
@@ -595,14 +595,14 @@ export default function DashboardPage() {
                     onClick={() => router.push("/dashboard/create")}
                     variant="outline"
                     size="sm"
-                    className="w-full text-[10px] font-bold rounded-lg bg-[#FFFFFF] dark:bg-[#111827] border border-[#EEF2F7] dark:border-[#374151] py-1 h-7 flex items-center justify-center gap-1 hover:bg-[#FCFAF6] dark:bg-[#1F2937] text-[#111827] dark:text-[#F8FAFC]"
+                    className="w-full text-[10px] font-bold rounded-lg bg-[#FFFFFF] dark:bg-[#111827] border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] py-1 h-7 flex items-center justify-center gap-1 hover:bg-[#FCFAF6] dark:bg-[#1F2937] text-[#111827] dark:text-[#F8FAFC]"
                   >
                     Draft Visual Post
                     <ChevronRight className="size-3" />
                   </Button>
                 </div>
 
-                <div className="rounded-xl border border-[#EEF2F7] dark:border-[#374151] bg-[#FFFFFF] dark:bg-[#111827] p-3 text-xs flex flex-col justify-between gap-2.5">
+                <div className="rounded-xl border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] bg-[#FFFFFF] dark:bg-[#111827] p-3 text-xs flex flex-col justify-between gap-2.5">
                   <div>
                     <span className="font-bold text-[#111827] dark:text-[#F8FAFC] block">Generate Content Opportunities</span>
                     Would you like to build 5 high-converting post ideas derived from your best performing post?
@@ -663,7 +663,7 @@ export default function DashboardPage() {
                   <Progress value={(workspaceHealth.mediaStorageUsed / workspaceHealth.mediaStorageLimit) * 100} className="h-1.5 rounded-full" />
                 </div>
 
-                <div className="pt-3 flex items-center justify-between text-xs font-medium border-t border-[#EEF2F7] dark:border-[#374151] text-[#64748B] dark:text-[#CBD5E1]">
+                <div className="pt-3 flex items-center justify-between text-xs font-medium border-t border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] text-[#64748B] dark:text-[#CBD5E1]">
                   <div className="flex flex-col">
                     <span className="text-[9px] uppercase font-bold text-[#64748B] dark:text-[#CBD5E1]">Team Quota</span>
                     <span className="text-xs text-[#111827] dark:text-[#F8FAFC] font-semibold mt-0.5">{workspaceHealth.teamMembers} Members active</span>
