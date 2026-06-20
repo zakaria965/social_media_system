@@ -258,7 +258,7 @@ export default function BulkSchedulingPage() {
       ) : (
         <div className="space-y-6">
           {cards.map((card, index) => (
-            <Card key={card.id} className="rounded-xl border-border/60 overflow-hidden bg-card/95 shadow-md relative group">
+            <Card key={card.id} className="rounded-[20px] border border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] overflow-hidden bg-card/95 shadow-[0_2px_8px_rgba(15,23,42,0.04)] dark:shadow-none relative group">
               <div className="absolute top-4 right-4 flex items-center gap-2">
                 <Badge variant="secondary" className="font-bold text-[10px] px-2 py-0.5">
                   Post #{index + 1}
@@ -282,7 +282,7 @@ export default function BulkSchedulingPage() {
                       placeholder="Compose caption for this campaign slot..."
                       value={card.content}
                       onChange={(e) => handleUpdateCardField(card.id, "content", e.target.value)}
-                      className="min-h-24 rounded-xl border-border/60 bg-muted/20 text-xs leading-relaxed"
+                      className="min-h-24 rounded-xl border border-[rgba(15,23,42,0.08)] dark:border-[rgba(255,255,255,0.08)] bg-muted/20 text-xs leading-relaxed focus-visible:border-brand-green/30 focus-visible:ring-2 focus-visible:ring-brand-green/20"
                     />
                   </div>
 
@@ -294,7 +294,7 @@ export default function BulkSchedulingPage() {
                         value={card.scheduledDate}
                         min={new Date().toISOString().split("T")[0]}
                         onChange={(e) => handleUpdateCardField(card.id, "scheduledDate", e.target.value)}
-                        className="w-full rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-xs text-foreground outline-none"
+                        className="w-full rounded-xl border border-[rgba(15,23,42,0.08)] dark:border-[rgba(255,255,255,0.08)] bg-muted/20 px-3 py-2 text-xs text-foreground outline-none focus:border-brand-green/30 focus:ring-2 focus:ring-brand-green/20"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -303,7 +303,7 @@ export default function BulkSchedulingPage() {
                         type="time"
                         value={card.scheduledTime}
                         onChange={(e) => handleUpdateCardField(card.id, "scheduledTime", e.target.value)}
-                        className="w-full rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-xs text-foreground outline-none"
+                        className="w-full rounded-xl border border-[rgba(15,23,42,0.08)] dark:border-[rgba(255,255,255,0.08)] bg-muted/20 px-3 py-2 text-xs text-foreground outline-none focus:border-brand-green/30 focus:ring-2 focus:ring-brand-green/20"
                       />
                     </div>
                   </div>
@@ -340,7 +340,7 @@ export default function BulkSchedulingPage() {
                                 "text-[10px] font-semibold py-1 px-3 rounded-lg border capitalize transition-all select-none",
                                 active
                                   ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                                  : "border-border/60 text-muted-foreground hover:bg-muted/40"
+                                  : "border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] text-muted-foreground hover:bg-muted/40"
                               )}
                             >
                               {p.label}
@@ -353,7 +353,7 @@ export default function BulkSchedulingPage() {
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold text-muted-foreground uppercase">Media Attachments</Label>
                     <div
-                      className="border border-dashed border-border/60 rounded-xl p-3 bg-muted/5 flex items-center justify-center flex-col gap-1.5 cursor-pointer hover:border-primary/50 transition-colors"
+                      className="border border-dashed border-[rgba(15,23,42,0.15)] dark:border-[rgba(255,255,255,0.15)] bg-[rgba(48,252,71,0.02)] hover:bg-[rgba(48,252,71,0.05)] dark:bg-brand-green/[0.02] dark:hover:bg-brand-green/[0.05] hover:border-brand-green/50 rounded-xl p-3 flex items-center justify-center flex-col gap-1.5 cursor-pointer transition-all"
                       onClick={() => document.getElementById(`file-bulk-${card.id}`)?.click()}
                     >
                       <input
@@ -371,7 +371,7 @@ export default function BulkSchedulingPage() {
                     {card.mediaFiles.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 pt-2">
                         {card.mediaFiles.map((url, idx) => (
-                          <div key={idx} className="relative size-10 rounded-lg border border-border/40 overflow-hidden shrink-0">
+                          <div key={idx} className="relative size-10 rounded-lg border border-[rgba(15,23,42,0.04)] dark:border-[rgba(255,255,255,0.06)] overflow-hidden shrink-0">
                             {card.mediaTypes[idx] === "video" ? (
                               <div className="size-full bg-zinc-950 flex items-center justify-center">
                                 <span className="text-[8px] text-white">Video</span>
