@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Bell, Menu, Moon, Search, Sun } from "lucide-react"
+import { Bell, Menu, Moon, Search, Sun, ShieldAlert, X, AlertCircle } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -47,14 +47,49 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
   }
 
   useEffect(() => {
-    if (session) {
-      fetchNotifications()
-      const interval = setInterval(fetchNotifications, 10000) // Poll every 10 seconds
-      return () => clearInterval(interval)
+    if (!session) return
+
+    fetchNotifications()
+
+    // Establish Server-Sent Events stream for real-time notifications
+    const eventSource = new EventSource("/api/notifications/stream")
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === "notification") {
+          setNotifications((prev) => [data.notification, ...prev])
+        }
+      } catch (err) {
+        console.error("SSE parse error:", err)
+      }
+    }
+
+    eventSource.onerror = (err) => {
+      console.error("SSE connection error:", err)
+    }
+
+    return () => {
+      eventSource.close()
     }
   }, [session])
 
   const unreadCount = notifications.filter((n) => !n.read).length
+
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, read: true }),
+      })
+      if (res.ok) {
+        fetchNotifications()
+      }
+    } catch (err) {
+      console.error("Failed to mark notification as read:", err)
+    }
+  }
 
   const handleMarkAllRead = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -80,8 +115,56 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
         .slice(0, 2)
     : "U"
 
+  const banners = notifications.filter((n) => !n.read && n.type === "BANNER")
+  const currentBanner = banners[0]
+
+  const criticalAlerts = notifications.filter((n) => !n.read && n.type === "CRITICAL")
+  const currentCritical = criticalAlerts[0]
+
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] bg-background px-4 md:px-6 transition-colors duration-200">
+    <>
+      {currentBanner && (
+        <div className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 text-white text-xs font-semibold py-2.5 px-4 flex justify-between items-center transition-all duration-300 shadow-md animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-2 mx-auto">
+            <AlertCircle className="size-4 shrink-0 animate-bounce" />
+            <span>
+              <strong>{currentBanner.title}</strong>: {currentBanner.message}
+            </span>
+          </div>
+          <button
+            onClick={() => handleMarkAsRead(currentBanner._id)}
+            className="text-white hover:text-amber-100 p-1 rounded-full cursor-pointer hover:bg-white/10 shrink-0 transition-colors"
+            title="Dismiss Announcement"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
+
+      {currentCritical && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="w-full max-w-md rounded-2xl bg-card border border-border p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 text-red-500">
+              <ShieldAlert className="size-8 animate-pulse shrink-0" />
+              <h3 className="text-lg font-bold text-foreground">Critical Security Alert</h3>
+            </div>
+            <div className="border-t border-b border-border/50 py-3 my-2">
+              <h4 className="text-sm font-extrabold text-foreground">{currentCritical.title}</h4>
+              <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                {currentCritical.message}
+              </p>
+            </div>
+            <Button
+              onClick={() => handleMarkAsRead(currentCritical._id)}
+              className="w-full rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold py-2.5 cursor-pointer transition-colors"
+            >
+              Acknowledge and Close
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[rgba(15,23,42,0.05)] dark:border-[rgba(255,255,255,0.06)] bg-background px-4 md:px-6 transition-colors duration-200">
       <div className="flex items-center gap-4 flex-1">
         {/* Mobile menu trigger */}
         <Button variant="ghost" size="icon" className="lg:hidden shrink-0" onClick={onMenuClick}>
@@ -249,5 +332,6 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
         </DropdownMenu>
       </div>
     </header>
+    </>
   )
 }

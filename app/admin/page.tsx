@@ -279,7 +279,7 @@ export default function AdminDashboard() {
   const [announcementSubject, setAnnouncementSubject] = useState("")
   const [announcementTarget, setAnnouncementTarget] = useState("ALL")
   const [announcementContent, setAnnouncementContent] = useState("")
-  const [announcementType, setAnnouncementType] = useState("BOTH") // Email, In-app, Both
+  const [announcementType, setAnnouncementType] = useState("IN_APP")
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
     setToast({ message, type })
@@ -1891,9 +1891,9 @@ export default function AdminDashboard() {
                           onChange={(e) => setAnnouncementType(e.target.value)}
                           className="w-full rounded-xl border border-[#EEF2F7] px-4 py-2 text-sm outline-none bg-[#FCFAF6] cursor-pointer"
                         >
-                          <option value="BOTH">Email + In-App Notice</option>
-                          <option value="EMAIL">Email Campaign Only</option>
-                          <option value="IN_APP">In-App Banner Only</option>
+                          <option value="IN_APP">In-App Bell Notification</option>
+                          <option value="BANNER">Top Banner Notification</option>
+                          <option value="CRITICAL">Critical System Alert</option>
                         </select>
                       </div>
                     </div>

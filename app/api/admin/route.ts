@@ -1090,7 +1090,20 @@ export async function POST(request: NextRequest) {
 
     // ANNOUNCEMENTS
     if (action === "create-announcement") {
-      const { subject, target, content } = body
+      const { subject, target, content, type = "IN_APP" } = body
+      
+      if (!subject || !target || !content) {
+        return NextResponse.json({ error: "Missing subject, target, or content" }, { status: 400 })
+      }
+
+      const { sendNotification } = await import("@/lib/notifications")
+      await sendNotification({
+        title: subject,
+        message: content,
+        audience: target,
+        type,
+        createdBy: adminEmail
+      })
       
       // Seed audit log
       await logAdminAction(adminEmail, "CREATE_ANNOUNCEMENT", "Notification", `Broadcasted announcement: "${subject}" to target group: ${target}`)
