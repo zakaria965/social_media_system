@@ -85,7 +85,6 @@
     --accent: var(--brand-surface);
     --accent-foreground: var(--brand-hover);
     --destructive: hsl(0 84% 60%);
-    --border: var(--border);
     --input: var(--border);
     --ring: var(--brand-primary);
     --chart-1: oklch(0.87 0 0);
@@ -120,7 +119,6 @@
     --accent: var(--brand-surface);
     --accent-foreground: var(--brand-hover);
     --destructive: hsl(0 84% 60%);
-    --border: var(--border);
     --input: var(--border);
     --ring: var(--brand-primary);
     --chart-1: oklch(0.87 0 0);
