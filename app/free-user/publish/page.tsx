@@ -220,7 +220,7 @@ export default function FreePublishPage() {
   return (
     <div className="space-y-6">
       {/* Title */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200/40 dark:border-white/5 pb-3">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
             Publishing Center
@@ -231,7 +231,7 @@ export default function FreePublishPage() {
         </div>
 
         {userPlan.toUpperCase() === "FREE" && (
-          <div className="flex flex-col items-start sm:items-end bg-slate-50 dark:bg-slate-800/40 px-4 py-2 rounded-xl border border-slate-100 dark:border-slate-800 shadow-card">
+          <div className="flex flex-col items-start sm:items-end bg-slate-50/50 dark:bg-slate-800/40 px-4 py-2 rounded-xl border border-slate-200/40 dark:border-white/5 shadow-card">
             <span className="text-[9px] font-black uppercase text-slate-400">
               Publishing Usage
             </span>
@@ -315,7 +315,7 @@ export default function FreePublishPage() {
           <select
             value={selectedPlatform}
             onChange={(e) => setSelectedPlatform(e.target.value)}
-            className="w-full text-xs font-bold text-slate-650 bg-slate-50 dark:bg-slate-800/40 border border-slate-250 dark:border-slate-700 p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] h-9 text-[#0F172A] dark:text-slate-200"
+            className="w-full text-xs font-bold text-slate-655 bg-white dark:bg-[#1F2937] border border-[rgba(15,23,42,0.08)] dark:border-white/5 p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] h-9 text-[#0F172A] dark:text-slate-200 shadow-xs"
           >
             <option value="all">All Channels</option>
             <option value="facebook">Facebook</option>
@@ -326,7 +326,7 @@ export default function FreePublishPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800">
+      <div className="flex border-b border-slate-200/40 dark:border-white/5">
         {(["draft", "ready", "published", "failed"] as const).map((tab) => {
           const count = posts.filter(p => p.status === tab).length
           const labels = {
@@ -359,31 +359,31 @@ export default function FreePublishPage() {
       {/* Lists */}
       <div className="space-y-4">
         {filteredPosts.map((post) => (
-          <Card key={post.id} className="rounded-2xl border-0 bg-white dark:bg-[#1F2937] shadow-card hover:shadow-card-hover transition-all duration-300">
+          <Card key={post.id} className="rounded-2xl border border-transparent bg-white dark:bg-[#1F2937] shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-300">
             <CardContent className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               
               {/* Left detail */}
               <div className="flex-1 space-y-2.5">
                 <div className="flex items-center gap-2 flex-wrap">
                   {/* Channels icons */}
-                  <div className="flex gap-1 bg-slate-50 p-1 rounded border border-slate-100 dark:bg-slate-800 dark:border-slate-700">
+                  <div className="flex gap-1 bg-slate-50/50 p-1 rounded border border-slate-200/40 dark:bg-slate-800/40 dark:border-white/5">
                     {post.platforms.map((plat) => (
                       <span key={plat} title={plat}>{renderPlatformBadge(plat)}</span>
                     ))}
                   </div>
-                  <Badge variant="outline" className={`text-[8px] font-black uppercase px-2 py-0.2 select-none border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400`}>
+                  <Badge variant="outline" className={`text-[8px] font-black uppercase px-2 py-0.2 select-none border-slate-200/40 dark:border-white/5 text-slate-500 dark:text-slate-400 bg-transparent`}>
                     {post.status}
                   </Badge>
                 </div>
 
                 <div>
                   <span className="text-xs font-black text-slate-900 dark:text-white block">{post.title}</span>
-                  <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed mt-1">{post.content}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-355 leading-relaxed mt-1">{post.content}</p>
                 </div>
 
                 {/* Errors display */}
                 {post.errorMessage && (
-                  <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200/50 text-[10.5px] text-rose-600 font-semibold flex items-center gap-1.5">
+                  <div className="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-955/10 border border-rose-200/30 dark:border-rose-900/20 text-[10.5px] text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1.5">
                     <XCircle className="size-4 text-rose-500 shrink-0" />
                     <span>Failed reason: {post.errorMessage}</span>
                   </div>
@@ -407,7 +407,7 @@ export default function FreePublishPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => handleDeletePost(post.id)}
-                    className="p-2 rounded-xl border border-[#EEF2F7] hover:border-rose-500/30 hover:bg-rose-50/50 text-slate-400 hover:text-rose-500 transition-all bg-background shadow-card"
+                    className="p-2 rounded-xl border border-[rgba(15,23,42,0.08)] dark:border-white/5 hover:border-rose-500/30 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 hover:text-rose-500 transition-all bg-white dark:bg-[#1F2937]/50 shadow-xs"
                     title="Delete Post"
                   >
                     <Trash2 className="size-4" />
@@ -420,7 +420,7 @@ export default function FreePublishPage() {
                         onClick={() => {
                           router.push(`/free-user/create?title=${encodeURIComponent(post.title)}&content=${encodeURIComponent(post.content)}`)
                         }}
-                        className="p-2 rounded-xl border border-[#EEF2F7] hover:border-[var(--brand-primary)]/40 hover:bg-slate-50 text-slate-600 transition-all bg-background shadow-card"
+                        className="p-2 rounded-xl border border-[rgba(15,23,42,0.08)] dark:border-white/5 hover:border-[var(--brand-primary)]/40 hover:bg-[#F0FDF4] dark:hover:bg-emerald-950/20 text-slate-655 dark:text-slate-300 transition-all bg-white dark:bg-[#1F2937]/50 shadow-xs"
                         title="Edit in Composer"
                       >
                         <Edit className="size-4" />
@@ -440,7 +440,7 @@ export default function FreePublishPage() {
                         <>
                           <button
                             disabled
-                            className="bg-slate-100 text-slate-400 font-extrabold text-[10px] py-2 px-3.5 rounded-xl uppercase tracking-wider select-none cursor-not-allowed border border-slate-200 dark:bg-slate-800 dark:border-slate-700"
+                            className="bg-slate-100 text-slate-400 font-extrabold text-[10px] py-2 px-3.5 rounded-xl uppercase tracking-wider select-none cursor-not-allowed border border-slate-200/50 dark:bg-slate-800 dark:border-white/5"
                           >
                             Daily Limit Reached
                           </button>
@@ -484,9 +484,8 @@ export default function FreePublishPage() {
             </CardContent>
           </Card>
         ))}
-
         {filteredPosts.length === 0 && (
-          <div className="flex flex-col items-center justify-center border border-dashed border-slate-200 rounded-xl bg-slate-50/30 p-12 text-center max-w-md mx-auto">
+          <div className="flex flex-col items-center justify-center border border-dashed border-slate-200/40 dark:border-white/5 rounded-2xl bg-white dark:bg-[#1F2937]/10 p-12 text-center max-w-md mx-auto shadow-xs">
             <Send className="size-10 text-slate-300 mb-3" />
             <h4 className="text-sm font-bold text-slate-800">No content ready to publish</h4>
             <p className="text-xs text-slate-400 mt-1 max-w-[240px]">
@@ -500,11 +499,11 @@ export default function FreePublishPage() {
           </div>
         )}
       </div>
-
+ 
           {publishingPost && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div onClick={() => setPublishingPost(null)} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs" />
-          <div className="relative w-full max-w-sm rounded-2xl border border-slate-200 bg-white shadow-2xl p-6 dark:border-slate-800 dark:bg-slate-900 z-10 space-y-4">
+          <div className="relative w-full max-w-sm rounded-2xl border border-slate-200/40 bg-white dark:bg-[#1F2937] shadow-2xl p-6 dark:border-white/5 z-10 space-y-4">
             <h3 className="text-sm font-extrabold text-[#1F2937] dark:text-white">Publish Post</h3>
             {connectedCount === 0 ? (
               <div className="space-y-4 py-2">
@@ -524,7 +523,7 @@ export default function FreePublishPage() {
                   <p>
                     This post will be published immediately to your connected Facebook Page:
                   </p>
-                  <p className="font-extrabold text-slate-850 dark:text-slate-200 border p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                  <p className="font-extrabold text-slate-850 dark:text-slate-200 border border-slate-200/40 dark:border-white/5 p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
                     {channels.find(c => c.connected)?.username || "Your Connected Page"}
                   </p>
                 </div>
@@ -532,7 +531,7 @@ export default function FreePublishPage() {
                   <Button 
                     variant="outline" 
                     onClick={() => setPublishingPost(null)}
-                    className="text-xs font-bold text-[#6B7280] rounded-xl shadow-card"
+                    className="text-xs font-bold text-slate-550 dark:text-slate-400 border border-[rgba(15,23,42,0.08)] dark:border-white/5 bg-background dark:bg-[#1F2937]/50 rounded-xl hover:bg-[#F0FDF4] dark:hover:bg-emerald-950/20 transition-all shadow-card"
                   >
                     Cancel
                   </Button>

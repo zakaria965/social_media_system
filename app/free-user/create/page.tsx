@@ -943,7 +943,7 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
             <Link href="/free-user/settings?tab=accounts">
               <Button
                 variant="outline"
-                className="border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs px-4 py-2.5 rounded-xl uppercase tracking-wider bg-white dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 dark:text-slate-300"
+                className="border border-[rgba(15,23,42,0.08)] dark:border-white/5 hover:bg-[#F0FDF4] dark:hover:bg-emerald-950/20 text-slate-700 dark:text-slate-300 font-bold text-xs px-4 py-2.5 rounded-xl uppercase tracking-wider bg-white dark:bg-[#1F2937]/50 transition-all"
               >
                 Connect Account
               </Button>
@@ -963,7 +963,7 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
             <select
               value={filterPlatform}
               onChange={(e) => setFilterPlatform(e.target.value)}
-              className="pl-8.5 pr-8 py-2 text-xs bg-card dark:bg-[#1F2937]/50 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] appearance-none font-bold text-foreground dark:text-slate-200"
+              className="pl-8.5 pr-8 py-2 text-xs bg-white dark:bg-[#1F2937] border border-[rgba(15,23,42,0.08)] dark:border-white/5 rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] appearance-none font-bold text-foreground dark:text-slate-200 shadow-xs"
             >
               <option value="all">All Channels</option>
               <option value="facebook">Facebook</option>
@@ -981,7 +981,7 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="pl-8.5 pr-8 py-2 text-xs bg-card dark:bg-[#1F2937]/50 border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] appearance-none font-bold text-foreground dark:text-slate-200"
+              className="pl-8.5 pr-8 py-2 text-xs bg-white dark:bg-[#1F2937] border border-[rgba(15,23,42,0.08)] dark:border-white/5 rounded-xl focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] appearance-none font-bold text-foreground dark:text-slate-200 shadow-xs"
             >
               <option value="dateNewest">Newest First</option>
               <option value="dateOldest">Oldest First</option>
@@ -1034,7 +1034,7 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
               }}
               className="bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs px-6 py-2.5 rounded-xl uppercase tracking-wider shadow-sm transition-all"
             >
-              + New Idea
+              Create Content Idea
             </Button>
           </div>
         </div>
@@ -1046,14 +1046,14 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
             return (
               <div
                 key={columnName}
-                className="bg-[#F5F2EB]/65 dark:bg-slate-900/40 border border-border rounded-2xl flex flex-col min-h-[580px] transition-all p-3 shadow-xs"
+                className="bg-white dark:bg-[#111827]/40 border border-[#0F172A]/5 dark:border-white/5 rounded-2xl flex flex-col min-h-[580px] transition-all p-3 shadow-[0_2px_8px_rgba(15,23,42,0.04)]"
                 onDragOver={(e) => handleDragOver(e, columnName)}
                 onDrop={(e) => handleDrop(e, columnName)}
               >
                 {/* Column Header */}
-                <div className="flex items-center justify-between pb-3.5 mb-3 border-b border-[#EEF2F7]">
+                <div className="flex items-center justify-between pb-3.5 mb-3 border-b border-slate-200/30 dark:border-white/5">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-black uppercase text-slate-800 tracking-wider">
+                    <span className="text-xs font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider">
                       {columnName}
                     </span>
                     <span className="bg-[#22C55E]/10 text-[#22C55E] text-[10px] font-black px-2.5 py-0.5 rounded-full select-none">
@@ -1073,7 +1073,7 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
                         setNewIdeaMedia(null)
                         setIdeaFormOpen(true)
                       }}
-                      className="size-6 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-800 hover:bg-white/60 transition-all"
+                      className="size-6 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/40 transition-all"
                       title={`Add idea to ${columnName}`}
                     >
                       <Plus className="size-4" />
@@ -1085,15 +1085,15 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
                           handleClearColumnTrigger(columnName)
                         }
                       }}
-                      className="size-6 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-800 hover:bg-white/60 transition-all"
+                      className="size-6 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/40 transition-all"
                       title="Clear Column"
                     >
                       <MoreVertical className="size-3.5" />
                     </button>
-
+ 
                   </div>
                 </div>
-
+ 
                 {/* Column Dropzone */}
                 <div
                   className={cn(
@@ -1110,7 +1110,7 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
                       onDragStart={(e) => handleDragStart(e, idea.id)}
                       onDragEnd={handleDragEnd}
                       className={cn(
-                        "bg-white p-4 rounded-2xl border-0 shadow-card hover:shadow-card-hover transition-all duration-300 space-y-3.5 cursor-grab active:cursor-grabbing relative group/card",
+                        "bg-white dark:bg-[#1F2937] p-4 rounded-2xl border border-transparent shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-300 space-y-3.5 cursor-grab active:cursor-grabbing relative group/card",
                         draggedCardId === idea.id ? "opacity-30 border-dashed border-[var(--brand-primary)]" : ""
                       )}
                     >
@@ -1122,12 +1122,12 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
                             {new Date(idea.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}
                           </span>
                         </div>
-
+ 
                         {/* Card Context Action Dropdown Menu */}
                         <div className="relative">
                           <button
                             onClick={() => setOpenMenuCardId(openMenuCardId === idea.id ? null : idea.id)}
-                            className="text-slate-400 hover:text-slate-600 p-0.5 rounded transition-all"
+                            className="text-slate-400 hover:text-slate-655 p-0.5 rounded transition-all"
                             title="Options"
                           >
                             <MoreVertical className="size-3.5" />
@@ -1138,13 +1138,13 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
                                 className="fixed inset-0 z-10" 
                                 onClick={() => setOpenMenuCardId(null)}
                               />
-                              <div className="absolute right-0 top-6 z-20 w-44 rounded-xl border border-slate-100 bg-white p-1 shadow-lg dark:border-slate-800 dark:bg-slate-900 animate-in fade-in zoom-in-95 duration-100">
+                              <div className="absolute right-0 top-6 z-20 w-44 rounded-xl border border-slate-200/40 bg-white p-1 shadow-lg dark:border-white/5 dark:bg-slate-900 animate-in fade-in zoom-in-95 duration-100">
                                 <button
                                   onClick={() => {
                                     handleStartEdit(idea)
                                     setOpenMenuCardId(null)
                                   }}
-                                  className="w-full text-left text-[11px] font-bold px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-805 rounded-lg transition-colors text-slate-700 dark:text-slate-355 flex items-center gap-1.5"
+                                  className="w-full text-left text-[11px] font-bold px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-700 dark:text-slate-300 flex items-center gap-1.5"
                                 >
                                   <Edit2 className="size-3 text-slate-450" />
                                   Edit Idea
@@ -1159,7 +1159,7 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
                                   <Trash2 className="size-3 text-rose-400" />
                                   Delete Idea
                                 </button>
-                                <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+                                <div className="my-1 border-t border-slate-100/50 dark:border-white/5" />
                                 <div className="px-2.5 py-1 text-[8px] font-black text-slate-455 uppercase tracking-wider">Move Column</div>
                                 {(["Ideas", "Drafts", "Ready To Publish", "Published"] as const).map((col) => {
                                   if (col === idea.column) return null
@@ -1170,7 +1170,7 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
                                         handleMoveIdea(idea.id, col)
                                         setOpenMenuCardId(null)
                                       }}
-                                      className="w-full text-left text-[10px] font-bold px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-805 rounded-lg transition-colors text-slate-655 dark:text-slate-400"
+                                      className="w-full text-left text-[10px] font-bold px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-655 dark:text-slate-400"
                                     >
                                       &rarr; {col}
                                     </button>
@@ -1181,7 +1181,7 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
                           )}
                         </div>
                       </div>
-
+ 
                       {/* Card Content */}
                       <div className="space-y-2">
                         <span className="text-xs font-black text-slate-900 dark:text-white block leading-tight">
@@ -1204,9 +1204,9 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
                           </div>
                         )}
                       </div>
-
+ 
                       {/* Card Actions & Status (Bug 5) */}
-                      <div className="pt-3 border-t border-[#EEF2F7] flex items-center justify-between gap-2">
+                      <div className="pt-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-2">
                         {idea.column === "Ideas" ? (
                           <button
                             onClick={() => handleMoveIdea(idea.id, "Drafts")}
@@ -1219,14 +1219,14 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
                             <div className="flex flex-col gap-1.5 w-full">
                               <button
                                 disabled
-                                className="w-full text-center bg-slate-100 text-slate-400 font-extrabold text-[9.5px] py-2 rounded-xl uppercase tracking-wider select-none cursor-not-allowed border border-slate-200"
+                                className="w-full text-center bg-slate-100 text-slate-400 font-extrabold text-[9.5px] py-2 rounded-xl uppercase tracking-wider select-none cursor-not-allowed border border-slate-200/50"
                               >
                                 Daily Limit Reached
                               </button>
                               <button
                                 onClick={() => {
-                                  setUpgradeReason("publish_limit")
-                                  setUpgradeOpen(true)
+                                    setUpgradeReason("publish_limit")
+                                    setUpgradeOpen(true)
                                 }}
                                 className="w-full text-center bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-[9.5px] py-2 rounded-xl uppercase tracking-wider transition-all duration-300 select-none cursor-pointer"
                               >
@@ -1249,7 +1249,7 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
                       </div>
                     </div>
                   ))}
-
+ 
                   {/* Empty state for single column */}
                   {columnIdeas.length === 0 && (
                     <div 
@@ -1262,7 +1262,7 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
                         setNewIdeaMedia(null)
                         setIdeaFormOpen(true)
                       }}
-                      className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-[#E5E2DA] hover:border-[#22C55E]/40 rounded-2xl bg-white/40 hover:bg-white/80 transition-all duration-300 cursor-pointer select-none group/empty"
+                      className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-slate-200 dark:border-white/5 hover:border-[#22C55E]/40 rounded-2xl bg-white/40 dark:bg-[#1F2937]/10 hover:bg-white/80 dark:hover:bg-[#1F2937]/20 transition-all duration-300 cursor-pointer select-none group/empty"
                     >
                       <Plus className="size-5 text-slate-450 group-hover:text-[#22C55E] transition-colors mb-1.5" />
                       <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider group-hover:text-slate-800 transition-colors">
@@ -1276,11 +1276,11 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
           })}
         </div>
       )}
-
+ 
       {/* Onboarding Checklist Popover Widget */}
       {checklistOpen && (
-        <div className="fixed bottom-4 right-4 z-40 w-72 rounded-2xl border border-slate-200 bg-white p-4.5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 animate-in slide-in-from-bottom-5">
-          <div className="flex items-center justify-between border-b pb-2 mb-3">
+        <div className="fixed bottom-4 right-4 z-40 w-72 rounded-2xl border border-slate-200/40 bg-white dark:bg-[#1F2937] p-4.5 shadow-2xl dark:border-white/5 animate-in slide-in-from-bottom-5">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2 mb-3">
             <div>
               <span className="text-[9px] font-black uppercase text-emerald-600 dark:text-[var(--brand-primary)] tracking-wider">Setup Checklist</span>
               <h4 className="text-xs font-black text-slate-900 dark:text-white mt-0.5">Complete your setup</h4>
@@ -1292,7 +1292,7 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
               <X className="size-4" />
             </button>
           </div>
-
+ 
           <div className="space-y-3">
             {/* Progress */}
             <div className="space-y-1">
@@ -1302,7 +1302,7 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
               </div>
               <Progress value={(completedStepsCount / 4) * 100} className="h-1.5 bg-slate-100" />
             </div>
-
+ 
             {/* Checklist Tasks */}
             <div className="space-y-2.5 pt-1">
               {checklistSteps.map((step, idx) => (
@@ -1310,7 +1310,7 @@ Do not write any other headers or intro/outro text. Just return the TITLE and CO
                   {step.checked ? (
                     <Check className="size-4 text-emerald-600 shrink-0 mt-0.5" />
                   ) : (
-                    <div className="size-3.5 rounded-full border border-slate-350 shrink-0 mt-0.5 bg-slate-50/50" />
+                    <div className="size-3.5 rounded-full border border-slate-200/60 dark:border-slate-700/60 shrink-0 mt-0.5 bg-slate-50/50" />
                   )}
                   <div className="flex-1 min-w-0">
                     {step.href ? (

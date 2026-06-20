@@ -17,12 +17,12 @@
   --text-white: #FFFFFF;
 
   /* Borders & Radius */
-  --border: #E5E7EB;
+  --border: rgba(15, 23, 42, 0.06);
   --radius: 16px;
 
   /* Shadows */
-  --shadow-card: 0 2px 8px rgba(15, 23, 42, 0.04);
-  --shadow-card-hover: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.04);
+  --shadow-card-hover: 0 8px 20px rgba(15, 23, 42, 0.08);
   --shadow-modal: 0 20px 40px rgba(0, 0, 0, 0.12);
 
   /* Typography */
@@ -42,11 +42,11 @@
   --text-white: #FFFFFF;
 
   /* Borders & Radius */
-  --border: #374151;
+  --border: rgba(255, 255, 255, 0.06);
 
   /* Shadows */
-  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.3);
-  --shadow-card-hover: 0 8px 30px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-card-hover: 0 8px 30px rgba(0, 0, 0, 0.25);
   --shadow-modal: 0 20px 40px rgba(0, 0, 0, 0.4);
 
   /* Brand surface adjustments for dark mode readability */

@@ -76,7 +76,7 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
       {/* Sidebar Container */}
       <aside
         className={cn(
-          "fixed top-0 bottom-0 left-0 z-40 flex flex-col transition-[width] duration-300 ease-in-out bg-sidebar border-r border-border transition-colors duration-200",
+          "fixed top-0 bottom-0 left-0 z-40 flex flex-col transition-[width] duration-300 ease-in-out bg-[#FCFAF6] dark:bg-[#0F172A] border-r border-slate-200/40 dark:border-white/5 transition-colors duration-200",
           isCollapsed ? "w-20" : "w-64",
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
@@ -98,16 +98,16 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
               </div>
             )}
           </Link>
-
+ 
           {/* Desktop Toggle Button */}
           <button
             onClick={onToggleCollapse}
-            className="hidden lg:flex size-6 items-center justify-center rounded-md border border-border bg-card text-slate-500 dark:text-slate-400 hover:text-[var(--brand-primary)] hover:scale-105 active:scale-95 transition-all"
+            className="hidden lg:flex size-6 items-center justify-center rounded-md border border-slate-200/40 dark:border-white/5 bg-white dark:bg-[#1F2937] text-slate-500 dark:text-slate-400 hover:text-[var(--brand-primary)] hover:scale-105 active:scale-95 transition-all"
           >
             {isCollapsed ? <ChevronRight className="size-3.5" /> : <ChevronLeft className="size-3.5" />}
           </button>
         </div>
-
+ 
         {/* Sidebar Links */}
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
           {/* Main Navigation Menu */}
@@ -126,8 +126,8 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-xs font-bold transition-all group relative",
                     isActive
-                      ? "bg-[#F0FDF4] dark:bg-[rgba(48,252,71,0.15)] text-[var(--brand-primary)] font-extrabold"
-                      : "text-[#6B7280] dark:text-slate-400 hover:bg-[#F0FDF4]/50 dark:hover:bg-[rgba(48,252,71,0.10)] hover:text-[var(--brand-primary)]"
+                      ? "bg-[rgba(48,252,71,0.08)] dark:bg-[rgba(48,252,71,0.15)] text-[var(--brand-primary)] font-extrabold"
+                      : "text-[#6B7280] dark:text-slate-400 hover:bg-[rgba(48,252,71,0.04)] dark:hover:bg-[rgba(48,252,71,0.10)] hover:text-[var(--brand-primary)]"
                   )}
                 >
                   <Icon
@@ -137,7 +137,7 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
                     )}
                   />
                   {!isCollapsed && <span>{item.name}</span>}
-
+ 
                   {isActive && isCollapsed && (
                     <div className="absolute right-2 size-1.5 rounded-full bg-[var(--brand-primary)]" />
                   )}
@@ -146,12 +146,12 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
             })}
           </div>
         </div>
-
+ 
         {/* User Profile Section with Dropdown */}
         <div className="p-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-slate-100 dark:hover:bg-slate-900 transition-all focus:outline-hidden">
+              <button className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-slate-100/50 dark:hover:bg-slate-800/40 transition-all focus:outline-hidden">
                 <Avatar className="size-9 shrink-0">
                   {session?.user?.image ? (
                     <AvatarImage src={session.user.image} alt={session.user.name ?? ""} />
@@ -174,13 +174,13 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
               align="end"
               side="right"
               sideOffset={12}
-              className="w-56 border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-1 bg-background"
+              className="w-56 border-slate-200/40 dark:border-white/5 rounded-2xl shadow-xl p-1 bg-white dark:bg-[#1F2937]"
             >
               <div className="px-2.5 py-2 flex flex-col">
                 <span className="text-xs font-bold text-[#1F2937] dark:text-white">{session?.user?.name ?? "GrowWave User"}</span>
                 <span className="text-[9px] font-semibold text-[var(--brand-primary)] uppercase tracking-wider mt-0.5">Free Account</span>
               </div>
-              <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
+              <DropdownMenuSeparator className="bg-slate-100/50 dark:bg-white/5" />
               
               <DropdownMenuItem
                 onClick={() => router.push("/free-user/settings?tab=profile")}
@@ -230,7 +230,7 @@ export function Sidebar({ open, onClose, isCollapsed, onToggleCollapse }: Sideba
                 Help Center
               </DropdownMenuItem>
 
-              <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
+              <DropdownMenuSeparator className="bg-slate-100/50 dark:bg-white/5" />
 
               <DropdownMenuItem
                 onClick={() => signOut({ callbackUrl: "/" })}

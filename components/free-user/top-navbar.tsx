@@ -38,7 +38,7 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background px-4 md:px-6 transition-colors duration-200">
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-slate-200/30 dark:border-white/5 bg-[#FCFAF6] dark:bg-[#111827] px-4 md:px-6 transition-colors duration-200 shadow-xs">
         <Button variant="ghost" size="icon" className="lg:hidden text-slate-600 dark:text-slate-400" onClick={onMenuClick}>
           <Menu className="size-5" />
         </Button>
@@ -59,17 +59,17 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search ideas, posts..."
-            className="h-9 rounded-full border border-border/40 bg-[#F8FAFC] dark:bg-[#1F2937]/50 pl-9 text-sm placeholder:text-muted-foreground/60 shadow-xs focus-visible:ring-1 focus-visible:ring-[#22C55E]/40"
+            className="h-9 rounded-full border border-[rgba(15,23,42,0.08)] bg-white dark:bg-[#1F2937] dark:border-white/5 pl-9 text-sm placeholder:text-muted-foreground/60 shadow-xs focus-visible:ring-2 focus-visible:ring-[#22C55E]/20 focus-visible:border-[#22C55E]"
           />
         </div>
 
         <div className="flex items-center gap-2">
           {/* Theme Toggle Button */}
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
             onClick={toggle}
-            className="rounded-full size-9 border border-border bg-[#F8FAFC] dark:bg-[#1F2937]/50 text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
+            className="rounded-full size-9 bg-white dark:bg-[#1F2937] text-muted-foreground hover:text-[var(--brand-primary)] hover:bg-[#F0FDF4] dark:hover:bg-emerald-950/20 shrink-0 cursor-pointer border-0 shadow-sm transition-all duration-200"
             title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           >
             {theme === "dark" ? (

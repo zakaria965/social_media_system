@@ -255,7 +255,7 @@ export default function FreeCalendarPage() {
   return (
     <div className="space-y-6">
       {/* Header controls */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200/40 dark:border-white/5 pb-3">
         <div className="flex items-center gap-3">
           <Calendar className="size-6 text-emerald-600 dark:text-[var(--brand-primary)]" />
           <div>
@@ -267,10 +267,10 @@ export default function FreeCalendarPage() {
             </p>
           </div>
         </div>
-
+ 
         <div className="flex flex-wrap items-center gap-2">
           {/* View Mode switches */}
-          <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
+          <div className="flex bg-slate-100/50 p-0.5 rounded-lg border border-slate-200/40 dark:bg-slate-800/40 dark:border-white/5">
             {(["month", "week", "day"] as const).map((mode) => (
               <button
                 key={mode}
@@ -319,7 +319,7 @@ export default function FreeCalendarPage() {
           <select
             value={platformFilter}
             onChange={(e) => setPlatformFilter(e.target.value)}
-            className="text-xs font-bold text-slate-655 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/40 border border-slate-250 dark:border-slate-700 p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] h-8"
+            className="text-xs font-bold text-slate-655 dark:text-slate-200 bg-white dark:bg-[#1F2937] border border-[rgba(15,23,42,0.08)] dark:border-white/5 p-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] h-8 shadow-xs"
           >
             <option value="all">All Channels</option>
             <option value="facebook">Facebook</option>
@@ -403,7 +403,7 @@ export default function FreeCalendarPage() {
                     isToday ? "bg-[var(--brand-primary)]/5" : "bg-[#FCFAF6]/60 dark:bg-slate-900/40"
                   }`}
                 >
-                  <div className="text-center pb-2 border-b border-slate-100 dark:border-slate-800">
+                  <div className="text-center pb-2 border-b border-slate-200/40 dark:border-white/5">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">{dayNames[idx]}</span>
                     <span className={`text-sm font-black mt-1 inline-block px-1.5 py-0.5 rounded-full ${isToday ? "bg-[var(--brand-primary)] text-slate-950" : "text-slate-700 dark:text-slate-300"}`}>
                       {dayDate.getDate()}
@@ -439,7 +439,7 @@ export default function FreeCalendarPage() {
         /* ================= DAY VIEW ================= */
         <Card className="rounded-2xl border-0 bg-white dark:bg-[#1F2937] p-6 shadow-card hover:shadow-card-hover transition-all">
           <div className="space-y-3">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block border-b pb-2 border-slate-100 dark:border-slate-800">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block border-b pb-2 border-slate-200/40 dark:border-white/5">
               Scheduled for today ({currentDate.toLocaleDateString()})
             </span>
             
@@ -487,8 +487,8 @@ export default function FreeCalendarPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div onClick={() => setSelectedPost(null)} className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" />
           
-          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-transparent dark:border-slate-800 bg-white dark:bg-slate-900 shadow-modal p-6 z-10 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-850 pb-3">
+          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-transparent dark:border-white/5 bg-white dark:bg-slate-900 shadow-modal p-6 z-10 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200/40 dark:border-white/5 pb-3">
               <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider dark:text-white">
                 Reschedule Post
               </h3>
@@ -539,12 +539,12 @@ export default function FreeCalendarPage() {
               </div>
             </div>
 
-            <div className="pt-3 border-t flex justify-between gap-3">
+            <div className="pt-3 border-t border-slate-200/40 dark:border-white/5 flex justify-between gap-3">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleDeleteFromEdit}
-                className="text-xs font-bold text-rose-600 hover:bg-rose-50 border-rose-250 bg-background"
+                className="text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 border border-[rgba(15,23,42,0.08)] dark:border-white/5 bg-background dark:bg-[#1F2937]/50 transition-all"
               >
                 <Trash2 className="size-4 mr-1 shrink-0" />
                 Delete

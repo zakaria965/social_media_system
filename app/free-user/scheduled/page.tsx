@@ -246,7 +246,7 @@ export default function FreeScheduledPage() {
   return (
     <div className="space-y-6">
       {/* Title */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200/40 dark:border-white/5 pb-3">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
             Scheduled Queue
@@ -299,30 +299,30 @@ export default function FreeScheduledPage() {
             const isReschedulingThis = reschedulePostId === post.id
 
             return (
-              <Card key={post.id} className="rounded-2xl border-0 bg-white dark:bg-[#1F2937] shadow-card hover:shadow-card-hover transition-all duration-300">
+              <Card key={post.id} className="rounded-2xl border border-transparent bg-white dark:bg-[#1F2937] shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-300">
                 <CardContent className="p-4 md:p-5 flex flex-col md:flex-row md:items-start justify-between gap-4">
                   
                   {/* Left segment */}
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-2">
-                      <div className="flex gap-1 bg-slate-50 p-1 rounded border border-slate-100 dark:bg-slate-800 dark:border-slate-700">
+                      <div className="flex gap-1 bg-slate-50/50 p-1 rounded border border-slate-200/40 dark:bg-slate-800/40 dark:border-white/5">
                         {post.platforms.map((plat) => (
                           <span key={plat} title={plat}>{renderPlatformBadge(plat)}</span>
                         ))}
                       </div>
-                      <Badge variant="outline" className="text-[8px] font-black uppercase px-2 py-0.2 select-none border-emerald-500/20 text-emerald-600 bg-emerald-50/20">
+                      <Badge variant="outline" className="text-[8px] font-black uppercase px-2 py-0.2 select-none border-emerald-500/20 text-emerald-600 bg-emerald-50/20 bg-transparent">
                         Active Queue
                       </Badge>
                     </div>
 
                     <div>
                       <span className="text-xs font-black text-slate-900 dark:text-white block">{post.title}</span>
-                      <p className="text-xs text-slate-600 dark:text-slate-350 leading-relaxed mt-1">{post.content}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-355 leading-relaxed mt-1">{post.content}</p>
                     </div>
 
                     {/* Rescheduling Form inline */}
                     {isReschedulingThis && (
-                      <div className="grid gap-3 sm:grid-cols-2 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-lg border border-slate-200/50 mt-3 max-w-md">
+                      <div className="grid gap-3 sm:grid-cols-2 p-3 bg-[#FCFAF6] dark:bg-slate-800/40 rounded-lg border border-slate-200/40 dark:border-white/5 mt-3 max-w-md">
                         <div>
                           <span className="text-[9px] font-bold text-slate-400 block mb-1">New Date</span>
                           <Input
@@ -341,7 +341,7 @@ export default function FreeScheduledPage() {
                             className="h-8 text-[11px] font-bold"
                           />
                         </div>
-                        <div className="sm:col-span-2 flex justify-end gap-2 pt-1 border-t border-slate-200/40">
+                        <div className="sm:col-span-2 flex justify-end gap-2 pt-1 border-t border-slate-200/30 dark:border-white/5">
                           <Button
                             variant="ghost"
                             size="xs"
@@ -372,7 +372,7 @@ export default function FreeScheduledPage() {
                     <div className="flex flex-wrap items-center gap-1.5">
                       <button
                         onClick={() => handleDeletePost(post.id)}
-                        className="p-2 rounded-xl border border-[#EEF2F7] hover:border-rose-500/30 hover:bg-rose-50/50 text-slate-400 hover:text-rose-500 transition-all bg-background"
+                        className="p-2 rounded-xl border border-[rgba(15,23,42,0.08)] dark:border-white/5 hover:border-rose-500/30 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 hover:text-rose-500 transition-all bg-white dark:bg-[#1F2937]/50 shadow-xs"
                         title="Delete Post"
                       >
                         <Trash2 className="size-4" />
@@ -380,7 +380,7 @@ export default function FreeScheduledPage() {
 
                       <button
                         onClick={() => handleDuplicatePost(post)}
-                        className="p-2 rounded-xl border border-[#EEF2F7] hover:border-slate-355 hover:bg-slate-50 text-slate-400 hover:text-slate-655 transition-all bg-background"
+                        className="p-2 rounded-xl border border-[rgba(15,23,42,0.08)] dark:border-white/5 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-[#FCFAF6] dark:hover:bg-slate-800/40 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-all bg-white dark:bg-[#1F2937]/50 shadow-xs"
                         title="Duplicate Post"
                       >
                         <Copy className="size-4" />
@@ -390,7 +390,7 @@ export default function FreeScheduledPage() {
                         onClick={() => {
                           router.push(`/free-user/create?title=${encodeURIComponent(post.title)}&content=${encodeURIComponent(post.content)}`)
                         }}
-                        className="p-2 rounded-xl border border-[#EEF2F7] hover:border-[var(--brand-primary)]/40 hover:bg-slate-50 text-slate-600 transition-all bg-background"
+                        className="p-2 rounded-xl border border-[rgba(15,23,42,0.08)] dark:border-white/5 hover:border-[var(--brand-primary)]/40 hover:bg-[#F0FDF4] dark:hover:bg-emerald-950/20 text-slate-600 dark:text-slate-355 transition-all bg-white dark:bg-[#1F2937]/50 shadow-xs"
                         title="Edit Post"
                       >
                         <Edit className="size-4" />
@@ -398,7 +398,7 @@ export default function FreeScheduledPage() {
 
                       <button
                         onClick={() => triggerReschedule(post)}
-                        className="bg-background hover:bg-slate-50 text-[#6B7280] font-bold text-[10px] py-2 px-3 border border-[#EEF2F7] rounded-xl uppercase tracking-wider transition-all"
+                        className="bg-white dark:bg-[#1F2937]/50 hover:bg-[#F0FDF4] dark:hover:bg-emerald-950/20 text-[#6B7280] dark:text-slate-350 font-bold text-[10px] py-2 px-3 border border-[rgba(15,23,42,0.08)] dark:border-white/5 rounded-xl uppercase tracking-wider transition-all shadow-xs"
                       >
                         Reschedule
                       </button>
@@ -407,7 +407,7 @@ export default function FreeScheduledPage() {
                         <>
                           <button
                             disabled
-                            className="bg-slate-100 text-slate-400 font-extrabold text-[10px] py-2 px-3.5 rounded-xl uppercase tracking-wider select-none cursor-not-allowed border border-slate-200 dark:bg-slate-800 dark:border-slate-700"
+                            className="bg-slate-100 text-slate-400 font-extrabold text-[10px] py-2 px-3.5 rounded-xl uppercase tracking-wider select-none cursor-not-allowed border border-slate-200/50 dark:bg-slate-800 dark:border-white/5"
                           >
                             Daily Limit Reached
                           </button>
@@ -438,7 +438,7 @@ export default function FreeScheduledPage() {
           })}
 
         {posts.length === 0 && (
-          <div className="flex flex-col items-center justify-center border border-dashed border-slate-250 rounded-xl bg-slate-50/30 p-12 text-center max-w-md mx-auto">
+          <div className="flex flex-col items-center justify-center border border-dashed border-slate-200/40 dark:border-white/5 rounded-2xl bg-white dark:bg-[#1F2937]/10 p-12 text-center max-w-md mx-auto shadow-xs">
             <CalendarCheck className="size-10 text-slate-300 mb-3" />
             <h4 className="text-sm font-bold text-slate-800">No scheduled posts</h4>
             <p className="text-xs text-slate-400 mt-1 max-w-[240px]">

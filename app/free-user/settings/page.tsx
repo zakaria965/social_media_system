@@ -332,7 +332,7 @@ function SettingsContent() {
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-[#EEF2F7] pb-3">
+      <div className="border-b border-slate-200/40 dark:border-white/5 pb-3">
         <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
           Settings Center
         </h1>
@@ -353,8 +353,8 @@ function SettingsContent() {
                 onClick={() => setActiveTab(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all relative ${
                   isActive
-                    ? "bg-[#F0FDF4] text-[var(--brand-primary)] font-extrabold"
-                    : "text-slate-500 hover:bg-[#F0FDF4]/50 hover:text-slate-800"
+                    ? "bg-[rgba(48,252,71,0.08)] dark:bg-[rgba(48,252,71,0.15)] text-[var(--brand-primary)] font-extrabold"
+                    : "text-slate-500 hover:bg-[rgba(48,252,71,0.04)] dark:hover:bg-[rgba(48,252,71,0.10)] hover:text-slate-800 dark:hover:text-white"
                 }`}
               >
                 <Icon className={`size-4 shrink-0 ${isActive ? "text-emerald-600 dark:text-[var(--brand-primary)]" : "text-slate-400"}`} />
@@ -373,12 +373,12 @@ function SettingsContent() {
           {/* PROFILE SETTINGS */}
           {activeTab === "profile" && (
             <Card className="rounded-2xl border-0 bg-white dark:bg-[#1F2937] shadow-card hover:shadow-card-hover transition-all">
-              <CardHeader className="pb-3 border-b border-border">
+              <CardHeader className="pb-3 border-b border-slate-200/30 dark:border-white/5">
                 <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-white">Profile Settings</CardTitle>
               </CardHeader>
               <CardContent className="p-5 md:p-6 space-y-4">
-                <div className="flex items-center gap-4 border-b border-border pb-4">
-                  <div className="size-14 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-lg text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-4 border-b border-slate-200/30 dark:border-white/5 pb-4">
+                  <div className="size-14 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-lg text-slate-500 dark:text-slate-400 border border-slate-200/40 dark:border-white/5">
                     GW
                   </div>
                   <div>
@@ -418,7 +418,7 @@ function SettingsContent() {
                   />
                 </div>
 
-                <div className="flex justify-end pt-2 border-t">
+                <div className="flex justify-end pt-2 border-t border-slate-200/30 dark:border-white/5">
                   <Button
                     onClick={handleSaveProfile}
                     className="bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs px-5 rounded-lg uppercase tracking-wider shadow-sm"
@@ -433,7 +433,7 @@ function SettingsContent() {
           {/* PASSWORD SETTINGS */}
           {activeTab === "password" && (
             <Card className="rounded-2xl border-0 bg-white dark:bg-[#1F2937] shadow-card hover:shadow-card-hover transition-all">
-              <CardHeader className="pb-3 border-b border-border">
+              <CardHeader className="pb-3 border-b border-slate-200/30 dark:border-white/5">
                 <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-white">Update Password</CardTitle>
               </CardHeader>
               <CardContent className="p-5 md:p-6">
@@ -467,8 +467,8 @@ function SettingsContent() {
                       />
                     </div>
                   </div>
-
-                  <div className="flex justify-end pt-2 border-t">
+ 
+                  <div className="flex justify-end pt-2 border-t border-slate-200/30 dark:border-white/5">
                     <Button
                       type="submit"
                       className="bg-[var(--brand-primary)] hover:bg-[var(--brand-hover)] text-white font-extrabold text-xs px-5 rounded-lg uppercase tracking-wider shadow-sm"
@@ -480,17 +480,17 @@ function SettingsContent() {
               </CardContent>
             </Card>
           )}
-
+ 
           {/* ACCOUNTS / CHANNEL LIMITS */}
           {activeTab === "accounts" && (
             <div className="space-y-6">
               <Card className="rounded-2xl border-0 bg-white dark:bg-[#1F2937] shadow-card hover:shadow-card-hover transition-all">
-                <CardHeader className="pb-3 border-b border-border flex flex-row items-center justify-between">
+                <CardHeader className="pb-3 border-b border-slate-200/30 dark:border-white/5 flex flex-row items-center justify-between">
                   <div>
                     <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-white">Linked Channels</CardTitle>
                     <p className="text-[11px] text-[#6B7280] mt-0.5">Link or unlink Facebook Pages. Max 1 active account on Free Plan.</p>
                   </div>
-                  <Badge variant="outline" className="text-[8px] font-bold uppercase border-slate-200">
+                  <Badge variant="outline" className="text-[8px] font-bold uppercase border-slate-200/40 dark:border-white/5 bg-transparent">
                     {channels.filter(c => c.connected).length} / 1 Connected
                   </Badge>
                 </CardHeader>
@@ -498,15 +498,15 @@ function SettingsContent() {
                   {channels.map((chan) => {
                     const isConnected = chan.connected
                     const isExpired = chan.status === "expired"
-
+ 
                     return (
                       <div
                         key={chan.id}
-                        className="rounded-2xl border p-4 flex flex-col justify-between gap-4 border-border/60 bg-muted/10"
+                        className="rounded-2xl border border-slate-200/30 dark:border-white/5 p-4 flex flex-col justify-between gap-4 bg-muted/10"
                       >
                         <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
                           <div className="flex items-center gap-3">
-                            <div className="p-2.5 rounded-lg bg-blue-50 border dark:bg-slate-800 dark:border-slate-700">
+                            <div className="p-2.5 rounded-lg bg-blue-50 dark:bg-slate-800/40 border border-blue-200/30 dark:border-slate-700/50">
                               {renderPlatformIcon(chan.platform)}
                             </div>
                             <div>
@@ -530,7 +530,7 @@ function SettingsContent() {
                             {isConnected || isExpired ? (
                               <button
                                 onClick={() => handleConnectChannel(chan.id, chan.locked)}
-                                className="text-[10px] font-extrabold px-3 py-1.5 rounded-lg uppercase tracking-wider transition-all border bg-slate-50 border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300 text-slate-500 cursor-pointer"
+                                className="text-[10px] font-extrabold px-3 py-1.5 rounded-lg uppercase tracking-wider transition-all border border-[rgba(15,23,42,0.08)] dark:border-white/5 bg-white dark:bg-[#1F2937]/50 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-600 hover:border-rose-200/50 text-slate-500 dark:text-slate-400 cursor-pointer shadow-xs"
                               >
                                 Disconnect
                               </button>
@@ -544,16 +544,16 @@ function SettingsContent() {
                             )}
                           </div>
                         </div>
-
+ 
                         {isConnected && (
-                          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-[11px] text-emerald-750 dark:text-[var(--brand-primary)] font-semibold space-y-0.5">
+                          <div className="rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-3 text-[11px] text-emerald-750 dark:text-[var(--brand-primary)] font-semibold space-y-0.5">
                             <p className="font-extrabold">Facebook Connected</p>
                             <p className="text-[10px] opacity-90">Free Plan Limit Reached: Only 1 channel allowed.</p>
                           </div>
                         )}
-
+ 
                         {isExpired && (
-                          <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-3 text-[11px] text-rose-700 dark:text-rose-455 font-semibold space-y-1">
+                          <div className="rounded-xl border border-rose-500/10 bg-rose-500/5 p-3 text-[11px] text-rose-700 dark:text-rose-455 font-semibold space-y-1">
                             <p className="font-extrabold">Facebook Session Expired</p>
                             <p className="text-[10px] opacity-90">Please reconnect your Facebook Account to authorize publishing.</p>
                             <button
@@ -603,12 +603,12 @@ function SettingsContent() {
           {/* NOTIFICATION SETTINGS */}
           {activeTab === "notifications" && (
             <Card className="rounded-2xl border-0 bg-white dark:bg-[#1F2937] shadow-card hover:shadow-card-hover transition-all">
-              <CardHeader className="pb-3 border-b border-border">
+              <CardHeader className="pb-3 border-b border-slate-200/40 dark:border-white/5">
                 <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-white">Notification Preferences</CardTitle>
               </CardHeader>
               <CardContent className="p-5 md:p-6 space-y-4">
                 <div className="space-y-3">
-                  <div className="flex items-start justify-between border-b pb-3.5">
+                  <div className="flex items-start justify-between border-b border-slate-200/40 dark:border-white/5 pb-3.5">
                     <div>
                       <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
                         Publish Success Alerts
@@ -629,7 +629,7 @@ function SettingsContent() {
                     </button>
                   </div>
 
-                  <div className="flex items-start justify-between border-b pb-3.5">
+                  <div className="flex items-start justify-between border-b border-slate-200/40 dark:border-white/5 pb-3.5">
                     <div>
                       <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
                         Publish Failure Alerts
@@ -677,14 +677,14 @@ function SettingsContent() {
 
           {/* BILLING & PLAN DETAILS */}
           {activeTab === "billing" && (
-            <Card className="rounded-xl border border-border bg-card shadow-sm dark:bg-[#1F2937] overflow-hidden">
-              <CardHeader className="pb-3 border-b border-border bg-slate-50 dark:bg-slate-850/50">
+            <Card className="rounded-xl border border-slate-200/40 dark:border-white/5 bg-white dark:bg-[#1F2937] overflow-hidden shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-200/30 dark:border-white/5 bg-slate-50/50 dark:bg-slate-850/30">
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-sm font-extrabold text-slate-900 dark:text-white">Billing & Plan status</CardTitle>
                     <p className="text-[11px] text-slate-500 mt-0.5">Review subscription limits and compare packages.</p>
                   </div>
-                  <Badge className="bg-[var(--brand-primary)]/20 text-emerald-700 border border-emerald-500/20 text-[9px] uppercase font-black py-0.5 px-2 select-none">
+                  <Badge className="bg-[var(--brand-primary)]/10 text-emerald-700 dark:text-[var(--brand-primary)] border border-emerald-500/10 text-[9px] uppercase font-black py-0.5 px-2 select-none bg-transparent">
                     GrowWave Lite
                   </Badge>
                 </div>
@@ -693,40 +693,40 @@ function SettingsContent() {
                 
                 {/* Free plan metrics check */}
                 <div className="grid gap-4 sm:grid-cols-4">
-                  <div className="p-3 bg-background rounded-xl border border-slate-200 dark:bg-slate-850">
+                  <div className="p-3 bg-slate-50/30 dark:bg-slate-850/20 rounded-xl border border-slate-200/40 dark:border-white/5">
                     <span className="text-[9px] font-black text-[#6B7280] uppercase tracking-wider block">Connected Channels</span>
                     <span className="text-sm font-black text-[#1F2937] block mt-1 dark:text-white">
                       {channels.filter(c => c.connected).length} / 1
                     </span>
                     <Progress value={(channels.filter(c => c.connected).length / 1) * 100} className="h-1 bg-slate-200 mt-2" />
                   </div>
-                  <div className="p-3 bg-background rounded-xl border border-slate-200 dark:bg-slate-850">
+                  <div className="p-3 bg-slate-50/30 dark:bg-slate-850/20 rounded-xl border border-slate-200/40 dark:border-white/5">
                     <span className="text-[9px] font-black text-[#6B7280] uppercase tracking-wider block">AI Requests</span>
                     <span className="text-sm font-black text-[#1F2937] block mt-1 dark:text-white">12 / 50</span>
                     <Progress value={(12 / 50) * 100} className="h-1 bg-slate-200 mt-2" />
                   </div>
-                  <div className="p-3 bg-background rounded-xl border border-slate-200 dark:bg-slate-850">
+                  <div className="p-3 bg-slate-50/30 dark:bg-slate-850/20 rounded-xl border border-slate-200/40 dark:border-white/5">
                     <span className="text-[9px] font-black text-[#6B7280] uppercase tracking-wider block">Scheduled Posts</span>
                     <span className="text-sm font-black text-[#1F2937] block mt-1 dark:text-white">3 / 30</span>
                     <Progress value={(3 / 30) * 100} className="h-1 bg-slate-200 mt-2" />
                   </div>
-                  <div className="p-3 bg-background rounded-xl border border-slate-200 dark:bg-slate-850">
+                  <div className="p-3 bg-slate-50/30 dark:bg-slate-850/20 rounded-xl border border-slate-200/40 dark:border-white/5">
                     <span className="text-[9px] font-black text-[#6B7280] uppercase tracking-wider block">Storage</span>
                     <span className="text-sm font-black text-[#1F2937] block mt-1 dark:text-white">120MB / 500MB</span>
                     <Progress value={(120 / 500) * 100} className="h-1 bg-slate-200 mt-2" />
                   </div>
                 </div>
-
+ 
                 {/* Plan Comparison table */}
                 <div className="space-y-3">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
                     Compare features
                   </span>
                   
-                  <div className="rounded-xl border overflow-hidden">
+                  <div className="rounded-xl border border-slate-200/40 dark:border-white/5 overflow-hidden">
                     <table className="w-full text-xs text-left border-collapse">
                       <thead>
-                        <tr className="bg-slate-100/50 border-b font-extrabold text-slate-500 dark:bg-slate-850">
+                        <tr className="bg-slate-100/50 dark:bg-slate-850/50 border-b border-slate-200/30 dark:border-white/5 font-extrabold text-slate-500">
                           <th className="p-3">Feature Option</th>
                           <th className="p-3 text-center">GrowWave Free</th>
                           <th className="p-3 text-center text-emerald-600">GrowWave Pro</th>
@@ -768,7 +768,7 @@ function SettingsContent() {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="pt-4 border-t border-slate-200/40 dark:border-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="flex items-start gap-2.5 max-w-md">
                     <Info className="size-5 text-emerald-600 shrink-0 mt-0.5" />
                     <p className="text-[10.5px] text-slate-400 leading-normal">
@@ -848,7 +848,7 @@ function SettingsContent() {
                       className={`flex flex-col items-center justify-center p-5 rounded-2xl border transition-all hover:bg-slate-50 dark:hover:bg-slate-800/20 ${
                         theme === "light"
                           ? "border-[var(--brand-primary)] bg-[var(--brand-surface)] text-slate-900 font-extrabold"
-                          : "border-slate-200 dark:border-slate-800 text-slate-500"
+                          : "border-slate-200/40 dark:border-white/5 text-slate-500"
                       }`}
                     >
                       <Sun className="size-6 mb-2 text-amber-500" />
@@ -860,7 +860,7 @@ function SettingsContent() {
                       className={`flex flex-col items-center justify-center p-5 rounded-2xl border transition-all hover:bg-slate-50 dark:hover:bg-slate-800/20 ${
                         theme === "dark"
                           ? "border-[var(--brand-primary)] bg-[var(--brand-primary)]/5 text-[var(--brand-primary)] font-extrabold"
-                          : "border-slate-200 dark:border-slate-800 text-slate-400"
+                          : "border-slate-200/40 dark:border-white/5 text-slate-400"
                       }`}
                     >
                       <Moon className="size-6 mb-2 text-indigo-400" />
@@ -911,7 +911,7 @@ function SettingsContent() {
                       "flex w-full items-center gap-3.5 rounded-xl border p-3 text-left transition-all hover:bg-muted/10 relative",
                       selectedFbPageId === page.id
                         ? "bg-[#1877F2]/5 border-[#1877F2]/40 shadow-sm"
-                        : "border-slate-200 dark:border-slate-800"
+                        : "border-slate-200/40 dark:border-white/5"
                     )}
                   >
                     {page.picture ? (
