@@ -163,20 +163,7 @@ export async function GET(request: NextRequest) {
     // Filter published posts
     const publishedPosts = posts.filter((p) => p.status === "published")
 
-    // Check if the user has zero published posts (empty state trigger)
-    if (publishedPosts.length === 0) {
-      return NextResponse.json({
-        hasPublishedPosts: false,
-        totalPublishedCount: 0,
-        totalAccountsCount: accounts.length,
-        accounts: accounts.map(a => ({
-          platform: a.platform,
-          username: a.username,
-          avatar: a.avatar,
-          status: a.status,
-        }))
-      })
-    }
+
 
     // 2. Exact period intervals bounds calculations
     const now = new Date()
@@ -597,7 +584,7 @@ Ensure all descriptions are highly specific, professional, and directly referenc
     }
 
     return NextResponse.json({
-      hasPublishedPosts: true,
+      hasPublishedPosts: publishedPosts.length > 0,
       timeframe,
       overview,
       timeseries,

@@ -112,15 +112,21 @@ function AnalyticsStatsCard({ title, value, change, trend, icon: Icon, sparkline
         </div>
 
         <div className="flex items-end justify-between gap-2 pt-1">
-          <span className={cn(
-            "inline-flex items-center gap-0.5 text-xs font-semibold rounded-full px-2 py-0.5 ring-1 ring-inset",
-            isUp 
-              ? "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20" 
-              : "bg-rose-500/10 text-rose-600 ring-rose-500/20"
-          )}>
-            {isUp ? <TrendingUp className="size-3 shrink-0" /> : <TrendingDown className="size-3 shrink-0" />}
-            {change}
-          </span>
+          {change ? (
+            <span className={cn(
+              "inline-flex items-center gap-0.5 text-xs font-semibold rounded-full px-2 py-0.5 ring-1 ring-inset",
+              isUp 
+                ? "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20" 
+                : "bg-rose-500/10 text-rose-600 ring-rose-500/20"
+            )}>
+              {isUp ? <TrendingUp className="size-3 shrink-0" /> : <TrendingDown className="size-3 shrink-0" />}
+              {change}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold rounded-full px-2 py-0.5 ring-1 ring-inset bg-slate-500/10 text-slate-500 ring-slate-500/20 dark:bg-zinc-500/10 dark:text-zinc-400 dark:ring-zinc-500/20">
+              —
+            </span>
+          )}
           
           {sparklineData && sparklineData.length > 0 && (
             <div className="shrink-0">
@@ -385,95 +391,7 @@ export default function AnalyticsPage() {
     )
   }
 
-  // EMPTY STATE UI
-  if (data && !data.hasPublishedPosts) {
-    return (
-      <PageTransition>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between border-b border-border/30 pb-5">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">Analytics</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">Real-time engagement metrics across connected channels.</p>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-[10px] font-mono py-0.5 px-2 bg-amber-500/10 text-amber-600 border-amber-500/20">
-                Awaiting First Index
-              </Badge>
-              <Button onClick={handleSyncAnalytics} disabled={syncing} size="sm" className="rounded-xl border border-border/60 hover:bg-muted bg-background text-foreground hover:text-foreground">
-                <RefreshCw className={cn("size-3.5 mr-2", syncing && "animate-spin")} />
-                Refresh Channels
-              </Button>
-            </div>
-          </div>
 
-          {/* Connect Accounts Health Bar */}
-          <div className="flex flex-wrap items-center gap-3 p-3 bg-muted/20 border border-border/40 rounded-xl">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Credentials Heath check:</span>
-            {data.accounts.length === 0 ? (
-              <span className="text-[10px] text-rose-500 font-semibold flex items-center gap-1">
-                <AlertTriangle className="size-3" /> No channels connected yet. Configure endpoints to start publishing.
-              </span>
-            ) : (
-              data.accounts.map((acc: any) => {
-                const config = platformConfig[acc.platform]
-                const Icon = config.icon
-                return (
-                  <Badge key={acc.platform} variant="outline" className="text-[9px] gap-1 py-0.5 px-1.5 border-border/60 text-muted-foreground bg-card/60">
-                    <Icon className="size-2.5" />
-                    {acc.username}
-                    <span className="size-1.5 rounded-full bg-emerald-500 ml-0.5" />
-                  </Badge>
-                )
-              })
-            )}
-          </div>
-
-          {/* Premium Glassmorphic Empty State Frame */}
-          <div className="flex flex-col items-center justify-center text-center p-12 py-16 border border-border/40 rounded-2xl bg-gradient-to-b from-card/80 to-card/20 backdrop-blur-xl shadow-lg space-y-6 max-w-4xl mx-auto">
-            <div className="p-4 bg-primary/5 rounded-full ring-8 ring-primary/2 relative">
-              <div className="absolute inset-0 bg-primary/10 rounded-full animate-ping opacity-25" />
-              <Activity className="size-10 text-primary" />
-            </div>
-            
-            <div className="max-w-md space-y-2">
-              <h3 className="text-xl font-bold text-foreground tracking-tight">Publish your first post to unlock analytics</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Before we can index unified statistics, perform period trends comparison, and generate customized OpenAI strategy observations, you need to publish at least one post through GrowWave.
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-lg pt-2">
-              <Link href="/dashboard/create" className="w-full">
-                <Button size="sm" className="w-full rounded-xl gap-1.5 font-bold shadow-sm">
-                  <Plus className="size-4" /> Create First Post
-                </Button>
-              </Link>
-              <Link href="/dashboard/ai-assistant" className="w-full">
-                <Button size="sm" variant="outline" className="w-full rounded-xl gap-1.5 font-bold border-border/60">
-                  <Sparkles className="size-4 text-pink-500" /> Generate AI Ideas
-                </Button>
-              </Link>
-            </div>
-
-            <div className="border-t border-border/30 pt-6 w-full mt-4">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-4">Supported Social Architectures</span>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 max-w-2xl mx-auto">
-                {Object.entries(platformConfig).map(([id, config]) => (
-                  <div key={id} className="flex flex-col items-center p-3.5 border border-border/50 bg-card rounded-xl shadow-xs">
-                    <div className={cn("size-8 rounded-lg flex items-center justify-center text-white shrink-0 shadow-sm", config.color)}>
-                      <config.icon className="size-4" />
-                    </div>
-                    <span className="text-[10px] font-bold text-foreground mt-2">{config.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </PageTransition>
-    )
-  }
 
   // MAIN ANALYTICS HUB DATA DESTRUCTURE
   const {
@@ -751,161 +669,173 @@ export default function AnalyticsPage() {
               </CardHeader>
               
               <CardContent className="relative p-0 sm:px-4 pb-4 overflow-visible">
-                {/* SVG canvas */}
-                <svg
-                  ref={svgRef}
-                  width={chartDimensions.width}
-                  height={chartDimensions.height}
-                  onMouseMove={handleMouseMove}
-                  onMouseLeave={() => setHoveredIndex(null)}
-                  className="overflow-visible select-none cursor-crosshair"
-                >
-                  <defs>
-                    <linearGradient id="chartReachGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10b981" stopOpacity="0.15" />
-                      <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
-                    </linearGradient>
-                    <linearGradient id="chartEngGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#6366f1" stopOpacity="0.15" />
-                      <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
-                    </linearGradient>
-                    <linearGradient id="chartClickGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.15" />
-                      <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.0" />
-                    </linearGradient>
-                  </defs>
+                {!data.hasPublishedPosts ? (
+                  <div className="flex flex-col items-center justify-center text-center p-12 py-16 space-y-3 min-h-[300px]">
+                    <Activity className="size-8 text-muted-foreground opacity-50" />
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">No analytics data available yet</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Publish content to start tracking performance</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* SVG canvas */}
+                    <svg
+                      ref={svgRef}
+                      width={chartDimensions.width}
+                      height={chartDimensions.height}
+                      onMouseMove={handleMouseMove}
+                      onMouseLeave={() => setHoveredIndex(null)}
+                      className="overflow-visible select-none cursor-crosshair"
+                    >
+                      <defs>
+                        <linearGradient id="chartReachGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10b981" stopOpacity="0.15" />
+                          <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                        </linearGradient>
+                        <linearGradient id="chartEngGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#6366f1" stopOpacity="0.15" />
+                          <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
+                        </linearGradient>
+                        <linearGradient id="chartClickGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.15" />
+                          <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.0" />
+                        </linearGradient>
+                      </defs>
 
-                  {/* Grid Lines */}
-                  {gridLines.map((line, i) => (
-                    <g key={i} className="opacity-40">
-                      <line
-                        x1={paddingLeft}
-                        y1={line.y}
-                        x2={chartDimensions.width - paddingRight}
-                        y2={line.y}
-                        stroke="currentColor"
-                        strokeWidth="1"
-                        strokeDasharray="4 4"
-                        className="text-border/60"
-                      />
-                      <text
-                        x={paddingLeft - 10}
-                        y={line.y + 4}
-                        textAnchor="end"
-                        className="fill-muted-foreground text-[10px] font-semibold"
-                      >
-                        {formatYValue(line.val)}
-                      </text>
-                    </g>
-                  ))}
-
-                  {/* Draw Lines */}
-                  {count > 1 && (
-                    <>
-                      <path
-                        d={fillAreaPath}
-                        fill={
-                          activeChartSeries === "reach"
-                            ? "url(#chartReachGrad)"
-                            : activeChartSeries === "engagement"
-                              ? "url(#chartEngGrad)"
-                              : "url(#chartClickGrad)"
-                        }
-                      />
-                      <path
-                        d={strokePath}
-                        fill="none"
-                        stroke={
-                          activeChartSeries === "reach"
-                            ? "#10b981"
-                            : activeChartSeries === "engagement"
-                              ? "#6366f1"
-                              : "#f59e0b"
-                        }
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-
-                      {/* X Labels */}
-                      {timeseries.map((d: any, i: number) => {
-                        if (i % labelStep !== 0 && i !== count - 1) return null
-                        return (
+                      {/* Grid Lines */}
+                      {gridLines.map((line, i) => (
+                        <g key={i} className="opacity-40">
+                          <line
+                            x1={paddingLeft}
+                            y1={line.y}
+                            x2={chartDimensions.width - paddingRight}
+                            y2={line.y}
+                            stroke="currentColor"
+                            strokeWidth="1"
+                            strokeDasharray="4 4"
+                            className="text-border/60"
+                          />
                           <text
-                            key={i}
-                            x={getX(i)}
-                            y={chartDimensions.height - paddingBottom + 20}
-                            textAnchor="middle"
+                            x={paddingLeft - 10}
+                            y={line.y + 4}
+                            textAnchor="end"
                             className="fill-muted-foreground text-[10px] font-semibold"
                           >
-                            {d.date}
+                            {formatYValue(line.val)}
                           </text>
-                        )
-                      })}
+                        </g>
+                      ))}
 
-                      {/* Hover Node highlight */}
-                      {hoveredIndex !== null && (
-                        <g>
-                          <line
-                            x1={getX(hoveredIndex)}
-                            y1={paddingTop}
-                            x2={getX(hoveredIndex)}
-                            y2={paddingTop + chartHeight}
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            className="text-muted-foreground/30"
-                          />
-                          <circle
-                            cx={getX(hoveredIndex)}
-                            cy={getY(
-                              activeChartSeries === "reach"
-                                ? timeseries[hoveredIndex].reach
-                                : activeChartSeries === "engagement"
-                                  ? timeseries[hoveredIndex].engagement
-                                  : timeseries[hoveredIndex].clicks
-                            )}
-                            r="5"
+                      {/* Draw Lines */}
+                      {count > 1 && (
+                        <>
+                          <path
+                            d={fillAreaPath}
                             fill={
+                              activeChartSeries === "reach"
+                                ? "url(#chartReachGrad)"
+                                : activeChartSeries === "engagement"
+                                  ? "url(#chartEngGrad)"
+                                  : "url(#chartClickGrad)"
+                            }
+                          />
+                          <path
+                            d={strokePath}
+                            fill="none"
+                            stroke={
                               activeChartSeries === "reach"
                                 ? "#10b981"
                                 : activeChartSeries === "engagement"
                                   ? "#6366f1"
                                   : "#f59e0b"
                             }
-                            stroke="var(--bg-card)"
-                            strokeWidth="1.8"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
                           />
-                        </g>
-                      )}
-                    </>
-                  )}
-                </svg>
 
-                {/* Floating Tooltip */}
-                {hoveredIndex !== null && hoveredPoint && (
-                  <div
-                    className="absolute z-10 pointer-events-none rounded-lg border border-border bg-background/95 p-3 shadow-xl backdrop-blur-xs flex flex-col gap-1 w-[140px] text-xs font-semibold"
-                    style={{
-                      left: `${tooltipPos.x}px`,
-                      top: `${tooltipPos.y}px`
-                    }}
-                  >
-                    <span className="text-[10px] text-muted-foreground uppercase border-b border-border/40 pb-1 mb-1 block font-bold">
-                      {hoveredPoint.date}
-                    </span>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Reach</span>
-                      <span className="font-bold text-foreground">{hoveredPoint.reach.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Engagement</span>
-                      <span className="font-bold text-foreground">{hoveredPoint.engagement.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Clicks</span>
-                      <span className="font-bold text-foreground">{hoveredPoint.clicks.toLocaleString()}</span>
-                    </div>
-                  </div>
+                          {/* X Labels */}
+                          {timeseries.map((d: any, i: number) => {
+                            if (i % labelStep !== 0 && i !== count - 1) return null
+                            return (
+                              <text
+                                key={i}
+                                x={getX(i)}
+                                y={chartDimensions.height - paddingBottom + 20}
+                                textAnchor="middle"
+                                className="fill-muted-foreground text-[10px] font-semibold"
+                              >
+                                {d.date}
+                              </text>
+                            )
+                          })}
+
+                          {/* Hover Node highlight */}
+                          {hoveredIndex !== null && (
+                            <g>
+                              <line
+                                x1={getX(hoveredIndex)}
+                                y1={paddingTop}
+                                x2={getX(hoveredIndex)}
+                                y2={paddingTop + chartHeight}
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                className="text-muted-foreground/30"
+                              />
+                              <circle
+                                cx={getX(hoveredIndex)}
+                                cy={getY(
+                                  activeChartSeries === "reach"
+                                    ? timeseries[hoveredIndex].reach
+                                    : activeChartSeries === "engagement"
+                                      ? timeseries[hoveredIndex].engagement
+                                      : timeseries[hoveredIndex].clicks
+                                )}
+                                r="5"
+                                fill={
+                                  activeChartSeries === "reach"
+                                    ? "#10b981"
+                                    : activeChartSeries === "engagement"
+                                      ? "#6366f1"
+                                      : "#f59e0b"
+                                }
+                                stroke="var(--bg-card)"
+                                strokeWidth="1.8"
+                              />
+                            </g>
+                          )}
+                        </>
+                      )}
+                    </svg>
+
+                    {/* Floating Tooltip */}
+                    {hoveredIndex !== null && hoveredPoint && (
+                      <div
+                        className="absolute z-10 pointer-events-none rounded-lg border border-border bg-background/95 p-3 shadow-xl backdrop-blur-xs flex flex-col gap-1 w-[140px] text-xs font-semibold"
+                        style={{
+                          left: `${tooltipPos.x}px`,
+                          top: `${tooltipPos.y}px`
+                        }}
+                      >
+                        <span className="text-[10px] text-muted-foreground uppercase border-b border-border/40 pb-1 mb-1 block font-bold">
+                          {hoveredPoint.date}
+                        </span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Reach</span>
+                          <span className="font-bold text-foreground">{hoveredPoint.reach.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Engagement</span>
+                          <span className="font-bold text-foreground">{hoveredPoint.engagement.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Clicks</span>
+                          <span className="font-bold text-foreground">{hoveredPoint.clicks.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -985,57 +915,64 @@ export default function AnalyticsPage() {
                 <Badge variant="outline" className="border-border/60 text-muted-foreground">Real-time Feed</Badge>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="divide-y divide-border/40">
-                  {topPerformingContent.slice(0, 5).map((post: any, idx: number) => (
-                    <div key={post.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4.5 hover:bg-muted/20 transition-colors">
-                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                        <span className="text-xs font-bold text-muted-foreground/80 font-mono w-5">#{idx + 1}</span>
-                        {post.thumbnail ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={post.thumbnail} alt="" className="size-11 rounded-lg object-cover border border-border/50 shrink-0 shadow-sm" />
-                        ) : (
-                          <div className="size-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-border/50">
-                            <BookOpen className="size-4.5" />
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-foreground truncate max-w-sm sm:max-w-md">{post.title || post.content}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            {post.platforms.map((plat: string) => {
-                              const config = platformConfig[plat]
-                              if (!config) return null
-                              const Icon = config.icon
-                              return (
-                                <Badge key={plat} variant="outline" className="text-[8px] font-bold uppercase tracking-wider py-0 px-1 border-border/60 text-muted-foreground bg-card/60 flex items-center gap-0.5">
-                                  <Icon className="size-2 shrink-0" />
-                                  {config.label}
-                                </Badge>
-                              )
-                            })}
-                            <span className="text-[9px] text-muted-foreground font-semibold">
-                              Published {new Date(post.publishDate).toLocaleDateString()}
-                            </span>
+                {!data.hasPublishedPosts ? (
+                  <div className="flex flex-col items-center justify-center text-center p-8 py-12 space-y-2 text-xs">
+                    <p className="font-semibold text-foreground">No published posts found</p>
+                    <p className="text-muted-foreground">Campaigns will rank here once published.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border/40">
+                    {topPerformingContent.slice(0, 5).map((post: any, idx: number) => (
+                      <div key={post.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4.5 hover:bg-muted/20 transition-colors">
+                        <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                          <span className="text-xs font-bold text-muted-foreground/80 font-mono w-5">#{idx + 1}</span>
+                          {post.thumbnail ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={post.thumbnail} alt="" className="size-11 rounded-lg object-cover border border-border/50 shrink-0 shadow-sm" />
+                          ) : (
+                            <div className="size-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-border/50">
+                              <BookOpen className="size-4.5" />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-foreground truncate max-w-sm sm:max-w-md">{post.title || post.content}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              {post.platforms.map((plat: string) => {
+                                const config = platformConfig[plat]
+                                if (!config) return null
+                                const Icon = config.icon
+                                return (
+                                  <Badge key={plat} variant="outline" className="text-[8px] font-bold uppercase tracking-wider py-0 px-1 border-border/60 text-muted-foreground bg-card/60 flex items-center gap-0.5">
+                                    <Icon className="size-2 shrink-0" />
+                                    {config.label}
+                                  </Badge>
+                                )
+                              })}
+                              <span className="text-[9px] text-muted-foreground font-semibold">
+                                Published {new Date(post.publishDate).toLocaleDateString()}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-5 sm:gap-8 self-end sm:self-auto shrink-0 font-mono text-xs font-bold text-foreground">
-                        <div className="text-right">
-                          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block font-sans">Reach</span>
-                          {post.reach.toLocaleString()}
-                        </div>
-                        <div className="text-right">
-                          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block font-sans">Likes</span>
-                          {post.likes.toLocaleString()}
-                        </div>
-                        <div className="text-right">
-                          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block font-sans">Clicks</span>
-                          {post.clicks.toLocaleString()}
+                        <div className="flex items-center gap-5 sm:gap-8 self-end sm:self-auto shrink-0 font-mono text-xs font-bold text-foreground">
+                          <div className="text-right">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block font-sans">Reach</span>
+                            {post.reach.toLocaleString()}
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block font-sans">Likes</span>
+                            {post.likes.toLocaleString()}
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block font-sans">Clicks</span>
+                            {post.clicks.toLocaleString()}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1073,35 +1010,42 @@ export default function AnalyticsPage() {
               </CardHeader>
 
               <CardContent className="p-0">
-                <div className="divide-y divide-border/40">
-                  {rankings[rankingsTab].map((post: any, idx: number) => {
-                    const renderRankVal = () => {
-                      if (rankingsTab === "mostReach") return `${post.reach.toLocaleString()} reach`
-                      if (rankingsTab === "mostEngagement") return `${post.engagement.toLocaleString()} engagement`
-                      if (rankingsTab === "mostClicks") return `${post.clicks.toLocaleString()} clicks`
-                      if (rankingsTab === "mostShares") return `${post.shares.toLocaleString()} shares`
-                      if (rankingsTab === "mostSaves") return `${post.saves.toLocaleString()} saves`
-                      return `${post.comments.toLocaleString()} comments`
-                    }
+                {!data.hasPublishedPosts ? (
+                  <div className="flex flex-col items-center justify-center text-center p-8 py-12 space-y-2 text-xs">
+                    <p className="font-semibold text-foreground">No content ranked yet</p>
+                    <p className="text-muted-foreground">Publish content to calculate platform rankings.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border/40">
+                    {rankings[rankingsTab].map((post: any, idx: number) => {
+                      const renderRankVal = () => {
+                        if (rankingsTab === "mostReach") return `${post.reach.toLocaleString()} reach`
+                        if (rankingsTab === "mostEngagement") return `${post.engagement.toLocaleString()} engagement`
+                        if (rankingsTab === "mostClicks") return `${post.clicks.toLocaleString()} clicks`
+                        if (rankingsTab === "mostShares") return `${post.shares.toLocaleString()} shares`
+                        if (rankingsTab === "mostSaves") return `${post.saves.toLocaleString()} saves`
+                        return `${post.comments.toLocaleString()} comments`
+                      }
 
-                    return (
-                      <div key={post.id} className="flex items-center justify-between gap-4 px-4.5 py-3 hover:bg-muted/10 transition-colors">
-                        <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                          <span className="text-xs font-bold text-muted-foreground/80 font-mono w-5">#{idx + 1}</span>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-bold text-foreground truncate max-w-md">{post.title || post.content}</p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5 uppercase font-bold tracking-wide">
-                              {post.platforms.join(" • ")}
-                            </p>
+                      return (
+                        <div key={post.id} className="flex items-center justify-between gap-4 px-4.5 py-3 hover:bg-muted/10 transition-colors">
+                          <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                            <span className="text-xs font-bold text-muted-foreground/80 font-mono w-5">#{idx + 1}</span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-bold text-foreground truncate max-w-md">{post.title || post.content}</p>
+                              <p className="text-[10px] text-muted-foreground mt-0.5 uppercase font-bold tracking-wide">
+                                {post.platforms.join(" • ")}
+                              </p>
+                            </div>
                           </div>
+                          <span className="shrink-0 text-xs font-bold text-primary font-mono bg-primary/5 px-2.5 py-1 rounded-lg border border-primary/10">
+                            {renderRankVal()}
+                          </span>
                         </div>
-                        <span className="shrink-0 text-xs font-bold text-primary font-mono bg-primary/5 px-2.5 py-1 rounded-lg border border-primary/10">
-                          {renderRankVal()}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
+                      )
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1126,36 +1070,45 @@ export default function AnalyticsPage() {
               </CardHeader>
 
               <CardContent className="pt-4 space-y-4 relative">
-                {/* Pulse glowing micro actions info */}
-                <div className="space-y-3">
-                  <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider block">AI Insights</span>
-                  {aiIntelligence.map((ins: string, idx: number) => (
-                    <div key={idx} className="flex gap-2.5 p-3 rounded-lg border border-border/50 bg-card text-xs leading-relaxed font-semibold">
-                      <div className="size-5 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 font-bold">
-                        {idx + 1}
-                      </div>
-                      <span className="text-foreground/90">{ins}</span>
+                {!data.hasPublishedPosts ? (
+                  <div className="flex flex-col items-center justify-center text-center p-6 py-8 space-y-2 text-xs">
+                    <p className="font-semibold text-foreground">AI Strategy Insights unavailable</p>
+                    <p className="text-muted-foreground text-center">Insights compile after posts are registered.</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Pulse glowing micro actions info */}
+                    <div className="space-y-3">
+                      <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider block">AI Insights</span>
+                      {aiIntelligence.map((ins: string, idx: number) => (
+                        <div key={idx} className="flex gap-2.5 p-3 rounded-lg border border-border/50 bg-card text-xs leading-relaxed font-semibold">
+                          <div className="size-5 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 font-bold">
+                            {idx + 1}
+                          </div>
+                          <span className="text-foreground/90">{ins}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
 
-                <div className="border-t border-border/30 pt-4 space-y-3">
-                  <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider block">AI Recommendations</span>
-                  {contentRecommendations.map((rec: any, idx: number) => (
-                    <div key={idx} className="p-3 rounded-lg border border-border/60 bg-muted/10 space-y-1.5 text-xs font-semibold">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-foreground flex items-center gap-1">
-                          <CheckCircle2 className="size-3.5 text-primary shrink-0" />
-                          {rec.title}
-                        </span>
-                        <Badge variant="outline" className="text-[8px] uppercase tracking-wider font-semibold py-0 border-primary/20 text-primary">
-                          {rec.type}
-                        </Badge>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">{rec.desc}</p>
+                    <div className="border-t border-border/30 pt-4 space-y-3">
+                      <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider block">AI Recommendations</span>
+                      {contentRecommendations.map((rec: any, idx: number) => (
+                        <div key={idx} className="p-3 rounded-lg border border-border/60 bg-muted/10 space-y-1.5 text-xs font-semibold">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-foreground flex items-center gap-1">
+                              <CheckCircle2 className="size-3.5 text-primary shrink-0" />
+                              {rec.title}
+                            </span>
+                            <Badge variant="outline" className="text-[8px] uppercase tracking-wider font-semibold py-0 border-primary/20 text-primary">
+                              {rec.type}
+                            </Badge>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">{rec.desc}</p>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </>
+                )}
 
                 <Link href="/dashboard/ai-assistant" className="block pt-1">
                   <Button size="xs" className="w-full rounded-lg font-bold text-xs">
@@ -1178,37 +1131,45 @@ export default function AnalyticsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-4 space-y-4 text-xs font-semibold">
-                
-                {/* Insights metrics row grid */}
-                <div className="grid grid-cols-3 gap-2 text-center bg-muted/30 border border-border/40 py-2.5 rounded-xl">
-                  <div>
-                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Avg Reach</span>
-                    <span className="text-sm font-bold text-foreground font-mono mt-0.5 block">{publishingInsights.avgReach.toLocaleString()}</span>
+                {!data.hasPublishedPosts ? (
+                  <div className="flex flex-col items-center justify-center text-center p-6 py-8 space-y-2 text-xs font-medium">
+                    <p className="font-semibold text-foreground">Optimization slots not computed</p>
+                    <p className="text-muted-foreground text-center">Publish posts to analyze optimal time schedules.</p>
                   </div>
-                  <div>
-                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Engagement</span>
-                    <span className="text-sm font-bold text-foreground font-mono mt-0.5 block">{publishingInsights.avgEngagement}%</span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Click Rate</span>
-                    <span className="text-sm font-bold text-foreground font-mono mt-0.5 block">{publishingInsights.avgClickRate}%</span>
-                  </div>
-                </div>
+                ) : (
+                  <>
+                    {/* Insights metrics row grid */}
+                    <div className="grid grid-cols-3 gap-2 text-center bg-muted/30 border border-border/40 py-2.5 rounded-xl">
+                      <div>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Avg Reach</span>
+                        <span className="text-sm font-bold text-foreground font-mono mt-0.5 block">{publishingInsights.avgReach.toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Engagement</span>
+                        <span className="text-sm font-bold text-foreground font-mono mt-0.5 block">{publishingInsights.avgEngagement}%</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Click Rate</span>
+                        <span className="text-sm font-bold text-foreground font-mono mt-0.5 block">{publishingInsights.avgClickRate}%</span>
+                      </div>
+                    </div>
 
-                <div className="space-y-2.5 pt-1">
-                  <div className="flex items-center justify-between p-2.5 border border-border/40 rounded-lg bg-card/30">
-                    <span className="text-muted-foreground">Best Posting Day</span>
-                    <Badge className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/10 rounded-lg font-bold">{publishingInsights.bestDay}</Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-2.5 border border-border/40 rounded-lg bg-card/30">
-                    <span className="text-muted-foreground">Best Posting Hour</span>
-                    <Badge className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/10 rounded-lg font-bold">{publishingInsights.bestHour}</Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-2.5 border border-border/40 rounded-lg bg-card/30">
-                    <span className="text-muted-foreground">Worst Performing Day</span>
-                    <Badge className="bg-rose-500/10 text-rose-600 border border-rose-500/20 hover:bg-rose-500/10 rounded-lg font-bold">{publishingInsights.worstDay}</Badge>
-                  </div>
-                </div>
+                    <div className="space-y-2.5 pt-1">
+                      <div className="flex items-center justify-between p-2.5 border border-border/40 rounded-lg bg-card/30">
+                        <span className="text-muted-foreground">Best Posting Day</span>
+                        <Badge className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/10 rounded-lg font-bold">{publishingInsights.bestDay}</Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-2.5 border border-border/40 rounded-lg bg-card/30">
+                        <span className="text-muted-foreground">Best Posting Hour</span>
+                        <Badge className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/10 rounded-lg font-bold">{publishingInsights.bestHour}</Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-2.5 border border-border/40 rounded-lg bg-card/30">
+                        <span className="text-muted-foreground">Worst Performing Day</span>
+                        <Badge className="bg-rose-500/10 text-rose-600 border border-rose-500/20 hover:bg-rose-500/10 rounded-lg font-bold">{publishingInsights.worstDay}</Badge>
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
 
@@ -1221,63 +1182,71 @@ export default function AnalyticsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4 space-y-4 text-xs font-semibold">
-                
-                {/* Growth Rates metrics */}
-                <div className="space-y-1.5">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Followers Growth Velocity</span>
-                  <div className="grid grid-cols-3 gap-2 font-mono text-xs font-bold text-foreground">
-                    <div className="bg-muted/20 border border-border/40 rounded-lg p-2 text-center">
-                      <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider font-sans block">Daily</span>
-                      +{audienceDetails.growthRate.daily}
-                    </div>
-                    <div className="bg-muted/20 border border-border/40 rounded-lg p-2 text-center">
-                      <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider font-sans block">Weekly</span>
-                      +{audienceDetails.growthRate.weekly}
-                    </div>
-                    <div className="bg-muted/20 border border-border/40 rounded-lg p-2 text-center">
-                      <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider font-sans block">Monthly</span>
-                      +{audienceDetails.growthRate.monthly}
-                    </div>
+                {!data.hasPublishedPosts ? (
+                  <div className="flex flex-col items-center justify-center text-center p-6 py-8 space-y-2 text-xs font-medium">
+                    <p className="font-semibold text-foreground">Cohort activity data will compile</p>
+                    <p className="text-muted-foreground text-center">once platform feeds sync.</p>
                   </div>
-                </div>
-
-                {/* Audience active time grid visualization */}
-                <div className="space-y-2 pt-1">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Audience Activity Density</span>
-                  <div className="flex items-end gap-1 h-14 pt-2 bg-muted/10 border border-border/40 rounded-xl px-2">
-                    {audienceDetails.activityByHour.filter((_: any, idx: number) => idx % 2 === 0).map((act: any, i: number) => (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
-                        <div
-                          className="w-full bg-primary/75 rounded-sm transition-all group-hover:bg-primary"
-                          style={{ height: `${(act.activityPercentage / 100) * 40}px` }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex justify-between text-[8px] font-bold text-muted-foreground px-1 uppercase">
-                    <span>12 AM</span>
-                    <span>6 AM</span>
-                    <span>12 PM</span>
-                    <span>6 PM</span>
-                    <span>11 PM</span>
-                  </div>
-                </div>
-
-                {/* Audience retention progress bars */}
-                <div className="space-y-2 pt-1">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Cohorts Retention</span>
-                  <div className="space-y-2">
-                    {audienceDetails.retention.slice(0, 3).map((ret: any) => (
-                      <div key={ret.week} className="space-y-1">
-                        <div className="flex justify-between text-[10px]">
-                          <span className="text-muted-foreground font-semibold">{ret.week} Retention</span>
-                          <span className="text-foreground font-bold">{ret.retention}%</span>
+                ) : (
+                  <>
+                    {/* Growth Rates metrics */}
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Followers Growth Velocity</span>
+                      <div className="grid grid-cols-3 gap-2 font-mono text-xs font-bold text-foreground">
+                        <div className="bg-muted/20 border border-border/40 rounded-lg p-2 text-center">
+                          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider font-sans block">Daily</span>
+                          +{audienceDetails.growthRate.daily}
                         </div>
-                        <Progress value={ret.retention} className="h-1.5 rounded-full" />
+                        <div className="bg-muted/20 border border-border/40 rounded-lg p-2 text-center">
+                          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider font-sans block">Weekly</span>
+                          +{audienceDetails.growthRate.weekly}
+                        </div>
+                        <div className="bg-muted/20 border border-border/40 rounded-lg p-2 text-center">
+                          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider font-sans block">Monthly</span>
+                          +{audienceDetails.growthRate.monthly}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </div>
+
+                    {/* Audience active time grid visualization */}
+                    <div className="space-y-2 pt-1">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Audience Activity Density</span>
+                      <div className="flex items-end gap-1 h-14 pt-2 bg-muted/10 border border-border/40 rounded-xl px-2">
+                        {audienceDetails.activityByHour.filter((_: any, idx: number) => idx % 2 === 0).map((act: any, i: number) => (
+                          <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
+                            <div
+                              className="w-full bg-primary/75 rounded-sm transition-all group-hover:bg-primary"
+                              style={{ height: `${(act.activityPercentage / 100) * 40}px` }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex justify-between text-[8px] font-bold text-muted-foreground px-1 uppercase">
+                        <span>12 AM</span>
+                        <span>6 AM</span>
+                        <span>12 PM</span>
+                        <span>6 PM</span>
+                        <span>11 PM</span>
+                      </div>
+                    </div>
+
+                    {/* Audience retention progress bars */}
+                    <div className="space-y-2 pt-1">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Cohorts Retention</span>
+                      <div className="space-y-2">
+                        {audienceDetails.retention.slice(0, 3).map((ret: any) => (
+                          <div key={ret.week} className="space-y-1">
+                            <div className="flex justify-between text-[10px]">
+                              <span className="text-muted-foreground font-semibold">{ret.week} Retention</span>
+                              <span className="text-foreground font-bold">{ret.retention}%</span>
+                            </div>
+                            <Progress value={ret.retention} className="h-1.5 rounded-full" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
 
@@ -1290,37 +1259,45 @@ export default function AnalyticsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4 space-y-4 text-xs font-semibold">
-                
-                {/* Interaction breakdown charts */}
-                <div className="space-y-2.5">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Engagement Shares Breakdown</span>
-                  <div className="h-4 w-full flex overflow-hidden rounded-full border border-border/50 shadow-inner">
-                    <div className="bg-emerald-500 h-full" style={{ width: `${audienceBehavior.interactionPattern.likesPercentage}%` }} title="Likes" />
-                    <div className="bg-indigo-500 h-full" style={{ width: `${audienceBehavior.interactionPattern.commentsPercentage}%` }} title="Comments" />
-                    <div className="bg-amber-500 h-full" style={{ width: `${audienceBehavior.interactionPattern.sharesPercentage}%` }} title="Shares" />
+                {!data.hasPublishedPosts ? (
+                  <div className="flex flex-col items-center justify-center text-center p-6 py-8 space-y-2 text-xs font-medium">
+                    <p className="font-semibold text-foreground">Behavior patterns will compile</p>
+                    <p className="text-muted-foreground text-center font-medium">once engagement is registered.</p>
                   </div>
-                  <div className="flex justify-between text-[9px] font-bold uppercase">
-                    <span className="text-emerald-500 flex items-center gap-1">
-                      <span className="size-1.5 rounded-full bg-emerald-500" />
-                      Likes {audienceBehavior.interactionPattern.likesPercentage}%
-                    </span>
-                    <span className="text-indigo-500 flex items-center gap-1">
-                      <span className="size-1.5 rounded-full bg-indigo-500" />
-                      Comments {audienceBehavior.interactionPattern.commentsPercentage}%
-                    </span>
-                    <span className="text-amber-500 flex items-center gap-1">
-                      <span className="size-1.5 rounded-full bg-amber-500" />
-                      Shares {audienceBehavior.interactionPattern.sharesPercentage}%
-                    </span>
-                  </div>
-                </div>
+                ) : (
+                  <>
+                    {/* Interaction breakdown charts */}
+                    <div className="space-y-2.5">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Engagement Shares Breakdown</span>
+                      <div className="h-4 w-full flex overflow-hidden rounded-full border border-border/50 shadow-inner">
+                        <div className="bg-emerald-500 h-full" style={{ width: `${audienceBehavior.interactionPattern.likesPercentage}%` }} title="Likes" />
+                        <div className="bg-indigo-500 h-full" style={{ width: `${audienceBehavior.interactionPattern.commentsPercentage}%` }} title="Comments" />
+                        <div className="bg-amber-500 h-full" style={{ width: `${audienceBehavior.interactionPattern.sharesPercentage}%` }} title="Shares" />
+                      </div>
+                      <div className="flex justify-between text-[9px] font-bold uppercase">
+                        <span className="text-emerald-500 flex items-center gap-1">
+                          <span className="size-1.5 rounded-full bg-emerald-500" />
+                          Likes {audienceBehavior.interactionPattern.likesPercentage}%
+                        </span>
+                        <span className="text-indigo-500 flex items-center gap-1">
+                          <span className="size-1.5 rounded-full bg-indigo-500" />
+                          Comments {audienceBehavior.interactionPattern.commentsPercentage}%
+                        </span>
+                        <span className="text-amber-500 flex items-center gap-1">
+                          <span className="size-1.5 rounded-full bg-amber-500" />
+                          Shares {audienceBehavior.interactionPattern.sharesPercentage}%
+                        </span>
+                      </div>
+                    </div>
 
-                <div className="space-y-1.5 pt-1">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Audience Channel Sentiment</span>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed font-medium bg-muted/20 border border-border/40 p-2.5 rounded-lg">
-                    {audienceBehavior.platformPreferences}
-                  </p>
-                </div>
+                    <div className="space-y-1.5 pt-1">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Audience Channel Sentiment</span>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed font-medium bg-muted/20 border border-border/40 p-2.5 rounded-lg">
+                        {audienceBehavior.platformPreferences}
+                      </p>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
 
